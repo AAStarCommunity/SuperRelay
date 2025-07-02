@@ -2,6 +2,314 @@
 
 本文档提供 Super-Relay 项目的部署、初始化和维护指南，面向运维和开发同学。
 
+## 开发环境准备
+
+### 1. 核心工具安装
+
+#### Rust 工具链
+```bash
+# 安装 Rust (使用 rustup)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+# 安装 nightly 工具链 (pre-commit hooks 需要)
+rustup toolchain add nightly
+
+# 验证安装
+rustc --version
+cargo --version
+rustfmt +nightly --version
+```
+
+#### Node.js 和包管理器
+```bash
+# 安装 Node.js 23+ (推荐使用 nvm)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+nvm install 23
+nvm use 23
+
+# 安装 pnpm (项目使用 pnpm，禁止使用 npm)
+npm install -g pnpm
+
+# 验证版本
+node --version  # 应该是 v23.x.x
+pnpm --version
+```
+
+#### 区块链开发工具
+```bash
+# 安装 Foundry (cast, anvil, forge)
+curl -L https://foundry.paradigm.xyz | bash
+source ~/.bashrc
+foundryup
+
+# 验证安装
+cast --version
+anvil --version
+forge --version
+```
+
+#### Git 提交工具
+```bash
+# 安装 cocogitto (cog) - commit 格式验证
+cargo install cocogitto
+
+# 安装 buf (protobuf 工具)
+# macOS
+brew install buf
+
+# Linux
+BIN="/usr/local/bin" && \
+VERSION="1.28.1" && \
+curl -sSL \
+  "https://github.com/bufbuild/buf/releases/download/v${VERSION}/buf-$(uname -s)-$(uname -m)" \
+  -o "${BIN}/buf" && \
+chmod +x "${BIN}/buf"
+
+# 验证安装
+cog --version
+buf --version
+```
+
+### 2. 项目初始化
+
+#### 代码获取和分支设置
+```bash
+# 克隆项目
+git clone https://github.com/AAStarCommunity/SuperRelay
+cd super-relay
+
+# 设置默认分支为 feature/super-relay
+git checkout feature/super-relay
+git submodule update --init --recursive
+
+# 验证分支
+git branch -a
+```
+
+#### Pre-commit Hooks 配置
+项目使用 cargo-husky 管理 git hooks，在首次构建时会自动安装：
+
+```bash
+# 构建项目会自动设置 hooks
+cargo build
+
+# 验证 hooks 安装
+ls -la .git/hooks/
+```
+
+**Pre-commit 检查包括**:
+- `rustfmt +nightly` - 代码格式化
+- `clippy` - Rust 代码检查
+- `buf` - Protobuf 文件验证
+- `cargo-sort` - Cargo.toml 依赖排序
+- `cog` - Conventional commit 格式验证
+
+### 3. 链上测试环境设置
+
+#### 启动本地测试节点
+```bash
+# 启动 Anvil 本地节点 (后台运行)
+anvil --host 0.0.0.0 --port 8545 &
+
+# 验证节点运行
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+  http://localhost:8545
+```
+
+#### EntryPoint 合约部署
+```bash
+# 使用项目脚本部署 EntryPoint 合约
+./scripts/deploy_entrypoint.sh
+
+# 或手动部署 (如果需要)
+cast send --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+  --rpc-url http://localhost:8545 \
+  --create 0x608060405234801561001057600080fd5b50...  # EntryPoint 合约字节码
+
+# 保存 EntryPoint 地址
+echo "0x5FbDB2315678afecb367f032d93F642f64180aa3" > .entrypoint_address
+```
+
+#### 测试账户资金准备
+```bash
+# 使用增强版资金管理脚本
+./scripts/fund_paymaster.sh status
+
+# 如果余额不足，自动补充
+./scripts/fund_paymaster.sh auto-rebalance
+
+# 开启实时监控 (可选)
+./scripts/fund_paymaster.sh monitor 60
+```
+
+### 4. 环境变量配置
+
+#### 基础环境变量
+创建 `.env` 文件：
+```bash
+# Paymaster 私钥 (测试环境)
+PAYMASTER_PRIVATE_KEY=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+
+# 日志级别
+RUST_LOG=info,rundler=debug,rundler_paymaster_relay=trace
+
+# RPC 配置
+ANVIL_URL=http://localhost:8545
+
+# 可选：AWS KMS 配置 (生产环境)
+# AWS_REGION=us-east-1
+# AWS_ACCESS_KEY_ID=your_key
+# AWS_SECRET_ACCESS_KEY=your_secret
+```
+
+#### 项目配置文件
+确保以下配置文件存在：
+
+```bash
+# 检查配置文件
+ls -la config/
+# 应该包含：
+# - paymaster-policies.toml
+# - paymaster-policies-prod.toml  
+# - production.toml
+```
+
+### 5. 编译和测试验证
+
+#### 完整构建流程
+```bash
+# Debug 构建
+cargo build --all
+
+# Release 构建 (生产环境)
+cargo build --release --all
+
+# 运行测试套件
+cargo test --all
+
+# 格式化检查
+cargo +nightly fmt --check --all
+
+# Clippy 代码检查
+cargo clippy --all --all-features --tests -- -D warnings
+```
+
+#### 功能验证测试
+```bash
+# 启动 SuperPaymaster 服务
+./scripts/restart_super_relay.sh
+
+# 运行基础功能测试
+./scripts/test_simple.sh
+
+# 运行完整演示
+./scripts/run_demo.sh
+
+# 检查服务健康状态
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+  http://localhost:3000
+
+# 测试 Paymaster API
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"pm_sponsorUserOperation","params":[{},"0x5FbDB2315678afecb367f032d93F642f64180aa3"],"id":1}' \
+  http://localhost:3000
+```
+
+### 6. 常见问题解决
+
+#### Pre-commit Hook 问题
+```bash
+# 如果 commit 失败，检查各个工具
+cog --version              # Conventional commit 验证
+cargo +nightly fmt --version  # Nightly rustfmt
+buf --version              # Protobuf 工具
+
+# 手动运行格式化
+cargo +nightly fmt --all
+cargo sort -w -g
+
+# 跳过 hooks (紧急情况)
+git commit --no-verify -m "emergency commit"
+```
+
+#### 链上测试问题
+```bash
+# 检查 Anvil 节点状态
+ps aux | grep anvil
+
+# 重启节点
+pkill anvil
+anvil --host 0.0.0.0 --port 8545 &
+
+# 检查 EntryPoint 地址
+cat .entrypoint_address
+
+# 重新部署 EntryPoint (如果需要)
+./scripts/deploy_entrypoint.sh
+```
+
+#### 依赖问题
+```bash
+# 清理并重新构建
+cargo clean
+rm -rf target/
+cargo build --all
+
+# 更新依赖
+cargo update
+
+# 检查依赖冲突
+cargo tree --duplicates
+```
+
+### 7. 开发工作流建议
+
+#### 日常开发流程
+```bash
+# 1. 更新代码
+git pull
+
+# 2. 检查环境
+./scripts/fund_paymaster.sh status
+
+# 3. 运行测试
+cargo test
+
+# 4. 开发功能
+# ...你的代码修改...
+
+# 5. 格式化和检查
+cargo +nightly fmt --all
+cargo clippy --all
+
+# 6. 提交代码 (hooks 会自动运行)
+git add .
+git commit -m "feat: your feature description"
+
+# 7. 推送代码
+git push
+```
+
+#### 环境重置 (开发环境损坏时)
+```bash
+# 完全重置本地环境
+cargo clean
+rm -rf target/
+pkill anvil
+
+# 重新初始化
+cargo build
+./scripts/deploy_entrypoint.sh
+./scripts/fund_paymaster.sh auto-rebalance
+```
+
 ## 系统要求
 
 ### 最低要求

@@ -2,6 +2,59 @@
 
 本文档记录 SuperPaymaster 项目的开发历程和版本变更。
 
+## Version 0.1.2 - 开发环境完善与链上测试修复 (2025-01-02)
+
+### 链上测试环境完全修复 ✅
+- 🔧 **EntryPoint余额查询修复**: 将错误的`getDeposit(address)`改为正确的`deposits(address)`方法
+- 🛠️ **Cast输出格式处理**: 修复wei_to_eth函数，正确处理cast返回的"2000000000000000000 [2e18]"格式
+- 🐍 **Python比较逻辑修复**: 修复bash条件测试，将Python的True/False改为1/0数值比较
+- 💰 **资金状态验证**: EntryPoint现在正确显示2.0 ETH存款，健康检查显示🟢 HEALTHY状态
+
+### Pre-commit Hooks完全解决 ✅  
+- 🎯 **安装cocogitto**: 成功安装`cargo install cocogitto`作为commit格式验证工具
+- 🛠️ **buf工具配置**: protobuf文件验证正常（有deprecation警告但功能正常）
+- ✅ **hooks运行验证**: 所有hooks正常工作：rustfmt、clippy、buf、cargo-sort、commit-msg
+- 🔄 **提交流程修复**: 消除提交循环问题，conventional commit格式验证成功
+
+### 开发环境文档完善 📚
+- 📖 **新增完整章节**: 在Deploy.md添加"开发环境准备"专用章节
+- 🛠️ **工具安装指南**: 涵盖Rust、Node.js、Foundry、Git工具的完整安装流程
+- 🔧 **环境配置详解**: Pre-commit hooks配置、链上测试环境、环境变量设置
+- 🧪 **测试验证流程**: 编译构建、功能验证、常见问题解决方案
+- 💡 **开发工作流**: 日常开发流程和环境重置指南
+
+### 环境相关配置优化
+- ⚙️ **Pre-commit检查项**: rustfmt +nightly、clippy、buf、cargo-sort、cog验证
+- 🔗 **链上测试工具**: anvil节点、EntryPoint部署、资金管理脚本
+- 📁 **配置文件管理**: .env环境变量、config/*.toml配置文件
+- 🧹 **环境重置机制**: 完整的环境损坏恢复流程
+
+### 影响范围
+- 修改文件: `scripts/fund_paymaster.sh` (修复EntryPoint余额查询逻辑)
+- 修改文件: `docs/Deploy.md` (新增开发环境准备章节)
+- 工具安装: cocogitto、buf、nightly rustfmt
+- 验证通过: 所有git hooks正常运行、链上测试环境健康
+
+### 开发体验提升
+- 🚀 **一键环境设置**: 新开发者可按文档快速建立完整开发环境
+- 🔧 **问题诊断能力**: 详细的故障排除和解决方案
+- 📋 **标准化流程**: 统一的开发、测试、提交工作流
+- ⚡ **快速恢复机制**: 环境损坏时的快速重置能力
+
+### 当前状态
+- ✅ **链上测试**: EntryPoint 2.0 ETH存款正常，账户余额充足
+- ✅ **代码提交**: Pre-commit hooks全部正常，conventional commit验证成功  
+- ✅ **开发环境**: 完整的工具链和配置指南，新人友好
+- ✅ **文档完善**: Deploy.md包含所有环境相关信息
+
+### 下一步计划
+- 🔄 完善生产环境部署流程
+- 📊 增强监控和日志记录
+- 🧪 扩展端到端测试用例
+- 🚀 准备多网络部署支持
+
+---
+
 ## 项目状态分析 (当前状态 - 2024-07-02)
 
 ### 项目概况
