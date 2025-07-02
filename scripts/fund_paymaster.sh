@@ -1,126 +1,322 @@
 #!/bin/bash
 
-# Paymaster Funding Management Script
-# Ensures paymaster has sufficient balance in EntryPoint contract
+# Enhanced SuperPaymaster Account Funding Management
+# Automated EntryPoint deposit and balance monitoring
 
 set -e
 
 # Configuration
-PAYMASTER_PRIVATE_KEY="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2"
+ANVIL_URL="http://localhost:8545"
 PAYMASTER_ADDRESS="0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
 FUNDER_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-RPC_URL="http://localhost:8545"
+MIN_BALANCE_ETH="1.0"
+MIN_ENTRYPOINT_DEPOSIT_ETH="0.5"
+TARGET_ENTRYPOINT_DEPOSIT_ETH="2.0"
+FUNDING_AMOUNT_ETH="5.0"
 
-echo "💰 Paymaster Funding Management"
-echo "================================"
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Function to get EntryPoint address
+# Get EntryPoint address
 get_entrypoint_address() {
     if [ -f ".entrypoint_address" ]; then
         cat .entrypoint_address
     else
-        echo "❌ EntryPoint address file not found. Please deploy EntryPoint first."
+        # Default EntryPoint v0.6 address
+        echo "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    fi
+}
+
+ENTRYPOINT_ADDRESS=$(get_entrypoint_address)
+
+# Convert ETH to Wei (18 decimals)
+eth_to_wei() {
+    local eth_amount="$1"
+    python3 -c "print(int(float('${eth_amount}') * 10**18))"
+}
+
+# Convert Wei to ETH
+wei_to_eth() {
+    local wei_amount="$1"
+    python3 -c "print(float(${wei_amount}) / 10**18)"
+}
+
+# Check balance
+check_balance() {
+    local address="$1"
+    local balance_wei=$(cast balance "$address" --rpc-url "$ANVIL_URL")
+    local balance_eth=$(wei_to_eth "$balance_wei")
+    echo "$balance_eth"
+}
+
+# Check EntryPoint deposit
+check_entrypoint_deposit() {
+    local paymaster="$1"
+    local entrypoint="$2"
+    
+    # Call balanceOf(address) on EntryPoint contract
+    local deposit_wei=$(cast call "$entrypoint" "balanceOf(address)(uint256)" "$paymaster" --rpc-url "$ANVIL_URL")
+    local deposit_eth=$(wei_to_eth "$deposit_wei")
+    echo "$deposit_eth"
+}
+
+# Fund account with ETH
+fund_account() {
+    local target_address="$1"
+    local amount_eth="$2"
+    local amount_wei=$(eth_to_wei "$amount_eth")
+    
+    echo -e "${BLUE}💰 Funding $target_address with $amount_eth ETH...${NC}"
+    
+    cast send --private-key "$FUNDER_PRIVATE_KEY" \
+        --rpc-url "$ANVIL_URL" \
+        --value "$amount_wei" \
+        "$target_address" \
+        > /dev/null 2>&1
+        
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ Successfully funded $target_address${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ Failed to fund $target_address${NC}"
+        return 1
+    fi
+}
+
+# Deposit to EntryPoint
+deposit_to_entrypoint() {
+    local paymaster="$1"
+    local entrypoint="$2"
+    local amount_eth="$3"
+    local amount_wei=$(eth_to_wei "$amount_eth")
+    
+    echo -e "${BLUE}🏦 Depositing $amount_eth ETH to EntryPoint for paymaster...${NC}"
+    
+    # First fund the paymaster account if needed
+    local current_balance=$(check_balance "$paymaster")
+    local required_balance=$(python3 -c "print(float('${amount_eth}') + 0.1)")  # Add 0.1 ETH for gas
+    
+    if (( $(python3 -c "print(float('${current_balance}') < float('${required_balance}'))") )); then
+        echo -e "${YELLOW}⚠️  Paymaster needs more ETH for deposit. Funding first...${NC}"
+        fund_account "$paymaster" "$FUNDING_AMOUNT_ETH"
+    fi
+    
+    # Deposit to EntryPoint using depositTo(address)
+    cast send --private-key "$FUNDER_PRIVATE_KEY" \
+        --rpc-url "$ANVIL_URL" \
+        --value "$amount_wei" \
+        "$entrypoint" \
+        "depositTo(address)" \
+        "$paymaster" \
+        > /dev/null 2>&1
+        
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ Successfully deposited to EntryPoint${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ Failed to deposit to EntryPoint${NC}"
+        return 1
+    fi
+}
+
+# Auto-rebalance function
+auto_rebalance() {
+    local paymaster="$1"
+    local entrypoint="$2"
+    
+    echo -e "${BLUE}🔄 Auto-rebalancing paymaster accounts...${NC}"
+    
+    # Check current balances
+    local balance_eth=$(check_balance "$paymaster")
+    local deposit_eth=$(check_entrypoint_deposit "$paymaster" "$entrypoint")
+    
+    echo -e "📊 Current Status:"
+    echo -e "   💰 Paymaster Balance: ${balance_eth} ETH"
+    echo -e "   🏦 EntryPoint Deposit: ${deposit_eth} ETH"
+    
+    local needs_rebalance=false
+    
+    # Check if balance is too low
+    if (( $(python3 -c "print(float('${balance_eth}') < float('${MIN_BALANCE_ETH}'))") )); then
+        echo -e "${YELLOW}⚠️  Paymaster balance below minimum (${MIN_BALANCE_ETH} ETH)${NC}"
+        fund_account "$paymaster" "$FUNDING_AMOUNT_ETH"
+        needs_rebalance=true
+    fi
+    
+    # Check if EntryPoint deposit is too low
+    if (( $(python3 -c "print(float('${deposit_eth}') < float('${MIN_ENTRYPOINT_DEPOSIT_ETH}'))") )); then
+        echo -e "${YELLOW}⚠️  EntryPoint deposit below minimum (${MIN_ENTRYPOINT_DEPOSIT_ETH} ETH)${NC}"
+        deposit_to_entrypoint "$paymaster" "$entrypoint" "$TARGET_ENTRYPOINT_DEPOSIT_ETH"
+        needs_rebalance=true
+    fi
+    
+    if [ "$needs_rebalance" = false ]; then
+        echo -e "${GREEN}✅ All balances are sufficient${NC}"
+    fi
+    
+    return 0
+}
+
+# Monitor mode - continuous monitoring
+monitor_mode() {
+    local interval_seconds="${1:-60}"  # Default 60 seconds
+    
+    echo -e "${BLUE}👁️  Starting continuous monitoring (checking every ${interval_seconds}s)${NC}"
+    echo -e "${YELLOW}Press Ctrl+C to stop monitoring${NC}"
+    
+    while true; do
+        echo -e "\n${BLUE}[$(date)] Checking balances...${NC}"
+        auto_rebalance "$PAYMASTER_ADDRESS" "$ENTRYPOINT_ADDRESS"
+        sleep "$interval_seconds"
+    done
+}
+
+# Status report
+status_report() {
+    echo -e "${BLUE}📋 SuperPaymaster Financial Status Report${NC}"
+    echo -e "==========================================="
+    
+    # Network info
+    echo -e "\n${BLUE}🌐 Network Information:${NC}"
+    echo -e "   RPC URL: $ANVIL_URL"
+    echo -e "   EntryPoint: $ENTRYPOINT_ADDRESS"
+    echo -e "   Paymaster: $PAYMASTER_ADDRESS"
+    
+    # Balances
+    echo -e "\n${BLUE}💰 Account Balances:${NC}"
+    local funder_balance=$(check_balance "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
+    local paymaster_balance=$(check_balance "$PAYMASTER_ADDRESS")
+    local entrypoint_deposit=$(check_entrypoint_deposit "$PAYMASTER_ADDRESS" "$ENTRYPOINT_ADDRESS")
+    
+    echo -e "   🏦 Funder Account: ${funder_balance} ETH"
+    echo -e "   💳 Paymaster Account: ${paymaster_balance} ETH"
+    echo -e "   🏛️  EntryPoint Deposit: ${entrypoint_deposit} ETH"
+    
+    # Health check
+    echo -e "\n${BLUE}🏥 Health Status:${NC}"
+    local health_ok=true
+    
+    if (( $(python3 -c "print(float('${paymaster_balance}') >= float('${MIN_BALANCE_ETH}'))") )); then
+        echo -e "   ✅ Paymaster balance: OK (>= ${MIN_BALANCE_ETH} ETH)"
+    else
+        echo -e "   ❌ Paymaster balance: LOW (< ${MIN_BALANCE_ETH} ETH)"
+        health_ok=false
+    fi
+    
+    if (( $(python3 -c "print(float('${entrypoint_deposit}') >= float('${MIN_ENTRYPOINT_DEPOSIT_ETH}'))") )); then
+        echo -e "   ✅ EntryPoint deposit: OK (>= ${MIN_ENTRYPOINT_DEPOSIT_ETH} ETH)"
+    else
+        echo -e "   ❌ EntryPoint deposit: LOW (< ${MIN_ENTRYPOINT_DEPOSIT_ETH} ETH)"
+        health_ok=false
+    fi
+    
+    echo -e "\n${BLUE}📊 Overall Status:${NC}"
+    if [ "$health_ok" = true ]; then
+        echo -e "   ${GREEN}🟢 HEALTHY - All balances sufficient${NC}"
+    else
+        echo -e "   ${RED}🔴 ATTENTION NEEDED - Some balances are low${NC}"
+        echo -e "   💡 Run: $0 auto-rebalance"
+    fi
+}
+
+# Usage function
+usage() {
+    echo "Usage: $0 [command] [options]"
+    echo ""
+    echo "Commands:"
+    echo "  status                    Show financial status report"
+    echo "  fund <address> <amount>   Fund an address with ETH"
+    echo "  deposit <amount>          Deposit ETH to EntryPoint for paymaster"
+    echo "  auto-rebalance           Auto-rebalance all accounts"
+    echo "  monitor [interval]       Start continuous monitoring (default: 60s)"
+    echo "  emergency-fund           Emergency funding for all accounts"
+    echo ""
+    echo "Examples:"
+    echo "  $0 status"
+    echo "  $0 fund 0x123... 1.5"
+    echo "  $0 deposit 2.0"
+    echo "  $0 auto-rebalance"
+    echo "  $0 monitor 30"
+}
+
+# Emergency funding
+emergency_fund() {
+    echo -e "${RED}🚨 EMERGENCY FUNDING MODE${NC}"
+    echo -e "=========================="
+    
+    echo -e "${YELLOW}💰 Funding paymaster with ${FUNDING_AMOUNT_ETH} ETH...${NC}"
+    fund_account "$PAYMASTER_ADDRESS" "$FUNDING_AMOUNT_ETH"
+    
+    echo -e "${YELLOW}🏦 Depositing ${TARGET_ENTRYPOINT_DEPOSIT_ETH} ETH to EntryPoint...${NC}"
+    deposit_to_entrypoint "$PAYMASTER_ADDRESS" "$ENTRYPOINT_ADDRESS" "$TARGET_ENTRYPOINT_DEPOSIT_ETH"
+    
+    echo -e "${GREEN}🎯 Emergency funding complete!${NC}"
+    status_report
+}
+
+# Main function
+main() {
+    local command="${1:-status}"
+    
+    case "$command" in
+        "status")
+            status_report
+            ;;
+        "fund")
+            if [ $# -lt 3 ]; then
+                echo "Usage: $0 fund <address> <amount_eth>"
+                exit 1
+            fi
+            fund_account "$2" "$3"
+            ;;
+        "deposit")
+            if [ $# -lt 2 ]; then
+                echo "Usage: $0 deposit <amount_eth>"
+                exit 1
+            fi
+            deposit_to_entrypoint "$PAYMASTER_ADDRESS" "$ENTRYPOINT_ADDRESS" "$2"
+            ;;
+        "auto-rebalance")
+            auto_rebalance "$PAYMASTER_ADDRESS" "$ENTRYPOINT_ADDRESS"
+            ;;
+        "monitor")
+            local interval="${2:-60}"
+            monitor_mode "$interval"
+            ;;
+        "emergency-fund")
+            emergency_fund
+            ;;
+        "help"|"-h"|"--help")
+            usage
+            ;;
+        *)
+            echo "Unknown command: $command"
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+# Check dependencies
+check_dependencies() {
+    if ! command -v cast >/dev/null 2>&1; then
+        echo -e "${RED}❌ Error: 'cast' command not found. Please install Foundry.${NC}"
+        echo "Install with: curl -L https://foundry.paradigm.xyz | bash && foundryup"
+        exit 1
+    fi
+    
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo -e "${RED}❌ Error: 'python3' command not found.${NC}"
         exit 1
     fi
 }
 
-# Function to check paymaster account balance
-check_paymaster_balance() {
-    local balance=$(cast balance $PAYMASTER_ADDRESS --rpc-url $RPC_URL)
-    echo "📊 Paymaster account balance: $(cast --to-dec $balance | awk '{printf "%.2f", $1/1e18}') ETH"
-    
-    # If balance is less than 10 ETH, fund the account
-    if [ $(echo "$balance < 10000000000000000000" | python3 -c "import sys; print(int(float(input()) < 10000000000000000000))") -eq 1 ]; then
-        echo "💸 Funding paymaster account..."
-        cast send --private-key $FUNDER_PRIVATE_KEY \
-            --rpc-url $RPC_URL \
-            --value 50ether \
-            $PAYMASTER_ADDRESS > /dev/null
-        echo "✅ Paymaster account funded with 50 ETH"
-    fi
-}
-
-# Function to check EntryPoint deposit
-check_entrypoint_deposit() {
-    local entrypoint=$1
-    echo "🔍 Checking EntryPoint deposit for paymaster..."
-    
-    # Check if EntryPoint contract exists
-    local code=$(cast code $entrypoint --rpc-url $RPC_URL)
-    if [ "$code" = "0x" ]; then
-        echo "❌ EntryPoint contract not found at $entrypoint"
-        return 1
-    fi
-    
-    # Get current deposit (using balanceOf function)
-    local deposit=$(cast call $entrypoint "balanceOf(address)" $PAYMASTER_ADDRESS --rpc-url $RPC_URL 2>/dev/null || echo "0x0")
-    local deposit_decimal=$(cast --to-dec $deposit 2>/dev/null || echo "0")
-    
-    echo "📊 Current EntryPoint deposit: $(echo "$deposit_decimal" | awk '{printf "%.2f", $1/1e18}') ETH"
-    
-    # Check if deposit is sufficient (2 ETH minimum)
-    if [ $(echo "$deposit_decimal < 2000000000000000000" | python3 -c "import sys; print(int(float(input()) < 2000000000000000000))") -eq 1 ]; then
-        echo "💰 Depositing funds to EntryPoint..."
-        
-        # Deposit to EntryPoint using depositTo function
-        cast send --private-key $PAYMASTER_PRIVATE_KEY \
-            --rpc-url $RPC_URL \
-            --value 5ether \
-            --gas-limit 200000 \
-            $entrypoint \
-            "depositTo(address)" \
-            $PAYMASTER_ADDRESS
-            
-        echo "✅ Deposited 5 ETH to EntryPoint"
-        
-        # Verify deposit
-        sleep 2
-        local new_deposit=$(cast call $entrypoint "balanceOf(address)" $PAYMASTER_ADDRESS --rpc-url $RPC_URL)
-        local new_deposit_decimal=$(cast --to-dec $new_deposit)
-        echo "📊 New EntryPoint deposit: $(echo "$new_deposit_decimal" | awk '{printf "%.2f", $1/1e18}') ETH"
-    else
-        echo "✅ EntryPoint deposit is sufficient"
-    fi
-}
-
-# Function to show deposit info
-show_deposit_info() {
-    local entrypoint=$1
-    echo ""
-    echo "📊 Paymaster Financial Status"
-    echo "============================="
-    
-    local account_balance=$(cast balance $PAYMASTER_ADDRESS --rpc-url $RPC_URL)
-    echo "🏦 Account Balance: $(cast --to-dec $account_balance | awk '{printf "%.2f", $1/1e18}') ETH"
-    
-    local deposit=$(cast call $entrypoint "balanceOf(address)" $PAYMASTER_ADDRESS --rpc-url $RPC_URL 2>/dev/null || echo "0x0")
-    local deposit_decimal=$(cast --to-dec $deposit 2>/dev/null || echo "0")
-    echo "💳 EntryPoint Deposit: $(echo "$deposit_decimal" | awk '{printf "%.2f", $1/1e18}') ETH"
-    
-    echo "📍 EntryPoint Address: $entrypoint"
-    echo "🔑 Paymaster Address: $PAYMASTER_ADDRESS"
-}
-
-# Main execution
-main() {
-    echo "🚀 Starting paymaster funding check..."
-    
-    # Get EntryPoint address
-    local entrypoint=$(get_entrypoint_address)
-    echo "📍 Using EntryPoint: $entrypoint"
-    
-    # Check and fund paymaster account if needed
-    check_paymaster_balance
-    
-    # Check and fund EntryPoint deposit if needed
-    check_entrypoint_deposit $entrypoint
-    
-    # Show final status
-    show_deposit_info $entrypoint
-    
-    echo ""
-    echo "🎉 Paymaster funding management complete!"
-}
+# Initialize
+check_dependencies
 
 # Run main function
 main "$@" 

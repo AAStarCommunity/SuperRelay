@@ -1,0 +1,241 @@
+# SuperPaymaster Production Policies Configuration
+# Production-grade sponsorship rules and security policies
+
+[default]
+# Conservative default policy for production
+enabled = true
+description = "Conservative production policy with strict limits"
+
+# Allowlist of verified smart wallet contracts and trusted addresses
+senders = [
+    # Add your verified smart wallet factory addresses
+    # Example: "0x1234567890123456789012345678901234567890",
+]
+
+# Gas limits (conservative for security)
+max_verification_gas = 300000
+max_call_gas = 500000
+max_pre_verification_gas = 50000
+
+# Cost controls
+max_fee_per_gas_wei = "50000000000"  # 50 gwei
+max_priority_fee_per_gas_wei = "2000000000"  # 2 gwei
+max_cost_per_operation_eth = "0.01"  # Maximum 0.01 ETH per operation
+
+# Rate limiting per sender
+max_operations_per_hour = 10
+max_operations_per_day = 50
+
+# Security settings
+require_valid_signature = true
+allow_contract_deployment = false
+allow_self_destruct = false
+
+[enterprise]
+# Enterprise customer policy with higher limits
+enabled = true
+description = "Enterprise customers with verified KYC"
+
+senders = [
+    # Add enterprise customer wallet addresses
+    # "0xEnterprise1...",
+    # "0xEnterprise2...",
+]
+
+# Higher gas limits for enterprise operations
+max_verification_gas = 500000
+max_call_gas = 1000000
+max_pre_verification_gas = 100000
+
+# Higher cost limits
+max_fee_per_gas_wei = "100000000000"  # 100 gwei
+max_priority_fee_per_gas_wei = "5000000000"  # 5 gwei
+max_cost_per_operation_eth = "0.05"  # Maximum 0.05 ETH per operation
+
+# Higher rate limits
+max_operations_per_hour = 100
+max_operations_per_day = 500
+
+# Advanced features enabled
+require_valid_signature = true
+allow_contract_deployment = true
+allow_self_destruct = false
+
+[premium]
+# Premium tier with maximum flexibility
+enabled = true
+description = "Premium customers with highest limits"
+
+senders = [
+    # Add premium customer addresses
+    # "0xPremium1...",
+    # "0xPremium2...",
+]
+
+# Maximum gas limits
+max_verification_gas = 1000000
+max_call_gas = 2000000
+max_pre_verification_gas = 200000
+
+# Maximum cost limits
+max_fee_per_gas_wei = "200000000000"  # 200 gwei
+max_priority_fee_per_gas_wei = "10000000000"  # 10 gwei
+max_cost_per_operation_eth = "0.1"  # Maximum 0.1 ETH per operation
+
+# Highest rate limits
+max_operations_per_hour = 500
+max_operations_per_day = 2000
+
+# All features enabled
+require_valid_signature = true
+allow_contract_deployment = true
+allow_self_destruct = true
+
+[partner]
+# Trusted partner policy for integration partners
+enabled = true
+description = "Trusted integration partners"
+
+senders = [
+    # Add trusted partner addresses
+    # "0xPartner1...",
+    # "0xPartner2...",
+]
+
+# Standard gas limits
+max_verification_gas = 400000
+max_call_gas = 800000
+max_pre_verification_gas = 80000
+
+# Standard cost limits
+max_fee_per_gas_wei = "75000000000"  # 75 gwei
+max_priority_fee_per_gas_wei = "3000000000"  # 3 gwei
+max_cost_per_operation_eth = "0.03"  # Maximum 0.03 ETH per operation
+
+# Partner-specific rate limits
+max_operations_per_hour = 200
+max_operations_per_day = 1000
+
+# Standard security
+require_valid_signature = true
+allow_contract_deployment = true
+allow_self_destruct = false
+
+[demo]
+# Demo/testnet policy for demonstrations
+enabled = false  # Disabled in production
+description = "Demo policy for testing - DISABLED IN PRODUCTION"
+
+# Demo settings (only for reference)
+senders = ["0x0000000000000000000000000000000000000000"]
+max_verification_gas = 1000000
+max_call_gas = 2000000
+max_cost_per_operation_eth = "1.0"
+
+[emergency]
+# Emergency policy for critical situations
+enabled = false  # Only enable during emergencies
+description = "Emergency policy with maximum restrictions"
+
+# Very restrictive emergency settings
+senders = [
+    # Only emergency admin addresses
+    # "0xEmergencyAdmin1...",
+]
+
+# Minimal gas limits
+max_verification_gas = 100000
+max_call_gas = 200000
+max_pre_verification_gas = 21000
+
+# Minimal cost limits
+max_fee_per_gas_wei = "20000000000"  # 20 gwei
+max_priority_fee_per_gas_wei = "1000000000"  # 1 gwei
+max_cost_per_operation_eth = "0.005"  # Maximum 0.005 ETH per operation
+
+# Strict rate limiting
+max_operations_per_hour = 5
+max_operations_per_day = 20
+
+# Maximum security
+require_valid_signature = true
+allow_contract_deployment = false
+allow_self_destruct = false
+
+[blacklist]
+# Global blacklist - these addresses are always rejected
+enabled = true
+description = "Global blacklist for security"
+
+# Blacklisted addresses (malicious contracts, known bad actors)
+blocked_senders = [
+    # Add known malicious addresses
+    # "0xMalicious1...",
+    # "0xMalicious2...",
+]
+
+# Blocked contract patterns
+blocked_code_patterns = [
+    # Add bytecode patterns for known malicious contracts
+]
+
+[whitelist]
+# Global whitelist - these addresses bypass most checks
+enabled = true
+description = "Global whitelist for trusted addresses"
+
+# Globally trusted addresses
+trusted_senders = [
+    # Add globally trusted addresses (e.g., official wallet contracts)
+    # "0xTrusted1...",
+    # "0xTrusted2...",
+]
+
+# Override all limits for whitelisted addresses
+override_gas_limits = true
+override_cost_limits = true
+override_rate_limits = true
+
+[monitoring]
+# Policy monitoring and alerting
+enabled = true
+description = "Policy monitoring configuration"
+
+# Alert thresholds
+alert_on_policy_violation = true
+alert_on_unusual_activity = true
+alert_on_high_gas_usage = true
+
+# Monitoring settings
+log_all_decisions = true
+track_sender_behavior = true
+detect_spam_patterns = true
+
+# Automatic policy adjustments
+enable_dynamic_policies = false  # Disabled for production safety
+enable_auto_blacklist = true     # Auto-blacklist suspicious addresses
+auto_blacklist_threshold = 10    # Number of violations before auto-blacklist
+
+[compliance]
+# Regulatory compliance settings
+enabled = true
+description = "Compliance and regulatory requirements"
+
+# Transaction monitoring
+monitor_large_transactions = true
+large_transaction_threshold_eth = "0.1"
+report_large_transactions = true
+
+# Geographic restrictions (if required)
+enable_geo_blocking = false
+blocked_countries = []  # Add country codes if needed
+
+# AML compliance
+enable_aml_screening = false
+aml_service_endpoint = "https://your-aml-service.com/screen"
+aml_risk_threshold = 70
+
+# Data retention
+retain_transaction_data_days = 90
+retain_user_data_days = 30
+enable_data_encryption = true 

@@ -1,0 +1,146 @@
+# SuperPaymaster Production Configuration
+# Production deployment configuration for Ethereum mainnet
+
+[network]
+# Ethereum Mainnet configuration
+chain_id = 1
+rpc_url = "wss://eth-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY"
+fallback_rpc_urls = [
+    "https://eth-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY",
+    "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID",
+    "https://rpc.ankr.com/eth"
+]
+
+[entry_points]
+# Official EntryPoint contracts on mainnet
+v0_6 = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+v0_7 = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+
+[rpc]
+# Production RPC server configuration
+listen_address = "0.0.0.0:3000"
+max_connections = 1000
+request_timeout_seconds = 30
+max_request_size_bytes = 10485760  # 10MB
+cors_origins = ["https://your-frontend-domain.com"]
+
+# Rate limiting
+rate_limit_requests_per_minute = 60
+rate_limit_burst = 10
+
+[paymaster]
+# Production paymaster configuration
+enabled = true
+max_cost_per_user_op = "0.01"  # Maximum 0.01 ETH per UserOperation
+gas_price_multiplier = 1.2     # 20% buffer on gas price
+verification_gas_limit = 500000
+call_gas_limit = 2000000
+
+# Policy configuration
+policy_file = "/opt/super-relay/config/paymaster-policies-prod.toml"
+
+# Signer configuration (AWS KMS recommended for production)
+[paymaster.signer]
+type = "aws_kms"
+region = "us-east-1"
+key_id = "arn:aws:kms:us-east-1:ACCOUNT:key/KEY-ID"
+
+# Fallback local signer (for emergency use only)
+# [paymaster.signer]
+# type = "local_encrypted"
+# keystore_file = "/opt/super-relay/keys/paymaster.keystore"
+
+[security]
+# Security settings
+enable_tls = true
+tls_cert_file = "/opt/super-relay/ssl/cert.pem"
+tls_key_file = "/opt/super-relay/ssl/key.pem"
+
+# IP whitelist for admin operations
+admin_whitelist = [
+    "10.0.0.0/8",      # Internal network
+    "192.168.0.0/16",  # Local network
+    "YOUR_OFFICE_IP/32" # Office IP
+]
+
+[logging]
+# Production logging configuration
+level = "info"
+format = "json"
+output = "file"
+file_path = "/var/log/super-relay/super-relay.log"
+max_file_size_mb = 100
+max_files = 10
+
+# Structured logging fields
+include_timestamp = true
+include_caller = false
+include_request_id = true
+
+[monitoring]
+# Monitoring and observability
+enable_metrics = true
+metrics_listen_address = "127.0.0.1:8081"
+
+# Health check endpoint
+enable_health_check = true
+health_check_path = "/health"
+
+# Prometheus metrics
+prometheus_namespace = "super_relay"
+prometheus_subsystem = "paymaster"
+
+[alerts]
+# Alerting configuration
+enable_alerts = true
+webhook_url = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+alert_conditions = [
+    "low_balance",
+    "high_error_rate",
+    "service_down"
+]
+
+# Alert thresholds
+min_paymaster_balance_eth = "1.0"
+min_entrypoint_deposit_eth = "5.0"
+max_error_rate_percent = 5.0
+max_response_time_ms = 5000
+
+[database]
+# Database for transaction tracking (optional but recommended)
+enable_database = true
+type = "postgresql"
+connection_string = "postgres://super_relay:PASSWORD@localhost:5432/super_relay_prod"
+max_connections = 20
+connection_timeout_seconds = 30
+
+[backup]
+# Backup configuration
+enable_backup = true
+backup_interval_hours = 6
+backup_retention_days = 30
+backup_location = "s3://your-backup-bucket/super-relay/"
+
+[performance]
+# Performance optimization
+worker_threads = 8
+max_concurrent_requests = 500
+request_queue_size = 1000
+keepalive_timeout_seconds = 60
+
+# Memory management
+max_memory_usage_mb = 2048
+gc_interval_seconds = 300
+
+[compliance]
+# Regulatory compliance
+enable_kyc_check = false
+enable_transaction_monitoring = true
+suspicious_activity_threshold = 10  # Number of failed transactions per hour
+report_suspicious_activity = true
+
+[maintenance]
+# Maintenance windows
+enable_maintenance_mode = false
+maintenance_message = "SuperPaymaster is temporarily unavailable for maintenance"
+maintenance_allowed_ips = ["10.0.0.0/8"] 

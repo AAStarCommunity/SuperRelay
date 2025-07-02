@@ -1,0 +1,36 @@
+{
+  "name": "super-paymaster-demo",
+  "version": "1.0.0",
+  "description": "Demo application showcasing SuperPaymaster core capabilities",
+  "main": "superPaymasterDemo.js",
+  "scripts": {
+    "start": "node superPaymasterDemo.js",
+    "demo": "node superPaymasterDemo.js",
+    "test": "node superPaymasterDemo.js --test-only",
+    "help": "node superPaymasterDemo.js --help"
+  },
+  "keywords": [
+    "ethereum",
+    "erc-4337",
+    "paymaster",
+    "account-abstraction",
+    "demo"
+  ],
+  "author": "SuperPaymaster Team",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.0.0",
+    "axios": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AAStarCommunity/SuperRelay"
+  },
+  "bugs": {
+    "url": "https://github.com/AAStarCommunity/SuperRelay/issues"
+  },
+  "homepage": "https://github.com/AAStarCommunity/SuperRelay#readme"
+} 
