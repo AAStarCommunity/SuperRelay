@@ -42,7 +42,24 @@ eth_to_wei() {
 # Convert Wei to ETH
 wei_to_eth() {
     local wei_amount="$1"
-    python3 -c "print(float(${wei_amount}) / 10**18)"
+    # Remove any hex formatting and handle empty values
+    if [ -z "$wei_amount" ] || [ "$wei_amount" = "0x" ]; then
+        echo "0.0"
+        return
+    fi
+    # Convert hex to decimal if needed, then to ETH
+    python3 -c "
+import sys
+try:
+    val = '${wei_amount}'
+    if val.startswith('0x'):
+        val = int(val, 16)
+    else:
+        val = int(val)
+    print(float(val) / 10**18)
+except:
+    print('0.0')
+"
 }
 
 # Check balance
@@ -58,8 +75,10 @@ check_entrypoint_deposit() {
     local paymaster="$1"
     local entrypoint="$2"
     
-    # Call balanceOf(address) on EntryPoint contract
-    local deposit_wei=$(cast call "$entrypoint" "balanceOf(address)(uint256)" "$paymaster" --rpc-url "$ANVIL_URL")
+    # Call deposits(address) on EntryPoint contract  
+    local deposit_wei_raw=$(cast call "$entrypoint" "deposits(address)(uint256)" "$paymaster" --rpc-url "$ANVIL_URL")
+    # Extract just the number part before any brackets or spaces
+    local deposit_wei=$(echo "$deposit_wei_raw" | awk '{print $1}')
     local deposit_eth=$(wei_to_eth "$deposit_wei")
     echo "$deposit_eth"
 }
@@ -100,7 +119,7 @@ deposit_to_entrypoint() {
     local current_balance=$(check_balance "$paymaster")
     local required_balance=$(python3 -c "print(float('${amount_eth}') + 0.1)")  # Add 0.1 ETH for gas
     
-    if (( $(python3 -c "print(float('${current_balance}') < float('${required_balance}'))") )); then
+    if [ "$(python3 -c "print(1 if float('${current_balance}') < float('${required_balance}') else 0)")" = "1" ]; then
         echo -e "${YELLOW}⚠️  Paymaster needs more ETH for deposit. Funding first...${NC}"
         fund_account "$paymaster" "$FUNDING_AMOUNT_ETH"
     fi
@@ -141,14 +160,14 @@ auto_rebalance() {
     local needs_rebalance=false
     
     # Check if balance is too low
-    if (( $(python3 -c "print(float('${balance_eth}') < float('${MIN_BALANCE_ETH}'))") )); then
+    if [ "$(python3 -c "print(1 if float('${balance_eth}') < float('${MIN_BALANCE_ETH}') else 0)")" = "1" ]; then
         echo -e "${YELLOW}⚠️  Paymaster balance below minimum (${MIN_BALANCE_ETH} ETH)${NC}"
         fund_account "$paymaster" "$FUNDING_AMOUNT_ETH"
         needs_rebalance=true
     fi
     
     # Check if EntryPoint deposit is too low
-    if (( $(python3 -c "print(float('${deposit_eth}') < float('${MIN_ENTRYPOINT_DEPOSIT_ETH}'))") )); then
+    if [ "$(python3 -c "print(1 if float('${deposit_eth}') < float('${MIN_ENTRYPOINT_DEPOSIT_ETH}') else 0)")" = "1" ]; then
         echo -e "${YELLOW}⚠️  EntryPoint deposit below minimum (${MIN_ENTRYPOINT_DEPOSIT_ETH} ETH)${NC}"
         deposit_to_entrypoint "$paymaster" "$entrypoint" "$TARGET_ENTRYPOINT_DEPOSIT_ETH"
         needs_rebalance=true
@@ -200,14 +219,14 @@ status_report() {
     echo -e "\n${BLUE}🏥 Health Status:${NC}"
     local health_ok=true
     
-    if (( $(python3 -c "print(float('${paymaster_balance}') >= float('${MIN_BALANCE_ETH}'))") )); then
+    if [ "$(python3 -c "print(1 if float('${paymaster_balance}') >= float('${MIN_BALANCE_ETH}') else 0)")" = "1" ]; then
         echo -e "   ✅ Paymaster balance: OK (>= ${MIN_BALANCE_ETH} ETH)"
     else
         echo -e "   ❌ Paymaster balance: LOW (< ${MIN_BALANCE_ETH} ETH)"
         health_ok=false
     fi
     
-    if (( $(python3 -c "print(float('${entrypoint_deposit}') >= float('${MIN_ENTRYPOINT_DEPOSIT_ETH}'))") )); then
+    if [ "$(python3 -c "print(1 if float('${entrypoint_deposit}') >= float('${MIN_ENTRYPOINT_DEPOSIT_ETH}') else 0)")" = "1" ]; then
         echo -e "   ✅ EntryPoint deposit: OK (>= ${MIN_ENTRYPOINT_DEPOSIT_ETH} ETH)"
     else
         echo -e "   ❌ EntryPoint deposit: LOW (< ${MIN_ENTRYPOINT_DEPOSIT_ETH} ETH)"
