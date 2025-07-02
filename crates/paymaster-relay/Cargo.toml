@@ -1,0 +1,36 @@
+[package]
+name = "rundler-paymaster-relay"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ethers = { workspace = true }
+secrecy = { workspace = true }
+thiserror = { workspace = true }
+eyre = { workspace = true }
+async-trait = { workspace = true }
+jsonrpsee = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+toml = { workspace = true }
+
+# --- Swagger UI ---
+axum = { workspace = true }
+tokio = { workspace = true }
+utoipa = { workspace = true }
+"utoipa-swagger-ui" = { workspace = true }
+
+rundler-types = { path = "../types" }
+rundler-pool = { path = "../pool" }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+alloy-primitives = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+ethers = { workspace = true, features = ["ws", "rustls"] }
+jsonrpsee-core = { workspace = true, features = ["client"] }
+jsonrpsee-ws-client = { workspace = true }
+rundler-types = { path = "../types", features = ["test-utils"] }
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
