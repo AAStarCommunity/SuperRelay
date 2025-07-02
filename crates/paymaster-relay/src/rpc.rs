@@ -1,34 +1,198 @@
 // paymaster-relay/src/rpc.rs
-// This file will contain the JSON-RPC API definition and implementation. 
+// This file will contain the JSON-RPC API definition and implementation.
 
-use crate::service::PaymasterRelayService;
+use std::str::FromStr;
+
+use alloy_primitives::{Address as AlloyAddress, Bytes, U256};
 use async_trait::async_trait;
 use ethers::types::Address;
 use jsonrpsee::proc_macros::rpc;
-use rundler_types::user_operation::UserOperationVariant;
-use alloy_primitives::B256;
+use rundler_types::{chain::ChainSpec, v0_6, v0_7, UserOperationVariant};
+use serde::{Deserialize, Serialize};
 
-#[rpc(server, client, namespace = "pm")]
+use crate::service::PaymasterRelayService;
+
+/// Simplified UserOperation structure for JSON-RPC deserialization
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsonUserOperation {
+    pub sender: String,
+    pub nonce: String,
+    pub call_data: String,
+    pub call_gas_limit: String,
+    pub verification_gas_limit: String,
+    pub pre_verification_gas: String,
+    pub max_fee_per_gas: String,
+    pub max_priority_fee_per_gas: String,
+    pub signature: String,
+    // v0.6 fields
+    pub init_code: Option<String>,
+    pub paymaster_and_data: Option<String>,
+    // v0.7 fields
+    pub factory: Option<String>,
+    pub factory_data: Option<String>,
+    pub paymaster: Option<String>,
+    pub paymaster_verification_gas_limit: Option<String>,
+    pub paymaster_post_op_gas_limit: Option<String>,
+    pub paymaster_data: Option<String>,
+}
+
+impl TryInto<UserOperationVariant> for JsonUserOperation {
+    type Error = String;
+
+    fn try_into(self) -> Result<UserOperationVariant, Self::Error> {
+        let chain_spec = ChainSpec::default(); // Use default for now
+
+        // Parse common fields
+        let sender = AlloyAddress::from_str(&self.sender)
+            .map_err(|e| format!("Invalid sender address: {}", e))?;
+        let nonce = U256::from_str(&self.nonce).map_err(|e| format!("Invalid nonce: {}", e))?;
+        let call_data =
+            Bytes::from_str(&self.call_data).map_err(|e| format!("Invalid call_data: {}", e))?;
+        let call_gas_limit = self
+            .call_gas_limit
+            .parse::<u128>()
+            .map_err(|e| format!("Invalid call_gas_limit: {}", e))?;
+        let verification_gas_limit = self
+            .verification_gas_limit
+            .parse::<u128>()
+            .map_err(|e| format!("Invalid verification_gas_limit: {}", e))?;
+        let pre_verification_gas = self
+            .pre_verification_gas
+            .parse::<u128>()
+            .map_err(|e| format!("Invalid pre_verification_gas: {}", e))?;
+        let max_fee_per_gas = self
+            .max_fee_per_gas
+            .parse::<u128>()
+            .map_err(|e| format!("Invalid max_fee_per_gas: {}", e))?;
+        let max_priority_fee_per_gas = self
+            .max_priority_fee_per_gas
+            .parse::<u128>()
+            .map_err(|e| format!("Invalid max_priority_fee_per_gas: {}", e))?;
+        let signature =
+            Bytes::from_str(&self.signature).map_err(|e| format!("Invalid signature: {}", e))?;
+
+        // Check if this is v0.6 or v0.7 based on field presence
+        if self.init_code.is_some() || self.paymaster_and_data.is_some() {
+            // v0.6 format
+            let init_code = if let Some(ic) = self.init_code {
+                Bytes::from_str(&ic).map_err(|e| format!("Invalid init_code: {}", e))?
+            } else {
+                Bytes::new()
+            };
+            let paymaster_and_data = if let Some(pad) = self.paymaster_and_data {
+                Bytes::from_str(&pad).map_err(|e| format!("Invalid paymaster_and_data: {}", e))?
+            } else {
+                Bytes::new()
+            };
+
+            let uo = v0_6::UserOperationBuilder::new(
+                &chain_spec,
+                v0_6::UserOperationRequiredFields {
+                    sender,
+                    nonce,
+                    init_code,
+                    call_data,
+                    call_gas_limit,
+                    verification_gas_limit,
+                    pre_verification_gas,
+                    max_fee_per_gas,
+                    max_priority_fee_per_gas,
+                    paymaster_and_data,
+                    signature,
+                },
+            )
+            .build();
+
+            Ok(UserOperationVariant::V0_6(uo))
+        } else {
+            // v0.7 format
+            let mut builder = v0_7::UserOperationBuilder::new(
+                &chain_spec,
+                v0_7::UserOperationRequiredFields {
+                    sender,
+                    nonce,
+                    call_data,
+                    call_gas_limit,
+                    verification_gas_limit,
+                    pre_verification_gas,
+                    max_fee_per_gas,
+                    max_priority_fee_per_gas,
+                    signature,
+                },
+            );
+
+            // Handle optional v0.7 fields
+            if let Some(factory) = self.factory {
+                let factory_addr = AlloyAddress::from_str(&factory)
+                    .map_err(|e| format!("Invalid factory address: {}", e))?;
+                let factory_data = if let Some(fd) = self.factory_data {
+                    Bytes::from_str(&fd).map_err(|e| format!("Invalid factory_data: {}", e))?
+                } else {
+                    Bytes::new()
+                };
+                builder = builder.factory(factory_addr, factory_data);
+            }
+
+            if let Some(paymaster) = self.paymaster {
+                let paymaster_addr = AlloyAddress::from_str(&paymaster)
+                    .map_err(|e| format!("Invalid paymaster address: {}", e))?;
+                let paymaster_verification_gas_limit = if let Some(pvgl) =
+                    self.paymaster_verification_gas_limit
+                {
+                    pvgl.parse::<u128>()
+                        .map_err(|e| format!("Invalid paymaster_verification_gas_limit: {}", e))?
+                } else {
+                    0
+                };
+                let paymaster_post_op_gas_limit =
+                    if let Some(ppogl) = self.paymaster_post_op_gas_limit {
+                        ppogl
+                            .parse::<u128>()
+                            .map_err(|e| format!("Invalid paymaster_post_op_gas_limit: {}", e))?
+                    } else {
+                        0
+                    };
+                let paymaster_data = if let Some(pd) = self.paymaster_data {
+                    Bytes::from_str(&pd).map_err(|e| format!("Invalid paymaster_data: {}", e))?
+                } else {
+                    Bytes::new()
+                };
+                builder = builder.paymaster(
+                    paymaster_addr,
+                    paymaster_verification_gas_limit,
+                    paymaster_post_op_gas_limit,
+                    paymaster_data,
+                );
+            }
+
+            let uo = builder.build();
+            Ok(UserOperationVariant::V0_7(uo))
+        }
+    }
+}
+
+// Simple RPC request/response types for JSON handling
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SponsorUserOperationRequest {
+    pub user_op: serde_json::Value,
+    pub entry_point: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SponsorUserOperationResponse {
+    pub user_op_hash: String,
+}
+
+#[rpc(server, namespace = "pm")]
 pub trait PaymasterRelayApi {
     #[method(name = "sponsorUserOperation")]
     async fn sponsor_user_operation(
         &self,
-        user_op: UserOperationVariant,
-        entry_point: Address,
-    ) -> Result<B256, jsonrpsee::types::ErrorObjectOwned>;
+        user_op: serde_json::Value,
+        entry_point: String,
+    ) -> Result<String, jsonrpsee::types::ErrorObjectOwned>;
 }
-
-/// A dummy function for utoipa to generate OpenAPI documentation.
-#[utoipa::path(
-    post,
-    path = "/pm/sponsorUserOperation",
-    request_body = crate::api_docs::SponsorRequest,
-    responses(
-        (status = 200, description = "Successfully sponsored UserOperation", body = String),
-        (status = 500, description = "Internal Server Error", body = crate::api_docs::ErrorResponse)
-    )
-)]
-pub async fn sponsor_user_operation_doc() {}
 
 pub struct PaymasterRelayApiServerImpl {
     pub service: PaymasterRelayService,
@@ -38,12 +202,44 @@ pub struct PaymasterRelayApiServerImpl {
 impl PaymasterRelayApiServer for PaymasterRelayApiServerImpl {
     async fn sponsor_user_operation(
         &self,
-        user_op: UserOperationVariant,
-        entry_point: Address,
-    ) -> Result<B256, jsonrpsee::types::ErrorObjectOwned> {
-        self.service
+        user_op: serde_json::Value,
+        entry_point: String,
+    ) -> Result<String, jsonrpsee::types::ErrorObjectOwned> {
+        // Parse the JSON UserOperation to our simplified format first
+        let json_user_op: JsonUserOperation = serde_json::from_value(user_op).map_err(|e| {
+            jsonrpsee::types::ErrorObjectOwned::owned(
+                jsonrpsee::types::ErrorCode::InvalidParams.code(),
+                format!("Invalid user operation: {}", e),
+                None::<()>,
+            )
+        })?;
+
+        // Convert to UserOperationVariant (we'll implement this conversion)
+        let user_op: UserOperationVariant = json_user_op.try_into().map_err(|e: String| {
+            jsonrpsee::types::ErrorObjectOwned::owned(
+                jsonrpsee::types::ErrorCode::InvalidParams.code(),
+                format!("Failed to convert user operation: {}", e),
+                None::<()>,
+            )
+        })?;
+
+        let entry_point: Address = entry_point.parse().map_err(|e| {
+            jsonrpsee::types::ErrorObjectOwned::owned(
+                jsonrpsee::types::ErrorCode::InvalidParams.code(),
+                format!("Invalid entry point address: {}", e),
+                None::<()>,
+            )
+        })?;
+
+        let result = self
+            .service
             .sponsor_user_operation(user_op, entry_point)
             .await
-            .map_err(|e| e.into())
+            .map_err(|e| {
+                let error: jsonrpsee::types::ErrorObjectOwned = e.into();
+                error
+            })?;
+
+        Ok(format!("0x{:x}", result))
     }
-} 
+}

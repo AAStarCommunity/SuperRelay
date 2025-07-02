@@ -5,6 +5,7 @@ members = [
     "crates/bindings/fastlz/",
     "crates/builder/",
     "crates/contracts/",
+    "crates/paymaster-relay/",
     "crates/pool/",
     "crates/provider/",
     "crates/rpc/",
@@ -30,6 +31,7 @@ rundler-bindings-fastlz = { path = "crates/bindings/fastlz" }
 rundler-bls = { path = "crates/aggregators/bls" }
 rundler-builder = { path = "crates/builder" }
 rundler-contracts = { path = "crates/contracts" }
+rundler-paymaster-relay = { path = "crates/paymaster-relay" }
 rundler-pbh = { path = "crates/aggregators/pbh" }
 rundler-pool = { path = "crates/pool" }
 rundler-provider = { path = "crates/provider" }
@@ -106,3 +108,14 @@ tracing = "0.1.40"
 strum = { version = "0.26.3", features = ["derive"] }
 url = "2.5.2"
 tiny_http = "0.12.0"
+
+# paymaster-relay dependencies
+axum = "0.7"
+utoipa = "5.0"
+utoipa-swagger-ui = "8.0"
+toml = "0.8"
+eyre = "0.6"
+tempfile = "3.14"
+ethers = "2.0"
+jsonrpsee-core = "0.24"
+jsonrpsee-ws-client = "0.24"

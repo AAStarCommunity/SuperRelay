@@ -1,5 +1,7 @@
 // paymaster-relay/src/signer.rs
-// This file will implement the SignerManager for handling private keys. 
+// This file will implement the SignerManager for handling private keys.
+
+use std::str::FromStr;
 
 use ethers::{
     signers::{LocalWallet, Signer},
@@ -7,7 +9,6 @@ use ethers::{
 };
 use eyre::Result;
 use secrecy::{ExposeSecret, SecretString};
-use std::str::FromStr;
 
 #[derive(Clone)]
 pub struct SignerManager {
@@ -32,9 +33,11 @@ impl SignerManager {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use ethers::types::H256;
     use std::str::FromStr;
+
+    use ethers::types::H256;
+
+    use super::*;
 
     #[tokio::test]
     async fn test_signer_manager() {
@@ -45,7 +48,8 @@ mod tests {
         let secret_key = SecretString::new(private_key.into());
 
         // 1. Create a new SignerManager
-        let signer_manager = SignerManager::new(secret_key).expect("Failed to create signer manager");
+        let signer_manager =
+            SignerManager::new(secret_key).expect("Failed to create signer manager");
 
         // 2. Check if the address is correct
         let expected_address =

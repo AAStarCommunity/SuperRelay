@@ -1,11 +1,13 @@
 // paymaster-relay/src/policy.rs
-// This file will implement the PolicyEngine for sponsorship rules. 
+// This file will implement the PolicyEngine for sponsorship rules.
+
+use std::{collections::HashMap, path::Path};
+
+use alloy_primitives::Address;
+use rundler_types::{UserOperation, UserOperationVariant};
+use serde::Deserialize;
 
 use crate::error::PaymasterError;
-use alloy_primitives::Address;
-use rundler_types::user_operation::{UserOperation, UserOperationVariant};
-use serde::Deserialize;
-use std::{collections::HashMap, path::Path};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Policy {
@@ -28,10 +30,12 @@ pub struct PolicyEngine {
 
 impl PolicyEngine {
     pub fn new(config_path: &Path) -> Result<Self, PaymasterError> {
-        let config_str = std::fs::read_to_string(config_path)
-            .map_err(|e| PaymasterError::PolicyRejected(format!("Failed to read policy file: {}", e)))?;
-        let config: PolicyConfig = toml::from_str(&config_str)
-            .map_err(|e| PaymasterError::PolicyRejected(format!("Failed to parse policy file: {}", e)))?;
+        let config_str = std::fs::read_to_string(config_path).map_err(|e| {
+            PaymasterError::PolicyRejected(format!("Failed to read policy file: {}", e))
+        })?;
+        let config: PolicyConfig = toml::from_str(&config_str).map_err(|e| {
+            PaymasterError::PolicyRejected(format!("Failed to parse policy file: {}", e))
+        })?;
         Ok(Self { config })
     }
 
@@ -59,14 +63,34 @@ impl PolicyEngine {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::{fs::File, io::Write, str::FromStr};
+
     use tempfile::tempdir;
-    use rundler_types::user_operation::v0_6::UserOperation as UserOperationV6;
+
+    use super::*;
 
     fn create_test_user_op(sender: Address) -> UserOperationVariant {
-        let mut op = UserOperationV6::default();
-        op.sender = sender;
+        use alloy_primitives::{Bytes, U256};
+        use rundler_types::{chain::ChainSpec, v0_6};
+
+        let chain_spec = ChainSpec::default();
+        let op = v0_6::UserOperationBuilder::new(
+            &chain_spec,
+            v0_6::UserOperationRequiredFields {
+                sender,
+                nonce: U256::ZERO,
+                init_code: Bytes::new(),
+                call_data: Bytes::new(),
+                call_gas_limit: 100_000,
+                verification_gas_limit: 100_000,
+                pre_verification_gas: 21_000,
+                max_fee_per_gas: 1_000_000_000,
+                max_priority_fee_per_gas: 1_000_000_000,
+                paymaster_and_data: Bytes::new(),
+                signature: Bytes::new(),
+            },
+        )
+        .build();
         UserOperationVariant::V0_6(op)
     }
 
@@ -106,8 +130,10 @@ senders = ["0x0000000000000000000000000000000000000001"]"#
         let file_path = dir.path().join("policy.toml");
         let mut file = File::create(&file_path).unwrap();
 
-        let allowed_sender = Address::from_str("0x0000000000000000000000000000000000000001").unwrap();
-        let disallowed_sender = Address::from_str("0x0000000000000000000000000000000000000002").unwrap();
+        let allowed_sender =
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap();
+        let disallowed_sender =
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap();
 
         writeln!(
             file,
@@ -130,8 +156,13 @@ senders = ["{}"]"#,
         // 3. Test with no "default" policy in file
         let no_default_path = dir.path().join("no_default.toml");
         let mut no_default_file = File::create(&no_default_path).unwrap();
-        writeln!(no_default_file, r#"[other_policy]
-senders = ["{}"]"#, allowed_sender).unwrap();
+        writeln!(
+            no_default_file,
+            r#"[other_policy]
+senders = ["{}"]"#,
+            allowed_sender
+        )
+        .unwrap();
         let engine_no_default = PolicyEngine::new(&no_default_path).unwrap();
         assert!(engine_no_default.check_policy(&user_op_allowed).is_err());
     }

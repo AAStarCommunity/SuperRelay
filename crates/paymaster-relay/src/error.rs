@@ -1,5 +1,5 @@
 // paymaster-relay/src/error.rs
-// This file will define custom error types for the paymaster-relay crate. 
+// This file will define custom error types for the paymaster-relay crate.
 
 use rundler_types::pool::PoolError;
 use thiserror::Error;
@@ -22,9 +22,9 @@ pub enum PaymasterError {
 impl From<PaymasterError> for jsonrpsee::types::ErrorObjectOwned {
     fn from(err: PaymasterError) -> Self {
         jsonrpsee::types::ErrorObjectOwned::owned(
-            jsonrpsee::types::error::ErrorCode::InternalError.code(),
+            jsonrpsee::types::ErrorCode::InternalError.code(),
             err.to_string(),
             None::<()>,
         )
     }
-} 
+}
