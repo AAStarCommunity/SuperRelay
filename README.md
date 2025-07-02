@@ -1,4 +1,73 @@
-# Rundler
+# SuperRelay based on Alchemy Rundler
+
+AAStar SuperRelay 是一个基于 Rundler (Alchemy的ERC-4337 bundler) 的集成 Paymaster Relay 服务，目标是为ERC-4337生态提供gas赞助功能。
+```
+sequenceDiagram
+    participant Client as 客户端
+    participant RPC as PaymasterRelayApi
+    participant Service as PaymasterRelayService
+    participant Policy as PolicyEngine
+    participant Signer as SignerManager
+    participant Pool as Rundler内存池
+
+    Client->>RPC: pm_sponsorUserOperation(userOp, entryPoint)
+    RPC->>Service: sponsor_user_operation()
+    Service->>Policy: check_policy(userOp)
+    Policy-->>Service: 验证通过
+    Service->>Signer: sign_hash(userOpHash)
+    Signer-->>Service: 返回签名
+    Service->>Service: 构造sponsored UserOp
+    Service->>Pool: add_op(sponsored_op)
+    Pool-->>Service: userOpHash
+    Service-->>RPC: userOpHash
+    RPC-->>Client: userOpHash
+
+```
+
+## Version 0.0.1 - Initial Development (2025-07-02)
+
+### 新增功能
+- 创建 `paymaster-relay` crate 作为独立模块
+- 实现 `SignerManager` - 支持本地私钥签名管理
+- 实现 `PolicyEngine` - 基于 TOML 配置的赞助策略引擎
+- 实现 `PaymasterRelayApi` - JSON-RPC 接口，提供 `pm_sponsorUserOperation` 方法
+- 实现 `PaymasterRelayService` - 核心业务逻辑服务
+- 集成 Swagger UI - 自动生成 API 文档
+- 添加完整的错误处理机制
+
+### 技术架构
+- 基于 Rundler (Alchemy ERC-4337 bundler) 架构
+- 支持 EntryPoint v0.6 和 v0.7
+- 模块化设计，不影响 Rundler 原有功能
+- 异步处理架构，基于 Tokio runtime
+
+### 核心功能流程
+1. 客户端调用 `pm_sponsorUserOperation`
+2. 策略引擎验证 UserOperation 是否符合赞助规则
+3. 签名管理器生成 paymaster 签名
+4. 构造带有 paymaster 数据的 UserOperation
+5. 提交到 Rundler 内存池进行打包和上链
+
+### 配置支持
+- CLI 参数：`--paymaster.enabled`, `--paymaster.policy-file`
+- 环境变量：`PAYMASTER_PRIVATE_KEY` 用于签名
+- TOML 策略配置文件支持
+
+### 文件结构
+```
+crates/paymaster-relay/
+├── src/
+│   ├── lib.rs          # 模块定义
+│   ├── rpc.rs          # JSON-RPC API
+│   ├── service.rs      # 核心服务逻辑
+│   ├── policy.rs       # 策略引擎
+│   ├── signer.rs       # 签名管理
+│   ├── error.rs        # 错误类型
+│   ├── api_docs.rs     # API 文档定义
+│   └── swagger.rs      # Swagger UI 服务
+└── tests/
+    └── rpc_test.rs     # 集成测试
+```
 
 [![gh_ci_badge]][gh_ci_link]
 [![tg_badge]][tg_link]
