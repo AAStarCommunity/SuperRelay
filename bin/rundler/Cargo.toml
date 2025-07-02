@@ -39,6 +39,7 @@ paste = "1.0"
 reth-tasks.workspace = true
 rundler-bls.workspace = true
 rundler-builder.workspace = true
+rundler-paymaster-relay.workspace = true
 rundler-pbh.workspace = true
 rundler-pool.workspace = true
 rundler-provider.workspace = true

@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 use clap::Args;
 use rundler_builder::{BuilderEvent, BuilderTask, LocalBuilderBuilder};
+use rundler_paymaster_relay::{policy::PolicyEngine, signer::SignerManager, PaymasterRelayService};
 use rundler_pool::{LocalPoolBuilder, PoolEvent, PoolTask};
 use rundler_provider::Providers;
 use rundler_rpc::RpcTask;
@@ -156,9 +157,58 @@ pub async fn spawn_tasks<T: TaskSpawnerExt + 'static>(
     .spawn(task_spawner.clone())
     .await?;
 
-    RpcTask::new(rpc_task_args, pool_handle, builder_handle, providers)
-        .spawn(task_spawner)
-        .await?;
+    // Initialize PaymasterRelayService if enabled
+    let paymaster_service = if common_args.paymaster_enabled {
+        tracing::info!("Initializing PaymasterRelayService");
+
+        // Create signer manager
+        let signer_manager = SignerManager::new(
+            common_args
+                .paymaster_private_key
+                .as_ref()
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Paymaster private key required when paymaster is enabled")
+                })?
+                .clone(),
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to create signer manager: {}", e))?;
+
+        // Create policy engine
+        let policy_engine = if let Some(policy_file) = &common_args.paymaster_policy_file {
+            PolicyEngine::new(std::path::Path::new(policy_file))
+                .map_err(|e| anyhow::anyhow!("Failed to create policy engine: {}", e))?
+        } else {
+            // Create a default policy file if none provided
+            tracing::warn!("No policy file provided, using default policy");
+            let default_config = r#"
+[default]
+senders = ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+"#;
+            let temp_path = std::env::temp_dir().join("default_paymaster_policy.toml");
+            std::fs::write(&temp_path, default_config)?;
+            PolicyEngine::new(&temp_path)
+                .map_err(|e| anyhow::anyhow!("Failed to create default policy engine: {}", e))?
+        };
+
+        // Create paymaster relay service
+        Some(PaymasterRelayService::new(
+            signer_manager,
+            policy_engine,
+            Arc::new(pool_handle.clone()),
+        ))
+    } else {
+        None
+    };
+
+    RpcTask::new(
+        rpc_task_args,
+        pool_handle,
+        builder_handle,
+        providers,
+        paymaster_service,
+    )
+    .spawn(task_spawner)
+    .await?;
 
     Ok(())
 }

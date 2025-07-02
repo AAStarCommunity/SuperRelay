@@ -10,7 +10,7 @@ use ethers::{
 use eyre::Result;
 use secrecy::{ExposeSecret, SecretString};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SignerManager {
     signer: LocalWallet,
 }

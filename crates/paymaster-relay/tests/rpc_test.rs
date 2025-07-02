@@ -27,8 +27,8 @@ const PAYMASTER_SIGNER_KEY: &str =
 const ENTRY_POINT_ADDRESS: &str = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
 
 // Define the receipt struct locally as it's not public in rundler
-#[derive(Clone, Debug, Deserialize)]
 #[allow(dead_code)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UserOperationReceipt {
     pub user_op_hash: H256,

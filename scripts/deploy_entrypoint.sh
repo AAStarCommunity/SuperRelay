@@ -16,19 +16,28 @@ echo "Deploying EntryPoint v0.6 contract to anvil..."
 ENTRYPOINT_ADDRESS="0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 DEPLOYER_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"  # First anvil key
 
-# Read the deployment bytecode
-BYTECODE=$(cat crates/contracts/contracts/bytecode/entrypoint/0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789_deployed.txt)
+# Read the constructor bytecode (with constructor)
+BYTECODE=$(cat crates/contracts/contracts/bytecode/entrypoint/0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789.txt)
 
-# Deploy using cast
-echo "Deploying to address: $ENTRYPOINT_ADDRESS"
-cast send --rpc-url http://localhost:8545 --private-key $DEPLOYER_KEY --value 0 --create $BYTECODE
+# Deploy using cast and capture the deployed address
+echo "Deploying EntryPoint contract..."
+DEPLOY_RESULT=$(cast send --rpc-url http://localhost:8545 --private-key $DEPLOYER_KEY --value 0 --create $BYTECODE)
+
+# Extract the actual deployed address
+DEPLOYED_ADDRESS=$(echo "$DEPLOY_RESULT" | grep "contractAddress" | awk '{print $2}')
+
+echo "Contract deployed at: $DEPLOYED_ADDRESS"
 
 # Verify deployment
 echo "Verifying deployment..."
-CODE=$(cast code --rpc-url http://localhost:8545 $ENTRYPOINT_ADDRESS)
+CODE=$(cast code --rpc-url http://localhost:8545 $DEPLOYED_ADDRESS)
 if [ ${#CODE} -gt 2 ]; then
-    echo "✅ EntryPoint deployed successfully at $ENTRYPOINT_ADDRESS"
+    echo "✅ EntryPoint deployed successfully at $DEPLOYED_ADDRESS"
     echo "Contract code length: ${#CODE} characters"
+    
+    # Save the deployed address for later use
+    echo $DEPLOYED_ADDRESS > .entrypoint_address
+    echo "📝 Contract address saved to .entrypoint_address"
 else
     echo "❌ Deployment failed - no code at address"
     exit 1
@@ -36,7 +45,7 @@ fi
 
 echo ""
 echo "🎉 Local blockchain setup complete!"
-echo "📍 EntryPoint v0.6: $ENTRYPOINT_ADDRESS"
+echo "📍 EntryPoint v0.6: $DEPLOYED_ADDRESS"
 echo "🔗 RPC URL: http://localhost:8545"
 echo "⛓️  Chain ID: 31337"
 echo ""

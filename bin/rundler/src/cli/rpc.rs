@@ -51,9 +51,9 @@ pub struct RpcArgs {
         long = "rpc.api",
         name = "rpc.api",
         env = "RPC_API",
-        default_value = "eth,rundler",
+        default_value = "eth,rundler,paymaster",
         value_delimiter = ',',
-        value_parser = ["eth", "debug", "rundler", "admin"]
+        value_parser = ["eth", "debug", "rundler", "admin", "paymaster"]
     )]
     api: Vec<String>,
 
@@ -196,7 +196,7 @@ pub async fn spawn_tasks<T: TaskSpawnerExt + 'static>(
     )
     .await?;
 
-    RpcTask::new(task_args, pool, builder, providers)
+    RpcTask::new(task_args, pool, builder, providers, None)
         .spawn(task_spawner)
         .await?;
 

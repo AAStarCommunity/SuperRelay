@@ -13,7 +13,7 @@ use rundler_types::{
 
 use crate::{error::PaymasterError, policy::PolicyEngine, signer::SignerManager};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PaymasterRelayService {
     signer_manager: SignerManager,
     policy_engine: PolicyEngine,

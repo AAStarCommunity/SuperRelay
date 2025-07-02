@@ -1,0 +1,40 @@
+# Super-Relay Configuration for Local Testing
+
+[node]
+# HTTP RPC port for API calls
+http_api = "0.0.0.0:3000"
+
+# Maximum number of entries in mempool per chain
+max_entries_per_chain = 100
+max_mem_entries_per_chain = 50
+
+[pool]
+# How long a user operation is valid for (in seconds)  
+max_expire_duration_seconds = 60
+# How many mempool entries for a given sender
+max_ops_per_unstaked_sender = 1
+# How many mempool entries for a given paymaster
+max_ops_per_paymaster = 3
+
+[paymaster_relay]
+# Enable paymaster relay service
+enabled = true
+
+# Private key for paymaster signing (test key)
+private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2"
+
+# Policy configuration file
+policy_file = "config/paymaster-policies.toml"
+
+# Supported entry points
+entry_points = ["0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"]
+
+[rpc]
+# Gas estimation settings for local testing
+max_verification_gas = 10000000
+max_call_gas = 10000000
+
+[mempool]
+# Mempool settings for local testing
+max_send_bundle_txns = 10
+bundle_max_length = 5 

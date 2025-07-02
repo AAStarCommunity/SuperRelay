@@ -1,0 +1,13 @@
+base = "ethereum"
+
+name = "Local Development Chain"
+id = 31337
+
+# Use our deployed EntryPoint address for v0.6
+entry_point_address_v0_6 = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+
+bundle_max_send_interval_millis = 250
+block_gas_limit = 30000000
+
+# Dev-friendly settings
+min_max_priority_fee_per_gas = 1000000

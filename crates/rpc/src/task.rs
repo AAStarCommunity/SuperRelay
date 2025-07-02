@@ -20,6 +20,7 @@ use jsonrpsee::{
     server::{middleware::http::ProxyGetRequestLayer, RpcServiceBuilder, ServerBuilder},
     RpcModule,
 };
+use rundler_paymaster_relay::PaymasterRelayApiServer;
 use rundler_provider::{FeeEstimator, Providers as ProvidersT};
 use rundler_sim::{EstimationSettings, GasEstimatorV0_6, GasEstimatorV0_7, PrecheckSettings};
 use rundler_task::{
@@ -82,16 +83,24 @@ pub struct RpcTask<Pool, Builder, Providers> {
     pool: Pool,
     builder: Builder,
     providers: Providers,
+    paymaster_service: Option<rundler_paymaster_relay::PaymasterRelayService>,
 }
 
 impl<Pool, Builder, Providers> RpcTask<Pool, Builder, Providers> {
     /// Creates a new RPC server task.
-    pub fn new(args: Args, pool: Pool, builder: Builder, providers: Providers) -> Self {
+    pub fn new(
+        args: Args,
+        pool: Pool,
+        builder: Builder,
+        providers: Providers,
+        paymaster_service: Option<rundler_paymaster_relay::PaymasterRelayService>,
+    ) -> Self {
         Self {
             args,
             pool,
             builder,
             providers,
+            paymaster_service,
         }
     }
 }
@@ -288,6 +297,16 @@ where
                 )
                 .into_rpc(),
             )?;
+        }
+
+        // Add paymaster relay API if service is available
+        if self.args.api_namespaces.contains(&ApiNamespace::Paymaster) {
+            if let Some(ref paymaster_service) = self.paymaster_service {
+                let paymaster_api = rundler_paymaster_relay::PaymasterRelayApiServerImpl {
+                    service: paymaster_service.clone(),
+                };
+                module.merge(paymaster_api.into_rpc())?;
+            }
         }
 
         Ok(())

@@ -44,12 +44,74 @@ brew install llvm
 
 ### 3. 克隆项目
 ```bash
-git clone <your-super-relay-repository>
+git clone https://github.com/AAStarCommunity/SuperRelay
 cd super-relay
+
+# 切换到开发分支 (默认分支已切换为 feature/super-relay)
+git checkout feature/super-relay
 
 # 初始化子模块
 git submodule update --init --recursive
 ```
+
+## 更新与升级
+
+### GitHub 分支更新步骤
+当项目默认分支从 main 切换为 feature/super-relay 时，按以下步骤更新：
+
+```bash
+# 1. 保存本地更改
+git stash
+
+# 2. 切换到主分支
+git checkout main
+
+# 3. 拉取最新代码
+git pull
+
+# 4. 切换到开发分支
+git checkout feature/super-relay
+
+# 5. 恢复本地更改
+git stash pop
+
+# 6. 合并主分支更新
+git merge main
+
+# 7. 检查列表：根据改动项逐个检查
+# - 合并冲突解决
+# - 相关改动功能的逐个测试和确认
+# - 整体测试验证
+```
+
+### 代码更新验证清单
+1. **编译检查**:
+   ```bash
+   cargo build --all
+   cargo test --all
+   ```
+
+2. **格式化检查**:
+   ```bash
+   cargo +nightly fmt --check --all
+   ```
+
+3. **核心功能测试**:
+   ```bash
+   ./scripts/restart_super_relay.sh
+   ./scripts/test_simple.sh
+   ```
+
+4. **配置文件验证**:
+   - 检查 `config/paymaster-policies.toml`
+   - 验证 EntryPoint 地址配置
+   - 确认私钥和环境变量
+
+5. **服务重启**:
+   ```bash
+   sudo systemctl restart super-relay
+   sudo systemctl status super-relay
+   ```
 
 ## 编译与构建
 

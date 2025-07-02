@@ -526,6 +526,34 @@ pub struct CommonArgs {
         value_parser = ValueParser::new(parse_key_val)
     )]
     pub aggregator_options: Vec<(String, String)>,
+
+    /// Enable paymaster relay service
+    #[arg(
+        long = "paymaster.enabled",
+        name = "paymaster.enabled",
+        env = "PAYMASTER_ENABLED",
+        global = true
+    )]
+    pub paymaster_enabled: bool,
+
+    /// Paymaster private key for signing
+    #[arg(
+        long = "paymaster.private_key",
+        name = "paymaster.private_key", 
+        env = "PAYMASTER_PRIVATE_KEY",
+        value_parser = parse_secret,
+        global = true
+    )]
+    pub paymaster_private_key: Option<SecretString>,
+
+    /// Path to paymaster policy configuration file
+    #[arg(
+        long = "paymaster.policy_file",
+        name = "paymaster.policy_file",
+        env = "PAYMASTER_POLICY_FILE",
+        global = true
+    )]
+    pub paymaster_policy_file: Option<String>,
 }
 
 /// Converts a &str into a SecretString

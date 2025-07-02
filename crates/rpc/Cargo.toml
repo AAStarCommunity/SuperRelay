@@ -24,6 +24,7 @@ jsonrpsee = { workspace = true, features = ["client", "macros", "server"] }
 metrics.workspace = true
 metrics-derive.workspace = true
 rundler-contracts.workspace = true
+rundler-paymaster-relay.workspace = true
 rundler-provider.workspace = true
 rundler-sim.workspace = true
 rundler-task.workspace = true

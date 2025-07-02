@@ -23,7 +23,7 @@ pub struct PolicyConfig {
     pub policies: HashMap<String, Policy>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PolicyEngine {
     config: PolicyConfig,
 }

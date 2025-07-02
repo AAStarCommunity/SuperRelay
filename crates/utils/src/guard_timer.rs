@@ -19,11 +19,14 @@ use metrics::Histogram;
 
 /// A customized guard to measure duration and record to metric.
 ///
-/// exmaple usage:
-/// ```
-/// fn bala() {
+/// Example usage:
+/// ```no_run
+/// use rundler_utils::guard_timer::CustomTimerGuard;
+/// use metrics::Histogram;
+///
+/// fn example_function(metric: Histogram) {
 ///   let _timer = CustomTimerGuard::new(metric);
-///   ...
+///   // Some work here...
 /// } // _timer will automatically dropped and record the duration.
 /// ```
 pub struct CustomTimerGuard {

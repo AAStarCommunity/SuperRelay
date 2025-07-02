@@ -12,6 +12,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::service::PaymasterRelayService;
 
+/// Parse a number string that can be either hex (0x prefix) or decimal
+fn parse_hex_or_decimal(s: &str) -> Result<u128, String> {
+    if s.starts_with("0x") || s.starts_with("0X") {
+        u128::from_str_radix(&s[2..], 16).map_err(|e| format!("Invalid hex number: {}", e))
+    } else {
+        s.parse::<u128>()
+            .map_err(|e| format!("Invalid decimal number: {}", e))
+    }
+}
+
 /// Simplified UserOperation structure for JSON-RPC deserialization
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -49,25 +59,15 @@ impl TryInto<UserOperationVariant> for JsonUserOperation {
         let nonce = U256::from_str(&self.nonce).map_err(|e| format!("Invalid nonce: {}", e))?;
         let call_data =
             Bytes::from_str(&self.call_data).map_err(|e| format!("Invalid call_data: {}", e))?;
-        let call_gas_limit = self
-            .call_gas_limit
-            .parse::<u128>()
+        let call_gas_limit = parse_hex_or_decimal(&self.call_gas_limit)
             .map_err(|e| format!("Invalid call_gas_limit: {}", e))?;
-        let verification_gas_limit = self
-            .verification_gas_limit
-            .parse::<u128>()
+        let verification_gas_limit = parse_hex_or_decimal(&self.verification_gas_limit)
             .map_err(|e| format!("Invalid verification_gas_limit: {}", e))?;
-        let pre_verification_gas = self
-            .pre_verification_gas
-            .parse::<u128>()
+        let pre_verification_gas = parse_hex_or_decimal(&self.pre_verification_gas)
             .map_err(|e| format!("Invalid pre_verification_gas: {}", e))?;
-        let max_fee_per_gas = self
-            .max_fee_per_gas
-            .parse::<u128>()
+        let max_fee_per_gas = parse_hex_or_decimal(&self.max_fee_per_gas)
             .map_err(|e| format!("Invalid max_fee_per_gas: {}", e))?;
-        let max_priority_fee_per_gas = self
-            .max_priority_fee_per_gas
-            .parse::<u128>()
+        let max_priority_fee_per_gas = parse_hex_or_decimal(&self.max_priority_fee_per_gas)
             .map_err(|e| format!("Invalid max_priority_fee_per_gas: {}", e))?;
         let signature =
             Bytes::from_str(&self.signature).map_err(|e| format!("Invalid signature: {}", e))?;
@@ -140,15 +140,14 @@ impl TryInto<UserOperationVariant> for JsonUserOperation {
                 let paymaster_verification_gas_limit = if let Some(pvgl) =
                     self.paymaster_verification_gas_limit
                 {
-                    pvgl.parse::<u128>()
+                    parse_hex_or_decimal(&pvgl)
                         .map_err(|e| format!("Invalid paymaster_verification_gas_limit: {}", e))?
                 } else {
                     0
                 };
                 let paymaster_post_op_gas_limit =
                     if let Some(ppogl) = self.paymaster_post_op_gas_limit {
-                        ppogl
-                            .parse::<u128>()
+                        parse_hex_or_decimal(&ppogl)
                             .map_err(|e| format!("Invalid paymaster_post_op_gas_limit: {}", e))?
                     } else {
                         0
