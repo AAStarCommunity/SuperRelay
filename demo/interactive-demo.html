@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPaymaster Interactive Demo</title>
+    <script src="https://unpkg.com/ethers@6/dist/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .config-section, .demo-section, .results-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e1e5e9;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn.success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        
+        .btn.warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        
+        .btn.danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .endpoint-test {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: white;
+        }
+        
+        .endpoint-test h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .response-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 SuperPaymaster Interactive Demo</h1>
+            <p>Enterprise-grade Paymaster Relay for ERC-4337 User Operation Sponsorship</p>
+        </div>
+        
+        <div class="content">
+            <!-- Configuration Section -->
+            <div class="config-section">
+                <h2 class="section-title">⚙️ Configuration</h2>
+                <div class="grid">
+                    <div>
+                        <div class="form-group">
+                            <label for="relayUrl">SuperRelay URL</label>
+                            <input type="text" id="relayUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+                        </div>
+                        <div class="form-group">
+                            <label for="entryPoint">EntryPoint Address</label>
+                            <input type="text" id="entryPoint" value="0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789" placeholder="0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label for="userAddress">User Address</label>
+                            <input type="text" id="userAddress" value="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" placeholder="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266">
+                        </div>
+                        <div class="form-group">
+                            <label for="apiVersion">API Version</label>
+                            <select id="apiVersion">
+                                <option value="v0.6">ERC-4337 v0.6</option>
+                                <option value="v0.7">ERC-4337 v0.7</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" onclick="testConnection()">🔗 Test Connection</button>
+                <button class="btn success" onclick="loadSwaggerUI()">📚 Open Swagger UI</button>
+            </div>
+            
+            <!-- Demo Section -->
+            <div class="demo-section">
+                <h2 class="section-title">🎮 API Testing</h2>
+                
+                <!-- Health Check -->
+                <div class="endpoint-test">
+                    <h4>1. Health Check</h4>
+                    <button class="btn success" onclick="testHealth()">🏥 Test Health</button>
+                    <div id="healthResult" class="response-container" style="display:none;"></div>
+                </div>
+                
+                <!-- JSON-RPC API -->
+                <div class="endpoint-test">
+                    <h4>2. JSON-RPC API (pm_sponsorUserOperation)</h4>
+                    <button class="btn" onclick="testJsonRpc()">🌐 Test JSON-RPC</button>
+                    <button class="btn warning" onclick="showJsonRpcCurl()">📋 Show cURL</button>
+                    <div id="jsonRpcResult" class="response-container" style="display:none;"></div>
+                </div>
+                
+                <!-- REST API -->
+                <div class="endpoint-test">
+                    <h4>3. REST API (/api/v1/sponsor)</h4>
+                    <button class="btn" onclick="testRestApi()">🔗 Test REST</button>
+                    <button class="btn warning" onclick="showRestCurl()">📋 Show cURL</button>
+                    <div id="restResult" class="response-container" style="display:none;"></div>
+                </div>
+                
+                <!-- Metrics -->
+                <div class="endpoint-test">
+                    <h4>4. Metrics & Monitoring</h4>
+                    <button class="btn" onclick="testMetrics()">📊 Test Metrics</button>
+                    <button class="btn" onclick="testPrometheus()">🔍 Test Prometheus</button>
+                    <div id="metricsResult" class="response-container" style="display:none;"></div>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="results-section">
+                <h2 class="section-title">📋 Test Results</h2>
+                <div id="globalStatus"></div>
+                <div id="testLogs"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let testResults = [];
+        
+        // Configuration
+        function getConfig() {
+            return {
+                relayUrl: document.getElementById('relayUrl').value,
+                entryPoint: document.getElementById('entryPoint').value,
+                userAddress: document.getElementById('userAddress').value,
+                apiVersion: document.getElementById('apiVersion').value
+            };
+        }
+        
+        // Logging
+        function logResult(test, success, message, data = null) {
+            const timestamp = new Date().toISOString();
+            testResults.push({ test, success, message, data, timestamp });
+            updateTestLogs();
+            updateGlobalStatus();
+        }
+        
+        function updateTestLogs() {
+            const container = document.getElementById('testLogs');
+            container.innerHTML = testResults.slice(-10).reverse().map(result => `
+                <div class="status ${result.success ? 'success' : 'error'}">
+                    <strong>${result.test}</strong> - ${result.message}
+                    <br><small>${result.timestamp}</small>
+                    ${result.data ? `<pre>${JSON.stringify(result.data, null, 2)}</pre>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function updateGlobalStatus() {
+            const container = document.getElementById('globalStatus');
+            const successCount = testResults.filter(r => r.success).length;
+            const totalCount = testResults.length;
+            
+            if (totalCount === 0) {
+                container.innerHTML = '<div class="status info">Ready to run tests...</div>';
+            } else {
+                const percentage = Math.round((successCount / totalCount) * 100);
+                const statusClass = percentage >= 80 ? 'success' : percentage >= 50 ? 'warning' : 'error';
+                container.innerHTML = `
+                    <div class="status ${statusClass}">
+                        Success Rate: ${successCount}/${totalCount} (${percentage}%)
+                    </div>
+                `;
+            }
+        }
+        
+        // API Testing Functions
+        async function testConnection() {
+            const config = getConfig();
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.innerHTML = '<span class="loading"></span> Testing...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${config.relayUrl}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    logResult('Connection Test', true, 'Successfully connected to SuperRelay', data);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                logResult('Connection Test', false, `Connection failed: ${error.message}`);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        async function testHealth() {
+            const config = getConfig();
+            try {
+                const response = await fetch(`${config.relayUrl}/health`);
+                const data = await response.json();
+                
+                document.getElementById('healthResult').style.display = 'block';
+                document.getElementById('healthResult').innerHTML = `
+                    <div class="code-block">${JSON.stringify(data, null, 2)}</div>
+                `;
+                
+                logResult('Health Check', response.ok, response.ok ? 'Health check passed' : 'Health check failed', data);
+            } catch (error) {
+                logResult('Health Check', false, `Health check error: ${error.message}`);
+            }
+        }
+        
+        async function testJsonRpc() {
+            const config = getConfig();
+            const payload = createUserOperation(config.apiVersion);
+            
+            try {
+                const response = await fetch(config.relayUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'pm_sponsorUserOperation',
+                        params: [payload, config.entryPoint]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('jsonRpcResult').style.display = 'block';
+                document.getElementById('jsonRpcResult').innerHTML = `
+                    <div class="code-block">${JSON.stringify(data, null, 2)}</div>
+                `;
+                
+                logResult('JSON-RPC API', !data.error, data.error ? data.error.message : 'UserOperation sponsored successfully', data);
+            } catch (error) {
+                logResult('JSON-RPC API', false, `JSON-RPC error: ${error.message}`);
+            }
+        }
+        
+        async function testRestApi() {
+            const config = getConfig();
+            const payload = createUserOperation(config.apiVersion);
+            
+            try {
+                const response = await fetch(`${config.relayUrl}/api/v1/sponsor`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_op: payload,
+                        entry_point: config.entryPoint
+                    })
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('restResult').style.display = 'block';
+                document.getElementById('restResult').innerHTML = `
+                    <div class="code-block">${JSON.stringify(data, null, 2)}</div>
+                `;
+                
+                logResult('REST API', response.ok, response.ok ? 'UserOperation sponsored via REST' : 'REST API failed', data);
+            } catch (error) {
+                logResult('REST API', false, `REST API error: ${error.message}`);
+            }
+        }
+        
+        async function testMetrics() {
+            const config = getConfig();
+            try {
+                const response = await fetch(`${config.relayUrl}/metrics`);
+                const data = await response.json();
+                
+                document.getElementById('metricsResult').style.display = 'block';
+                document.getElementById('metricsResult').innerHTML = `
+                    <div class="code-block">${JSON.stringify(data, null, 2)}</div>
+                `;
+                
+                logResult('Metrics', response.ok, 'Metrics retrieved successfully', data);
+            } catch (error) {
+                logResult('Metrics', false, `Metrics error: ${error.message}`);
+            }
+        }
+        
+        async function testPrometheus() {
+            const config = getConfig();
+            try {
+                const response = await fetch(`${config.relayUrl}/prometheus`);
+                const data = await response.text();
+                
+                document.getElementById('metricsResult').style.display = 'block';
+                document.getElementById('metricsResult').innerHTML = `
+                    <div class="code-block">${data}</div>
+                `;
+                
+                logResult('Prometheus', response.ok, 'Prometheus metrics retrieved', { format: 'text/plain' });
+            } catch (error) {
+                logResult('Prometheus', false, `Prometheus error: ${error.message}`);
+            }
+        }
+        
+        function createUserOperation(version) {
+            const config = getConfig();
+            
+            const base = {
+                sender: config.userAddress,
+                nonce: "0x0",
+                callData: "0x",
+                callGasLimit: "0x186A0",
+                verificationGasLimit: "0x186A0",
+                preVerificationGas: "0x5208",
+                maxFeePerGas: "0x3B9ACA00",
+                maxPriorityFeePerGas: "0x3B9ACA00",
+                signature: "0x"
+            };
+            
+            if (version === 'v0.6') {
+                return {
+                    ...base,
+                    initCode: "0x",
+                    paymasterAndData: "0x"
+                };
+            } else {
+                return {
+                    ...base,
+                    factory: null,
+                    factoryData: null,
+                    paymaster: null,
+                    paymasterVerificationGasLimit: null,
+                    paymasterPostOpGasLimit: null,
+                    paymasterData: null
+                };
+            }
+        }
+        
+        function showJsonRpcCurl() {
+            const config = getConfig();
+            const payload = createUserOperation(config.apiVersion);
+            
+            const curlCommand = `curl -X POST ${config.relayUrl} \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "pm_sponsorUserOperation",
+    "params": [
+      ${JSON.stringify(payload, null, 6)},
+      "${config.entryPoint}"
+    ]
+  }' | jq '.result'`;
+            
+            document.getElementById('jsonRpcResult').style.display = 'block';
+            document.getElementById('jsonRpcResult').innerHTML = `
+                <h4>cURL Command:</h4>
+                <div class="code-block">${curlCommand}</div>
+            `;
+        }
+        
+        function showRestCurl() {
+            const config = getConfig();
+            const payload = createUserOperation(config.apiVersion);
+            
+            const curlCommand = `curl -X POST ${config.relayUrl}/api/v1/sponsor \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "user_op": ${JSON.stringify(payload, null, 4)},
+    "entry_point": "${config.entryPoint}"
+  }' | jq '.user_op_hash'`;
+            
+            document.getElementById('restResult').style.display = 'block';
+            document.getElementById('restResult').innerHTML = `
+                <h4>cURL Command:</h4>
+                <div class="code-block">${curlCommand}</div>
+            `;
+        }
+        
+        function loadSwaggerUI() {
+            const config = getConfig();
+            window.open(`${config.relayUrl}/swagger-ui/`, '_blank');
+        }
+        
+        // Initialize
+        updateGlobalStatus();
+    </script>
+</body>
+</html> 

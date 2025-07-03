@@ -2,6 +2,69 @@
 
 本文档记录 SuperPaymaster 项目的开发历程和版本变更。
 
+## Version 0.1.5 - 开发环境自动化与Demo完善 🛠️ (2025-01-03)
+
+### 自动化工具完善 ⚙️
+- 🔧 **格式化自动化**: 创建 pre-commit 钩子自动运行 `cargo +nightly fmt --all`，解决重复格式化问题
+- 📝 **格式化脚本**: 新增 `scripts/format.sh` 手动运行完整格式化检查（rustfmt + clippy + cargo-sort + buf）
+- ✅ **Clippy 错误修复**: 修复 jsonrpsee 特性配置，添加 `client` 和 `ws-client` 特性支持集成测试
+
+### Demo 系统完善 🎮
+- 🚀 **快速测试脚本**: 创建 `demo/curl-test.sh` 提供一键API测试，包含健康检查、JSON-RPC API、REST API、指标监控
+- 🌐 **交互式Web Demo**: 创建 `demo/interactive-demo.html` 完整的浏览器UI界面，支持配置管理、实时测试、结果展示
+- 📚 **完整使用说明**: 创建 `demo/README.md` 详细说明三种使用方式：命令行、Node.js、Web UI
+
+### 开发环境自动化 🏗️
+- 🚀 **一键启动服务**: 创建 `scripts/start_dev_server.sh` 自动启动 Anvil + EntryPoint 部署 + SuperRelay 服务
+- 🔍 **智能检查**: 自动检查必要工具（anvil、cargo、jq），验证服务健康状态
+- 🔧 **配置自动化**: 自动创建临时策略文件，配置默认测试账户，设置环境变量
+- 🧹 **清理机制**: Ctrl+C 优雅关闭所有服务，自动清理临时文件
+
+### 核心能力验证 ✅
+- 🧪 **功能测试通过**: paymaster-relay 库测试 6/6 通过，包括 metrics、policy、signer 模块
+- 🔨 **编译验证**: Release 模式编译成功，确认 rebase 后代码功能完全正常
+- 🔧 **依赖修复**: 修复测试编译错误，正确配置 jsonrpsee 特性
+
+### 一句话API测试 📋
+为满足快速验证需求，提供核心API测试命令：
+```bash
+# JSON-RPC API 测试
+curl -X POST http://localhost:3000 -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"pm_sponsorUserOperation","params":[{"sender":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","nonce":"0x0","initCode":"0x","callData":"0x","callGasLimit":"0x186A0","verificationGasLimit":"0x186A0","preVerificationGas":"0x5208","maxFeePerGas":"0x3B9ACA00","maxPriorityFeePerGas":"0x3B9ACA00","paymasterAndData":"0x","signature":"0x"},"0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"]}' | jq '.result'
+```
+
+### 完整Demo能力 🎯
+提供三种层次的Demo体验：
+1. **命令行测试**: `./demo/curl-test.sh` - 快速验证核心功能
+2. **Node.js演示**: `node demo/superPaymasterDemo.js` - 完整功能展示
+3. **Web交互界面**: `demo/interactive-demo.html` - 可视化配置和测试
+
+### Git工作流问题解决 📝
+- 🔄 **自动格式化**: 解决"为何每次都要运行 cargo fmt"的问题，现在 git commit 自动处理
+- ✅ **Clippy修复**: 解决"为何每次pre-hook都有clippy错误"，修复依赖配置
+- 📁 **Demo完整性确认**: 确认 demo 目录内容完整，包括 superPaymasterDemo.js、package.json 等所有文件
+
+### 开发体验提升 ⭐
+- 🚀 **零配置启动**: `./scripts/start_dev_server.sh` 一键启动完整开发环境
+- 🔧 **智能诊断**: 自动检查工具依赖，提供详细的错误信息和解决建议
+- 📊 **实时监控**: 开发环境包含健康检查、指标监控、Swagger UI等完整工具链
+- 🎮 **即时测试**: 服务启动后立即可用，提供多种测试方式和示例命令
+
+### 影响范围
+- **新增文件**: `.git/hooks/pre-commit` (自动格式化钩子)
+- **新增文件**: `scripts/format.sh` (手动格式化脚本)
+- **新增文件**: `demo/curl-test.sh` (快速API测试)
+- **新增文件**: `demo/interactive-demo.html` (Web UI Demo)
+- **新增文件**: `demo/README.md` (Demo使用说明)
+- **新增文件**: `scripts/start_dev_server.sh` (开发环境启动脚本)
+- **修改文件**: `crates/paymaster-relay/Cargo.toml` (修复 jsonrpsee 特性)
+- **功能验证**: 确认 rebase 后所有功能正常，编译和测试全部通过
+
+### 开发者收益 🎯
+- 🔧 **无需手动格式化**: Git commit 自动处理代码格式化，消除重复工作
+- ⚡ **快速环境搭建**: 一个命令启动完整开发和测试环境
+- 🎮 **多层次测试**: 从一句话验证到完整功能演示，满足不同场景需求
+- 📚 **完整文档支持**: 详细的使用说明和故障排除指南
+
 ## Version 0.1.4 - 监控增强功能完成 📊 (2025-01-03)
 
 ### 监控功能架构完成 ✅

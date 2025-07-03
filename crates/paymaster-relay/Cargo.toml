@@ -12,7 +12,7 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.0", features = ["derive"] }
 ethers = { version = "2.0", features = ["abigen"] }
 eyre = "0.6"
-jsonrpsee = { version = "0.24", features = ["server", "macros"] }
+jsonrpsee = { version = "0.24", features = ["server", "macros", "client", "ws-client"] }
 metrics = "0.23"
 metrics-exporter-prometheus = { version = "0.16", default-features = false, features = ["http-listener"] }
 rundler-pool = { path = "../pool" }
