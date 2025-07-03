@@ -1,0 +1,18 @@
+[package]
+name = "super-relay"
+version = "0.1.4"
+edition = "2021"
+description = "SuperPaymaster Enterprise Account Abstraction Relay Service"
+authors = ["SuperRelay Team"]
+
+[[bin]]
+name = "super-relay"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+eyre = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true } 

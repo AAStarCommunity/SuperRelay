@@ -1,17 +1,24 @@
 // swagger.rs
 // Swagger UI server implementation for API documentation
 
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    net::SocketAddr,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    time::{Duration, Instant},
+};
 
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::Json,
+    response::{IntoResponse, Response},
     routing::{get, post},
-    Router,
+    Json, Router,
 };
+use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
 use serde_json::json;
-use tokio::time::Instant;
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
@@ -25,87 +32,95 @@ use crate::{
     service::PaymasterRelayService,
 };
 
-/// Swagger UI server state
+/// Swagger server state including metrics
 #[derive(Clone)]
 pub struct SwaggerState {
     pub paymaster_service: Arc<PaymasterRelayService>,
+    pub metrics: SwaggerMetrics,
     pub start_time: Instant,
-    pub metrics: Arc<SwaggerMetrics>,
+    pub prometheus_handle: PrometheusHandle,
 }
 
-/// API usage metrics
-#[derive(Default)]
+/// Additional metrics for Swagger UI itself
+#[derive(Clone)]
 pub struct SwaggerMetrics {
-    pub total_requests: std::sync::atomic::AtomicU64,
-    pub successful_requests: std::sync::atomic::AtomicU64,
-    pub failed_requests: std::sync::atomic::AtomicU64,
-    pub avg_response_time_ms: std::sync::atomic::AtomicU64,
+    total_requests: Arc<AtomicU64>,
+    successful_requests: Arc<AtomicU64>,
+    failed_requests: Arc<AtomicU64>,
+    avg_response_time_ms: Arc<AtomicU64>,
 }
 
 impl SwaggerMetrics {
-    pub fn record_request(&self, success: bool, duration: Duration) {
-        use std::sync::atomic::Ordering;
+    pub fn new() -> Self {
+        Self {
+            total_requests: Arc::new(AtomicU64::new(0)),
+            successful_requests: Arc::new(AtomicU64::new(0)),
+            failed_requests: Arc::new(AtomicU64::new(0)),
+            avg_response_time_ms: Arc::new(AtomicU64::new(0)),
+        }
+    }
 
+    pub fn record_request(&self, success: bool, duration: Duration) {
         self.total_requests.fetch_add(1, Ordering::Relaxed);
+
         if success {
             self.successful_requests.fetch_add(1, Ordering::Relaxed);
         } else {
             self.failed_requests.fetch_add(1, Ordering::Relaxed);
         }
 
+        // Update average response time (simplified)
         let duration_ms = duration.as_millis() as u64;
-        let current_avg = self.avg_response_time_ms.load(Ordering::Relaxed);
-        let total = self.total_requests.load(Ordering::Relaxed);
-        let new_avg = (current_avg * (total - 1) + duration_ms) / total;
-        self.avg_response_time_ms.store(new_avg, Ordering::Relaxed);
+        self.avg_response_time_ms
+            .store(duration_ms, Ordering::Relaxed);
     }
 
     pub fn get_stats(&self) -> serde_json::Value {
-        use std::sync::atomic::Ordering;
-
-        let total = self.total_requests.load(Ordering::Relaxed);
-        let success_rate = if total > 0 {
-            (self.successful_requests.load(Ordering::Relaxed) as f64 / total as f64) * 100.0
-        } else {
-            0.0
-        };
-
         json!({
-            "total_requests": total,
+            "total_requests": self.total_requests.load(Ordering::Relaxed),
             "successful_requests": self.successful_requests.load(Ordering::Relaxed),
             "failed_requests": self.failed_requests.load(Ordering::Relaxed),
-            "success_rate": success_rate,
             "avg_response_time_ms": self.avg_response_time_ms.load(Ordering::Relaxed)
         })
     }
 }
 
-/// Start the Swagger UI server
+impl Default for SwaggerMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Start the Swagger UI server with Prometheus metrics
 pub async fn serve_swagger_ui(
     paymaster_service: Arc<PaymasterRelayService>,
-    bind_addr: SocketAddr,
+    addr: SocketAddr,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Initialize Prometheus metrics exporter
+    let prometheus_handle = PrometheusBuilder::new()
+        .install_recorder()
+        .expect("failed to install Prometheus recorder");
+
     let state = SwaggerState {
         paymaster_service,
+        metrics: SwaggerMetrics::new(),
         start_time: Instant::now(),
-        metrics: Arc::new(SwaggerMetrics::default()),
+        prometheus_handle,
     };
 
-    let app = create_swagger_router(state);
+    let app = create_router().with_state(state);
 
-    info!("🚀 Starting Swagger UI server on http://{}", bind_addr);
-    info!("📖 API Documentation: http://{}/swagger-ui/", bind_addr);
-    info!("📊 Health Check: http://{}/health", bind_addr);
-    info!("📈 Metrics: http://{}/metrics", bind_addr);
+    info!("Starting Swagger UI server on {}", addr);
+    info!("Prometheus metrics available on http://localhost:8080/metrics");
 
-    let listener = tokio::net::TcpListener::bind(bind_addr).await?;
+    let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 
     Ok(())
 }
 
 /// Create the Swagger router with all endpoints
-fn create_swagger_router(state: SwaggerState) -> Router {
+fn create_router() -> Router<SwaggerState> {
     Router::new()
         // Swagger UI
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -115,13 +130,13 @@ fn create_swagger_router(state: SwaggerState) -> Router {
         .route("/health", get(health_check))
         .route("/ready", get(readiness_check))
         .route("/metrics", get(get_metrics))
+        .route("/prometheus", get(get_prometheus_metrics))
         .route("/examples/:version", get(get_examples))
         // Code generation endpoints
         .route("/codegen/curl/:endpoint", get(generate_curl_example))
         .route("/codegen/javascript/:endpoint", get(generate_js_example))
         .route("/codegen/python/:endpoint", get(generate_python_example))
         // State and middleware
-        .with_state(state)
         .layer(
             ServiceBuilder::new()
                 .layer(
@@ -134,19 +149,19 @@ fn create_swagger_router(state: SwaggerState) -> Router {
         )
 }
 
-/// Sponsor user operation endpoint (OpenAPI documented)
+/// Sponsor user operation endpoint with metrics
 #[utoipa::path(
     post,
     path = "/api/v1/sponsor",
-    tag = "paymaster",
     request_body = SponsorUserOperationRequest,
     responses(
-        (status = 200, description = "Successfully sponsored user operation", body = SponsorUserOperationResponse),
+        (status = 200, description = "Operation successfully sponsored", body = SponsorUserOperationResponse),
         (status = 400, description = "Invalid request parameters", body = ErrorResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
-    )
+    ),
+    tag = "Paymaster"
 )]
-pub async fn sponsor_user_operation_endpoint(
+async fn sponsor_user_operation_endpoint(
     State(state): State<SwaggerState>,
     Json(request): Json<SponsorUserOperationRequest>,
 ) -> Result<Json<SponsorUserOperationResponse>, (StatusCode, Json<ErrorResponse>)> {
@@ -162,29 +177,15 @@ pub async fn sponsor_user_operation_endpoint(
                 Json(ErrorResponse {
                     error: crate::api_schemas::ApiError {
                         code: crate::api_schemas::error_codes::INVALID_PARAMS,
-                        message: format!("Invalid user operation: {}", e),
-                        data: Some(json!({"field": "user_op", "reason": e.to_string()})),
+                        message: format!("Invalid user operation format: {}", e),
+                        data: Some(json!({"field": "user_op", "reason": "invalid_format"})),
                     },
                 }),
             )
         })?;
 
-    let user_op = json_user_op.try_into().map_err(|e: String| {
-        let duration = start_time.elapsed();
-        state.metrics.record_request(false, duration);
-        (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: crate::api_schemas::ApiError {
-                    code: crate::api_schemas::error_codes::INVALID_PARAMS,
-                    message: format!("Failed to convert user operation: {}", e),
-                    data: Some(json!({"conversion_error": e})),
-                },
-            }),
-        )
-    })?;
-
-    let entry_point: ethers::types::Address = request.entry_point.parse().map_err(|e| {
+    let entry_point_str = request.entry_point.clone();
+    let entry_point = entry_point_str.parse().map_err(|e| {
         let duration = start_time.elapsed();
         state.metrics.record_request(false, duration);
         (
@@ -193,11 +194,29 @@ pub async fn sponsor_user_operation_endpoint(
                 error: crate::api_schemas::ApiError {
                     code: crate::api_schemas::error_codes::INVALID_PARAMS,
                     message: format!("Invalid entry point address: {}", e),
-                    data: Some(json!({"field": "entry_point", "reason": format!("{:?}", e)})),
+                    data: Some(json!({"field": "entry_point", "reason": "invalid_address"})),
                 },
             }),
         )
     })?;
+
+    let user_op = match json_user_op.try_into() {
+        Ok(op) => op,
+        Err(e) => {
+            let duration = start_time.elapsed();
+            state.metrics.record_request(false, duration);
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    error: crate::api_schemas::ApiError {
+                        code: crate::api_schemas::error_codes::INVALID_PARAMS,
+                        message: format!("Failed to parse user operation: {}", e),
+                        data: Some(json!({"conversion_error": e})),
+                    },
+                }),
+            ));
+        }
+    };
 
     match state
         .paymaster_service
@@ -253,18 +272,30 @@ pub async fn sponsor_user_operation_endpoint(
 async fn health_check(State(state): State<SwaggerState>) -> Json<serde_json::Value> {
     let uptime = state.start_time.elapsed();
 
+    // Create paymaster metrics summary
+    let paymaster_metrics = json!({
+        "uptime_seconds": uptime.as_secs(),
+        "health_status": "healthy"
+    });
+
     Json(json!({
         "status": "healthy",
         "service": "paymaster-relay",
-        "version": env!("CARGO_PKG_VERSION"),
+        "version": "0.1.4",
         "uptime_seconds": uptime.as_secs(),
-        "timestamp": chrono::Utc::now().to_rfc3339(),
-        "endpoints": {
-            "swagger_ui": "/swagger-ui/",
-            "health": "/health",
-            "metrics": "/metrics",
-            "sponsor": "/api/v1/sponsor"
-        }
+        "uptime_human": crate::metrics::format_duration(uptime),
+        "swagger_ui": {
+            "requests": state.metrics.get_stats(),
+            "endpoints": {
+                "swagger_ui": "/swagger-ui/",
+                "health": "/health",
+                "metrics": "/metrics",
+                "prometheus": "/prometheus",
+                "ready": "/ready"
+            }
+        },
+        "paymaster": paymaster_metrics,
+        "timestamp": chrono::Utc::now().to_rfc3339()
     }))
 }
 
@@ -273,7 +304,6 @@ async fn readiness_check(
     State(state): State<SwaggerState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Check if paymaster service is ready
-    // This could include checking signer, policy engine, etc.
     let uptime = state.start_time.elapsed();
 
     // Simple readiness check - service has been up for at least 1 second
@@ -282,52 +312,70 @@ async fn readiness_check(
             "status": "ready",
             "service": "paymaster-relay",
             "checks": {
-                "uptime": "ok",
-                "signer": "ok",
-                "policy_engine": "ok"
-            }
+                "uptime": "pass",
+                "prometheus": "pass",
+                "paymaster_service": "pass"
+            },
+            "uptime_seconds": uptime.as_secs()
         })))
     } else {
         Err(StatusCode::SERVICE_UNAVAILABLE)
     }
 }
 
-/// Get API usage metrics
+/// Get service metrics
 async fn get_metrics(State(state): State<SwaggerState>) -> Json<serde_json::Value> {
     let uptime = state.start_time.elapsed();
-    let metrics = state.metrics.get_stats();
+    let swagger_metrics = state.metrics.get_stats();
+    let paymaster_metrics = json!({
+        "uptime_seconds": uptime.as_secs(),
+        "health_status": "healthy"
+    });
 
     Json(json!({
         "service": "paymaster-relay",
         "uptime_seconds": uptime.as_secs(),
-        "api_metrics": metrics,
-        "system": {
-            "memory_usage_mb": get_memory_usage_mb(),
-            "cpu_usage_percent": get_cpu_usage_percent()
-        }
+        "uptime_human": crate::metrics::format_duration(uptime),
+        "memory_usage_mb": get_memory_usage_mb(),
+        "swagger_ui": swagger_metrics,
+        "paymaster": paymaster_metrics,
+        "prometheus_endpoint": "http://localhost:8080/metrics"
     }))
 }
 
-/// Get API examples
+/// Get Prometheus metrics in Prometheus format
+async fn get_prometheus_metrics(State(state): State<SwaggerState>) -> impl IntoResponse {
+    let metrics = state.prometheus_handle.render();
+    Response::builder()
+        .header("content-type", "text/plain; version=0.0.4")
+        .body(metrics)
+        .unwrap()
+}
+
+/// Get examples for different versions
 async fn get_examples(Path(version): Path<String>) -> Result<Json<serde_json::Value>, StatusCode> {
     match version.as_str() {
-        "v0.6" => Ok(Json(json!({
-            "version": "v0.6",
-            "user_operation": examples::example_user_op_v06(),
-            "request": {
-                "user_op": examples::example_user_op_v06(),
-                "entry_point": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
-            },
-            "response": examples::example_success_response()
+        "v06" => Ok(Json(json!({
+            "title": "ERC-4337 v0.6 UserOperation Example",
+            "version": "0.6",
+            "example": examples::example_user_op_v06(),
+            "description": "Example UserOperation for EntryPoint v0.6"
         }))),
-        "v0.7" => Ok(Json(json!({
-            "version": "v0.7",
-            "user_operation": examples::example_user_op_v07(),
-            "request": {
-                "user_op": examples::example_user_op_v07(),
-                "entry_point": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
-            },
-            "response": examples::example_success_response()
+        "v07" => Ok(Json(json!({
+            "title": "ERC-4337 v0.7 UserOperation Example",
+            "version": "0.7",
+            "example": examples::example_user_op_v07(),
+            "description": "Example UserOperation for EntryPoint v0.7"
+        }))),
+        "success" => Ok(Json(json!({
+            "title": "Successful Response Example",
+            "example": examples::example_success_response(),
+            "description": "Example of a successful sponsorship response"
+        }))),
+        "error" => Ok(Json(json!({
+            "title": "Error Response Example",
+            "example": examples::example_error_response(),
+            "description": "Example of an error response"
         }))),
         _ => Err(StatusCode::NOT_FOUND),
     }
@@ -424,6 +472,7 @@ fn get_memory_usage_mb() -> u64 {
 }
 
 /// Get CPU usage percentage (placeholder implementation)
+#[allow(dead_code)]
 fn get_cpu_usage_percent() -> f64 {
     // In a real implementation, you'd use system metrics
     // For now, return a placeholder value

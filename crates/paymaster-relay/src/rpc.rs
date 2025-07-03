@@ -6,7 +6,6 @@ use std::str::FromStr;
 use alloy_primitives::{Address as AlloyAddress, Bytes, U256};
 use async_trait::async_trait;
 use ethers::types::Address;
-use jsonrpsee::proc_macros::rpc;
 use rundler_types::{chain::ChainSpec, v0_6, v0_7, UserOperationVariant};
 use serde::{Deserialize, Serialize};
 
@@ -183,9 +182,8 @@ pub struct SponsorUserOperationResponse {
     pub user_op_hash: String,
 }
 
-#[rpc(server, namespace = "pm")]
+#[async_trait]
 pub trait PaymasterRelayApi {
-    #[method(name = "sponsorUserOperation")]
     async fn sponsor_user_operation(
         &self,
         user_op: serde_json::Value,
@@ -198,47 +196,53 @@ pub struct PaymasterRelayApiServerImpl {
 }
 
 #[async_trait]
-impl PaymasterRelayApiServer for PaymasterRelayApiServerImpl {
+impl PaymasterRelayApi for PaymasterRelayApiServerImpl {
     async fn sponsor_user_operation(
         &self,
         user_op: serde_json::Value,
         entry_point: String,
     ) -> Result<String, jsonrpsee::types::ErrorObjectOwned> {
-        // Parse the JSON UserOperation to our simplified format first
+        // Convert JSON to UserOperation
         let json_user_op: JsonUserOperation = serde_json::from_value(user_op).map_err(|e| {
             jsonrpsee::types::ErrorObjectOwned::owned(
-                jsonrpsee::types::ErrorCode::InvalidParams.code(),
-                format!("Invalid user operation: {}", e),
-                None::<()>,
+                -32602,
+                "Invalid user operation format",
+                Some(format!("JSON parsing error: {}", e)),
             )
         })?;
 
-        // Convert to UserOperationVariant (we'll implement this conversion)
-        let user_op: UserOperationVariant = json_user_op.try_into().map_err(|e: String| {
+        let user_op_variant: UserOperationVariant = json_user_op.try_into().map_err(|e| {
             jsonrpsee::types::ErrorObjectOwned::owned(
-                jsonrpsee::types::ErrorCode::InvalidParams.code(),
-                format!("Failed to convert user operation: {}", e),
-                None::<()>,
+                -32602,
+                "Invalid user operation data",
+                Some(e),
             )
         })?;
 
-        let entry_point: Address = entry_point.parse().map_err(|e| {
+        let entry_point_addr = Address::from_str(&entry_point).map_err(|e| {
             jsonrpsee::types::ErrorObjectOwned::owned(
-                jsonrpsee::types::ErrorCode::InvalidParams.code(),
-                format!("Invalid entry point address: {}", e),
-                None::<()>,
+                -32602,
+                "Invalid entry point address",
+                Some(format!("Address parsing error: {}", e)),
             )
         })?;
 
-        let result = self
+        // Call the service
+        match self
             .service
-            .sponsor_user_operation(user_op, entry_point)
+            .sponsor_user_operation(user_op_variant, entry_point_addr)
             .await
-            .map_err(|e| {
-                let error: jsonrpsee::types::ErrorObjectOwned = e.into();
-                error
-            })?;
-
-        Ok(format!("0x{:x}", result))
+        {
+            Ok(hash) => Ok(format!("0x{:x}", hash)),
+            Err(e) => Err(e.into()),
+        }
     }
+}
+
+/// Helper function to convert JsonUserOperation to UserOperationVariant
+/// This is used by both RPC and REST API endpoints
+pub fn json_user_operation_to_user_operation_variant(
+    json_user_op: JsonUserOperation,
+) -> Result<UserOperationVariant, String> {
+    json_user_op.try_into()
 }

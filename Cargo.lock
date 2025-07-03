@@ -766,6 +766,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1fd03a028ef38ba2276dce7e33fcd6369c158a1bca17946c4b1b701891c1ff7"
 
 [[package]]
+name = "arbitrary"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dde20b3d026af13f561bdd0f15edf01fc734f0dafcedbaf42bba506a9517f223"
+dependencies = [
+ "derive_arbitrary",
+]
+
+[[package]]
 name = "arc-swap"
 version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1510,6 +1519,7 @@ checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
 dependencies = [
  "async-trait",
  "axum-core",
+ "axum-macros",
  "bytes",
  "futures-util",
  "http 1.2.0",
@@ -1555,6 +1565,17 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d123550fa8d071b7255cb0cc04dc302baa6c8c4a79f55701552684d8399bce"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.101",
 ]
 
 [[package]]
@@ -2429,6 +2450,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "derive_arbitrary"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30542c1ad912e0e3d22a1935c290e12e8a29d704a420177a31faad4a601a0800"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.101",
 ]
 
 [[package]]
@@ -4523,6 +4555,16 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "metrics"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3045b4193fbdc5b5681f32f11070da9be3609f189a79f3390706d42587f46bb5"
+dependencies = [
+ "ahash",
+ "portable-atomic",
+]
+
+[[package]]
+name = "metrics"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a7deb012b3b2767169ff203fadb4c6b0b82b947512e5eb9e0b78c2e186ad9e3"
@@ -4555,7 +4597,7 @@ dependencies = [
  "hyper-util",
  "indexmap 2.7.0",
  "ipnet",
- "metrics",
+ "metrics 0.24.1",
  "metrics-util",
  "quanta",
  "thiserror 1.0.69",
@@ -4572,7 +4614,7 @@ dependencies = [
  "libc",
  "libproc",
  "mach2",
- "metrics",
+ "metrics 0.24.1",
  "once_cell",
  "procfs",
  "rlimit",
@@ -4590,7 +4632,7 @@ dependencies = [
  "crossbeam-utils",
  "hashbrown 0.15.2",
  "indexmap 2.7.0",
- "metrics",
+ "metrics 0.24.1",
  "ordered-float",
  "quanta",
  "radix_trie",
@@ -5364,30 +5406,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro-error"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
-dependencies = [
- "proc-macro-error-attr",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
- "version_check",
-]
-
-[[package]]
-name = "proc-macro-error-attr"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
-dependencies = [
- "proc-macro2",
- "quote",
- "version_check",
-]
-
-[[package]]
 name = "proc-macro-error-attr2"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5909,7 +5927,7 @@ name = "reth-metrics"
 version = "1.4.7"
 source = "git+https://github.com/paradigmxyz/reth.git?tag=v1.4.7#dc7cb6e6670b0da294a0e5010e02855f5aaf6b49"
 dependencies = [
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
 ]
 
@@ -5921,7 +5939,7 @@ dependencies = [
  "auto_impl",
  "dyn-clone",
  "futures-util",
- "metrics",
+ "metrics 0.24.1",
  "pin-project",
  "rayon",
  "reth-metrics",
@@ -6094,7 +6112,7 @@ dependencies = [
  "go-parse-duration",
  "http 1.2.0",
  "itertools 0.13.0",
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
  "metrics-exporter-prometheus",
  "metrics-process",
@@ -6166,7 +6184,7 @@ dependencies = [
  "futures-util",
  "jsonrpsee",
  "linked-hash-map",
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
  "mockall",
  "prost",
@@ -6211,12 +6229,16 @@ dependencies = [
  "async-trait",
  "axum",
  "chrono",
+ "clap",
  "ethers",
  "eyre",
  "jsonrpsee",
  "jsonrpsee-core",
  "jsonrpsee-ws-client",
+ "metrics 0.23.1",
+ "metrics-exporter-prometheus",
  "rundler-pool",
+ "rundler-sim",
  "rundler-types",
  "secrecy",
  "serde",
@@ -6225,8 +6247,8 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "toml",
- "tower 0.4.13",
- "tower-http 0.5.2",
+ "tower 0.5.2",
+ "tower-http",
  "tracing",
  "utoipa",
  "utoipa-swagger-ui",
@@ -6263,7 +6285,7 @@ dependencies = [
  "futures",
  "futures-util",
  "itertools 0.13.0",
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
  "mockall",
  "parking_lot",
@@ -6308,7 +6330,7 @@ dependencies = [
  "async-trait",
  "auto_impl",
  "futures-util",
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
  "mockall",
  "pin-project",
@@ -6343,7 +6365,7 @@ dependencies = [
  "http 1.2.0",
  "itertools 0.13.0",
  "jsonrpsee",
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
  "mockall",
  "rundler-contracts",
@@ -6359,7 +6381,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tower 0.4.13",
- "tower-http 0.6.2",
+ "tower-http",
  "tracing",
 ]
 
@@ -6380,7 +6402,7 @@ dependencies = [
  "async-trait",
  "aws-config",
  "aws-sdk-kms",
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
  "mockall",
  "parking_lot",
@@ -6408,7 +6430,7 @@ dependencies = [
  "arrayvec",
  "async-trait",
  "futures-util",
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
  "mockall",
  "rundler-contracts",
@@ -6454,7 +6476,7 @@ dependencies = [
  "auto_impl",
  "chrono",
  "futures-util",
- "metrics",
+ "metrics 0.24.1",
  "metrics-derive",
  "mockall",
  "num_enum",
@@ -6476,7 +6498,7 @@ dependencies = [
  "anyhow",
  "derive_more 0.99.18",
  "itertools 0.13.0",
- "metrics",
+ "metrics 0.24.1",
  "rand 0.8.5",
  "schnellru",
  "tokio",
@@ -6881,6 +6903,7 @@ version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e891af845473308773346dc847b2c23ee78fe442e0472ac50e22a18a93d3ae5a"
 dependencies = [
+ "serde",
  "zeroize",
 ]
 
@@ -7133,6 +7156,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "simd-adler32"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
+
+[[package]]
 name = "simple_asn1"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7367,6 +7396,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "super-relay"
+version = "0.1.4"
+dependencies = [
+ "clap",
+ "eyre",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "svm-rs"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7383,7 +7424,7 @@ dependencies = [
  "sha2",
  "thiserror 1.0.69",
  "url",
- "zip",
+ "zip 0.6.6",
 ]
 
 [[package]]
@@ -7883,22 +7924,6 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e9cd434a998747dd2c4276bc96ee2e0c7a2eadf3cae88e52be55a05fa9053f5"
-dependencies = [
- "bitflags 2.6.0",
- "bytes",
- "http 1.2.0",
- "http-body 1.0.1",
- "http-body-util",
- "pin-project-lite",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "tower-http"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "403fa3b783d4b626a8ad51d766ab03cb6d2dbfc46b1c5d4448395e6628dc9697"
@@ -7906,9 +7931,11 @@ dependencies = [
  "bitflags 2.6.0",
  "bytes",
  "http 1.2.0",
+ "http-body 1.0.1",
  "pin-project-lite",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -8181,9 +8208,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "utoipa"
-version = "4.2.3"
+version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5afb1a60e207dca502682537fefcfd9921e71d0b83e9576060f09abc6efab23"
+checksum = "2fcc29c80c21c31608227e0912b2d7fddba57ad76b606890627ba8ee7964e993"
 dependencies = [
  "indexmap 2.7.0",
  "serde",
@@ -8193,11 +8220,10 @@ dependencies = [
 
 [[package]]
 name = "utoipa-gen"
-version = "4.3.1"
+version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20c24e8ab68ff9ee746aad22d39b5535601e6416d1b0feeabf78be986a5c4392"
+checksum = "6d79d08d92ab8af4c5e8a6da20c47ae3f61a0f1dabc1997cdf2d082b757ca08b"
 dependencies = [
- "proc-macro-error",
  "proc-macro2",
  "quote",
  "regex",
@@ -8206,18 +8232,20 @@ dependencies = [
 
 [[package]]
 name = "utoipa-swagger-ui"
-version = "6.0.0"
+version = "8.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b39868d43c011961e04b41623e050aedf2cc93652562ff7935ce0f819aaf2da"
+checksum = "db4b5ac679cc6dfc5ea3f2823b0291c777750ffd5e13b21137e0f7ac0e8f9617"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "mime_guess",
  "regex",
  "rust-embed",
  "serde",
  "serde_json",
+ "url",
  "utoipa",
- "zip",
+ "zip 2.4.2",
 ]
 
 [[package]]
@@ -8908,6 +8936,35 @@ dependencies = [
  "sha1",
  "time",
  "zstd",
+]
+
+[[package]]
+name = "zip"
+version = "2.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fabe6324e908f85a1c52063ce7aa26b68dcb7eb6dbc83a2d148403c9bc3eba50"
+dependencies = [
+ "arbitrary",
+ "crc32fast",
+ "crossbeam-utils",
+ "displaydoc",
+ "flate2",
+ "indexmap 2.7.0",
+ "memchr",
+ "thiserror 2.0.8",
+ "zopfli",
+]
+
+[[package]]
+name = "zopfli"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edfc5ee405f504cd4984ecc6f14d02d55cfda60fa4b689434ef4102aae150cd7"
+dependencies = [
+ "bumpalo",
+ "crc32fast",
+ "log",
+ "simd-adler32",
 ]
 
 [[package]]
