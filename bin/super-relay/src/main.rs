@@ -1,17 +1,17 @@
 // SuperRelay - Enterprise Account Abstraction Paymaster Solution
 // A wrapper around rundler with SuperPaymaster enhancements
 
-use std::process::Command;
+use std::{fs, process::Command};
 
 use clap::{Parser, Subcommand};
 use eyre::Result;
+use serde::Deserialize;
 
 #[derive(Parser)]
 #[command(
     name = "super-relay",
-    version = "0.1.4",
-    about = "SuperPaymaster Enterprise Account Abstraction Relay Service",
-    long_about = "SuperRelay provides enterprise-grade ERC-4337 Account Abstraction services\nwith integrated paymaster functionality, monitoring, and Swagger UI documentation.\n\nBuilt on Rundler v0.9.0 with SuperPaymaster Extensions"
+    about = "SuperRelay - Enterprise Account Abstraction Solution",
+    version = "0.1.4"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -20,43 +20,88 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Start the bundler node
+    /// Run the full SuperRelay node (rundler + paymaster + monitoring)
     Node {
         /// Path to configuration file
         #[arg(long, default_value = "config/config.toml")]
         config: String,
 
-        /// Enable JSON-RPC server
-        #[arg(long)]
-        rpc: bool,
-
-        /// RPC port
-        #[arg(long, default_value = "3000")]
-        rpc_port: u16,
-
         /// Additional rundler arguments
         #[arg(last = true)]
         rundler_args: Vec<String>,
     },
-    /// Pool operations
+    /// Run only the pool service
     Pool {
+        /// Additional rundler arguments
         #[arg(last = true)]
         rundler_args: Vec<String>,
     },
-    /// Builder operations  
+    /// Run only the builder service
     Builder {
+        /// Additional rundler arguments
         #[arg(last = true)]
         rundler_args: Vec<String>,
     },
-    /// Admin operations
+    /// Run admin commands
     Admin {
+        /// Additional rundler arguments
         #[arg(last = true)]
         rundler_args: Vec<String>,
     },
     /// Show version information
     Version,
-    /// Show service status
+    /// Check service status
     Status,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+struct SuperRelayConfig {
+    node: NodeConfig,
+    pool: PoolConfig,
+    rpc: RpcConfig,
+    paymaster_relay: PaymasterRelayConfig,
+    mempool: MempoolConfig,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+struct NodeConfig {
+    http_api: Option<String>,
+    max_entries_per_chain: Option<u32>,
+    max_mem_entries_per_chain: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+struct PoolConfig {
+    max_expire_duration_seconds: Option<u64>,
+    max_ops_per_unstaked_sender: Option<u32>,
+    throttled_entity_mempool_count: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+struct RpcConfig {
+    max_verification_gas: Option<u64>,
+    max_call_gas: Option<u64>,
+    api: Option<Vec<String>>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+struct PaymasterRelayConfig {
+    enabled: Option<bool>,
+    private_key: Option<String>,
+    policy_file: Option<String>,
+    entry_points: Option<Vec<String>>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+struct MempoolConfig {
+    max_send_bundle_txns: Option<u32>,
+    bundle_max_length: Option<u32>,
 }
 
 impl Cli {
@@ -66,23 +111,30 @@ impl Cli {
 
         match self.command {
             Commands::Node {
-                config,
-                rpc,
-                rpc_port: _,
-                rundler_args,
+                ref config,
+                ref rundler_args,
             } => {
                 println!("🚀 Starting SuperRelay Node...\n");
 
+                // Parse TOML configuration
+                let config_content = fs::read_to_string(config)
+                    .map_err(|e| eyre::eyre!("Failed to read config file '{}': {}", config, e))?;
+
+                let super_config: SuperRelayConfig = toml::from_str(&config_content)
+                    .map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
+
+                // Convert config to rundler arguments
+                let mut rundler_args_final = self.config_to_rundler_args(&super_config)?;
+                rundler_args_final.extend(rundler_args.iter().cloned());
+
                 let mut cmd = Command::new("cargo");
-                cmd.args(["run", "--bin", "rundler", "--", "node", "--config", &config]);
+                cmd.args(["run", "--bin", "rundler", "--", "node"]);
+                cmd.args(&rundler_args_final);
 
-                if rpc {
-                    cmd.args(["--rpc"]);
-                }
-
-                if !rundler_args.is_empty() {
-                    cmd.args(&rundler_args);
-                }
+                println!(
+                    "🔧 Executing: cargo run --bin rundler -- node {}",
+                    rundler_args_final.join(" ")
+                );
 
                 let status = cmd.status()?;
                 if !status.success() {
@@ -130,6 +182,68 @@ impl Cli {
         Ok(())
     }
 
+    fn config_to_rundler_args(&self, config: &SuperRelayConfig) -> Result<Vec<String>> {
+        let mut args = vec![
+            "--network".to_string(),
+            "ethereum_sepolia".to_string(),
+            "--node_http".to_string(),
+            "https://ethereum-sepolia-rpc.publicnode.com".to_string(),
+            "--signer.private_keys".to_string(),
+            "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2,0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string(),
+        ];
+
+        // Node configuration
+        if let Some(ref http_api) = config.node.http_api {
+            let parts: Vec<&str> = http_api.split(':').collect();
+            if parts.len() == 2 {
+                args.push("--rpc.host".to_string());
+                args.push(parts[0].to_string());
+                args.push("--rpc.port".to_string());
+                args.push(parts[1].to_string());
+            }
+        }
+
+        // Pool configuration
+        if let Some(max_ops) = config.pool.max_ops_per_unstaked_sender {
+            args.push("--pool.same_sender_mempool_count".to_string());
+            args.push(max_ops.to_string());
+        }
+
+        if let Some(max_ops) = config.pool.throttled_entity_mempool_count {
+            args.push("--pool.throttled_entity_mempool_count".to_string());
+            args.push(max_ops.to_string());
+        }
+
+        // RPC configuration
+        if let Some(max_verification_gas) = config.rpc.max_verification_gas {
+            args.push("--max_verification_gas".to_string());
+            args.push(max_verification_gas.to_string());
+        }
+
+        // Paymaster relay configuration
+        if let Some(enabled) = config.paymaster_relay.enabled {
+            if enabled {
+                args.push("--paymaster.enabled".to_string());
+
+                if let Some(ref private_key) = config.paymaster_relay.private_key {
+                    args.push("--paymaster.private_key".to_string());
+                    args.push(private_key.clone());
+                }
+
+                if let Some(ref policy_file) = config.paymaster_relay.policy_file {
+                    args.push("--paymaster.policy_file".to_string());
+                    args.push(policy_file.clone());
+                }
+            }
+        }
+
+        // Always enable necessary APIs
+        args.push("--rpc.api".to_string());
+        args.push("eth,rundler,paymaster".to_string());
+
+        Ok(args)
+    }
+
     fn show_banner(&self) {
         println!("🚀 SuperRelay v0.1.4 - Enterprise Account Abstraction Service");
         println!("📊 Enhanced with PaymasterRelay, Monitoring & Swagger UI");
@@ -142,9 +256,11 @@ impl Cli {
     fn show_version(&self) {
         println!("SuperRelay v0.1.4");
         println!("Built on Rundler v0.9.0");
-        println!("SuperPaymaster Extensions:");
-        println!("  - PaymasterRelay module");
-        println!("  - Prometheus monitoring");
+        println!();
+        println!("🚀 Enterprise Account Abstraction Features:");
+        println!("  - ERC-4337 compliant bundler");
+        println!("  - Advanced paymaster policies");
+        println!("  - Real-time monitoring & metrics");
         println!("  - Swagger UI documentation");
         println!("  - Enterprise-grade policies");
     }

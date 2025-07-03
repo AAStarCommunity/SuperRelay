@@ -12,7 +12,8 @@ path = "src/main.rs"
 [dependencies]
 clap = { workspace = true }
 eyre = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
-tracing = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true } 
+tokio = { workspace = true, features = ["full"] }
+toml = { workspace = true }
+tracing = { workspace = true }

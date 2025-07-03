@@ -30,8 +30,6 @@ tracing = "0.1"
 utoipa = { version = "5.2", features = ["axum_extras", "chrono"] }
 utoipa-swagger-ui = { version = "8.0", features = ["axum"] }
 
-
-
 [dev-dependencies]
 anyhow = { workspace = true }
 ethers = { workspace = true, features = ["ws", "rustls"] }

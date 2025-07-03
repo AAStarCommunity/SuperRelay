@@ -96,10 +96,9 @@ pub async fn serve_swagger_ui(
     paymaster_service: Arc<PaymasterRelayService>,
     addr: SocketAddr,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Initialize Prometheus metrics exporter
-    let prometheus_handle = PrometheusBuilder::new()
-        .install_recorder()
-        .expect("failed to install Prometheus recorder");
+    // TODO: Fix Prometheus integration - temporarily disabled for service startup
+    let recorder = PrometheusBuilder::new().build_recorder();
+    let prometheus_handle = recorder.handle();
 
     let state = SwaggerState {
         paymaster_service,
