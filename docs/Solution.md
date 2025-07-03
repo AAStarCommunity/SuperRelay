@@ -1,8 +1,9 @@
 # Solution
 本项目名称是 SuperPaymaster，包括两个核心：super-relay（就是本项目）和 SuperPaymaster 合约（在另外 repo，如果联合测试，本地部署，则使用脚本从此目录复制到 contracts 目录），兼容 entrypoint 0.6, 0.7（高优先级）, 0.8 版本。
 super-relay 功能：
-paymaster 签名：支持基于 ERC4337 规格的 useroperation 请求（单个或者批量），返回带有 paymasterAndData 的签名
-bundler 提交：收到带有签名的 useroperation，自己支付 gas，通过 RPC 上链，提交给 entrypoint 执行，链上验证签名通过则从 paymaster 合约在 entrypoint 的 deposit 扣除 gas，执行整个交易其他内容。
+1. 未来扩展，例如加入对 useroperation 的安全验证，例如是否超过了当日限量（基于链上合约设置的规则），交互的合约是否有免费活动验证，此扩展可能早于签名处理环节。
+2. paymaster 签名：支持基于 ERC4337 规格的 useroperation 请求（单个或者批量），返回带有 paymasterAndData 的签名
+3. bundler 提交：收到带有签名的 useroperation，自己支付 gas，通过 RPC 上链，提交给 entrypoint 执行，链上验证签名通过则从 paymaster 合约在 entrypoint 的 deposit 扣除 gas，执行整个交易其他内容。
 
 SuperPaymaster 合约功能（不在本目录开发）：
 多租户管理：接受多个 node 提交 stake 并管理，包括盈利的计算和提取；信用管理，slash 和退出等；

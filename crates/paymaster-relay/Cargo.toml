@@ -22,6 +22,13 @@ tokio = { workspace = true }
 rundler-types = { path = "../types" }
 serde_json = { workspace = true }
 tracing = { workspace = true }
+tower = { version = "0.4" }
+tower-http = { version = "0.5", features = ["cors"] }
+
+# --- Swagger UI and API Documentation ---
+utoipa = { version = "4.2", features = ["axum_extras", "chrono"] }
+utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
 anyhow = { workspace = true }

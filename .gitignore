@@ -19,3 +19,4 @@
 
 # Release artifacts
 dist/
+demo/node_modules/

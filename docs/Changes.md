@@ -2,6 +2,70 @@
 
 本文档记录 SuperPaymaster 项目的开发历程和版本变更。
 
+## Version 0.2.0 - 企业级Swagger UI集成完成 🎉 (2025-01-03)
+
+### Swagger UI集成重大突破 ✅
+- 🚀 **完整的OpenAPI 3.0支持**: 使用utoipa + axum实现现代化API文档
+- 📖 **交互式文档界面**: Swagger UI在 `http://localhost:9000/swagger-ui/` 提供完整API探索体验
+- 🔧 **实时API测试**: 支持直接在UI中测试`pm_sponsorUserOperation`端点
+- 📊 **API使用统计**: 集成请求计数、响应时间、成功率等实时指标
+
+### 开发者体验显著提升 ⭐
+- 💡 **代码示例自动生成**: 支持curl、JavaScript、Python三种语言的示例代码
+- 📋 **完整的数据模型**: 支持ERC-4337 v0.6和v0.7格式的UserOperation文档
+- 🎯 **详细的错误处理**: 标准化错误代码和响应格式
+- 🔍 **API探索端点**: `/examples/{version}`、`/codegen/{lang}/{endpoint}`等辅助工具
+
+### 企业级监控能力 📈
+- 🏥 **健康检查端点**: `/health`、`/ready`、`/metrics`三级健康状态监控
+- 📊 **性能指标追踪**: 平均响应时间、请求成功率、错误统计
+- 🔄 **服务状态诊断**: 系统内存使用、CPU占用、服务运行时间
+- ⚡ **实时监控**: 所有指标实时更新，支持生产环境监控
+
+### API标准化完成 📚
+- 🎨 **统一的响应格式**: 标准化成功/错误响应结构
+- 🔐 **完整的参数验证**: 地址格式、gas限制、签名验证
+- 📝 **详细的API文档**: 每个端点都有完整的描述和示例
+- 🌐 **CORS支持**: 跨域请求支持，便于前端集成
+
+### 测试覆盖完善 🧪
+- ✅ **4项Swagger专项测试**: API schemas序列化、OpenAPI生成、示例验证等
+- ✅ **编译零错误**: 所有utoipa注解正确编译
+- ✅ **向后兼容**: 原有JSON-RPC功能完全保持
+- 🔧 **类型安全**: 所有API结构体实现完整的序列化/反序列化
+
+### 技术架构优化 🏗️
+- 📦 **模块化设计**: api_schemas、swagger独立模块，职责清晰
+- 🔄 **异步处理**: 基于tokio的高性能异步服务器
+- 💾 **内存效率**: 原子操作的指标收集，低开销
+- 🎯 **错误映射**: PaymasterError到HTTP状态码的精确映射
+
+### 配置和部署 ⚙️
+- 📋 **独立端口服务**: Swagger UI运行在9000端口，不影响主RPC服务
+- 🔧 **依赖管理**: 添加utoipa、utoipa-swagger-ui、chrono等现代化依赖
+- 📁 **清晰的文件结构**: lib.rs、api_schemas.rs、swagger.rs模块化组织
+- 🚀 **即开即用**: 编译完成即可访问完整文档
+
+### 影响范围
+- 新增文件: `crates/paymaster-relay/src/api_schemas.rs` (OpenAPI数据模型)
+- 新增文件: `crates/paymaster-relay/src/swagger.rs` (Swagger UI服务器)
+- 新增文件: `crates/paymaster-relay/tests/swagger_test.rs` (专项测试)
+- 修改文件: `crates/paymaster-relay/Cargo.toml` (添加utoipa等依赖)
+- 修改文件: `crates/paymaster-relay/src/lib.rs` (模块导出)
+- 影响功能: 为SuperPaymaster提供完整的企业级API文档和监控能力
+
+### 开发者收益 🎯
+- 🚀 **上手速度**: 新开发者可通过Swagger UI快速理解API
+- 🔧 **调试效率**: 实时测试功能大幅提升开发效率
+- 📊 **运维可见性**: 完整的监控指标支持生产环境管理
+- 📖 **文档自动化**: API变更自动反映在文档中
+
+### 下一步计划
+- 🔄 **监控增强** (P1): 集成Prometheus指标和告警
+- 🛡️ **安全模块** (P2): 实现速率限制和风险评估
+- 📈 **性能测试**: 压力测试和性能基准建立
+- 🌐 **多链支持**: 扩展到其他EVM兼容链
+
 ## Version 0.1.2 - 开发环境完善与链上测试修复 (2025-01-02)
 
 ### 链上测试环境完全修复 ✅

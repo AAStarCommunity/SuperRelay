@@ -254,6 +254,27 @@ where
             .boxed(),
         );
 
+        // Start Swagger UI server if paymaster service is available
+        if let Some(ref paymaster_service) = self.paymaster_service {
+            tracing::info!("Starting Swagger UI server on port 9000");
+            let swagger_addr: SocketAddr = "0.0.0.0:9000".parse().expect("Invalid swagger address");
+            let service_clone = paymaster_service.clone();
+            task_spawner.spawn_critical(
+                "swagger ui server",
+                async move {
+                    if let Err(e) = rundler_paymaster_relay::swagger::serve_swagger_ui(
+                        std::sync::Arc::new(service_clone),
+                        swagger_addr,
+                    )
+                    .await
+                    {
+                        tracing::error!("Swagger UI server error: {}", e);
+                    }
+                }
+                .boxed(),
+            );
+        }
+
         info!("Started RPC server");
 
         Ok(())
