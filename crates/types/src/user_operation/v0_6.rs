@@ -51,7 +51,7 @@ const ABI_ENCODED_USER_OPERATION_FIXED_LEN: usize = 512;
 /// User Operation for Entry Point v0.6
 ///
 /// Direct conversion to/from onchain UserOperation
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct UserOperation {
     /// Sender

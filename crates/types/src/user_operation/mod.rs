@@ -15,6 +15,7 @@ use std::{fmt::Debug, time::Duration};
 
 use alloy_primitives::{Address, Bytes, B256, U256};
 use alloy_sol_types::SolValue;
+use serde::Deserialize;
 
 /// User operation permissions
 mod permissions;
@@ -469,7 +470,8 @@ fn dummy_transform_for_aggregator<UO: UserOperation>(
 }
 
 /// User operation enum
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
 pub enum UserOperationVariant {
     /// User operation version 0.6

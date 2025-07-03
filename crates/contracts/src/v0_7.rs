@@ -15,10 +15,11 @@
 
 use alloy_primitives::Bytes;
 use alloy_sol_macro::sol;
+use serde::{Deserialize, Serialize};
 
 sol!(
     #[allow(missing_docs)]
-    #[derive(Default, Debug, PartialEq, Eq)]
+    #[derive(Default, Debug, PartialEq, Eq, Deserialize, Serialize)]
     struct PackedUserOperation {
         address sender;
         uint256 nonce;
