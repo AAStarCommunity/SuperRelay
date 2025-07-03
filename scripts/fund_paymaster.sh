@@ -7,8 +7,9 @@ set -e
 
 # Configuration
 ANVIL_URL="http://localhost:8545"
-PAYMASTER_ADDRESS="0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
-FUNDER_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+FUNDER_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"  # First anvil account
+PAYMASTER_ADDRESS="0x70997970C51812dc3A010C7d01b50e0d17dc79C8"  # Second anvil account
+ENTRYPOINT_ADDRESS="0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"  # Standard EntryPoint v0.6 address
 MIN_BALANCE_ETH="1.0"
 MIN_ENTRYPOINT_DEPOSIT_ETH="0.5"
 TARGET_ENTRYPOINT_DEPOSIT_ETH="2.0"
@@ -23,11 +24,13 @@ NC='\033[0m' # No Color
 
 # Get EntryPoint address
 get_entrypoint_address() {
-    if [ -f ".entrypoint_address" ]; then
+    if [ -f "../.entrypoint_address" ]; then
+        cat ../.entrypoint_address
+    elif [ -f ".entrypoint_address" ]; then
         cat .entrypoint_address
     else
-        # Default EntryPoint v0.6 address
-        echo "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+        # Default EntryPoint v0.6 address (standard deployed)
+        echo "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
     fi
 }
 
@@ -42,30 +45,37 @@ eth_to_wei() {
 # Convert Wei to ETH
 wei_to_eth() {
     local wei_amount="$1"
-    # Remove any hex formatting and handle empty values
-    if [ -z "$wei_amount" ] || [ "$wei_amount" = "0x" ]; then
+    # Clean the input - remove whitespace
+    wei_amount=$(echo "$wei_amount" | tr -d ' \n\r\t')
+    
+    # Handle empty or invalid values
+    if [ -z "$wei_amount" ] || [ "$wei_amount" = "0" ]; then
         echo "0.0"
         return
     fi
-    # Convert hex to decimal if needed, then to ETH
+    
+    # Convert decimal wei to ETH
     python3 -c "
 import sys
 try:
-    val = '${wei_amount}'
+    val = '${wei_amount}'.strip()
+    # If it's hex, convert to decimal first
     if val.startswith('0x'):
         val = int(val, 16)
     else:
         val = int(val)
-    print(float(val) / 10**18)
-except:
+    result = float(val) / 10**18
+    print(f'{result:.6f}')
+except Exception as e:
     print('0.0')
-"
+" 2>/dev/null || echo "0.0"
 }
 
 # Check balance
 check_balance() {
     local address="$1"
-    local balance_wei=$(cast balance "$address" --rpc-url "$ANVIL_URL")
+    # cast balance returns decimal wei value, not hex
+    local balance_wei=$(cast balance "$address" --rpc-url "$ANVIL_URL" 2>&1 | grep -E '^[0-9]+$' | head -1 || echo "0")
     local balance_eth=$(wei_to_eth "$balance_wei")
     echo "$balance_eth"
 }
@@ -76,9 +86,9 @@ check_entrypoint_deposit() {
     local entrypoint="$2"
     
     # Call deposits(address) on EntryPoint contract  
-    local deposit_wei_raw=$(cast call "$entrypoint" "deposits(address)(uint256)" "$paymaster" --rpc-url "$ANVIL_URL")
-    # Extract just the number part before any brackets or spaces
-    local deposit_wei=$(echo "$deposit_wei_raw" | awk '{print $1}')
+    local deposit_output=$(cast call "$entrypoint" "deposits(address)(uint256)" "$paymaster" --rpc-url "$ANVIL_URL" 2>&1)
+    # Extract the decimal value (last line, first field)
+    local deposit_wei=$(echo "$deposit_output" | tail -1 | awk '{print $1}' | grep -E '^[0-9]+$' || echo "0")
     local deposit_eth=$(wei_to_eth "$deposit_wei")
     echo "$deposit_eth"
 }
@@ -198,6 +208,16 @@ monitor_mode() {
 status_report() {
     echo -e "${BLUE}📋 SuperPaymaster Financial Status Report${NC}"
     echo -e "==========================================="
+    
+    # Check if Anvil is running
+    if ! curl -s -X POST -H "Content-Type: application/json" \
+        --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+        "$ANVIL_URL" > /dev/null 2>&1; then
+        echo -e "\n${RED}❌ Error: Anvil is not running on $ANVIL_URL${NC}"
+        echo -e "${YELLOW}💡 Please start Anvil first:${NC}"
+        echo -e "   anvil --host 0.0.0.0 --port 8545 --accounts 10 --balance 10000"
+        return 1
+    fi
     
     # Network info
     echo -e "\n${BLUE}🌐 Network Information:${NC}"

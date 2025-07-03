@@ -4,6 +4,10 @@
 # HTTP RPC port for API calls
 http_api = "0.0.0.0:3000"
 
+# Network configuration for local development
+network = "dev"  # Use local development network
+node_http = "http://localhost:8545"  # Use local Anvil
+
 # Maximum number of entries in mempool per chain
 max_entries_per_chain = 100
 max_mem_entries_per_chain = 50
@@ -26,8 +30,8 @@ private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c
 # Policy configuration file
 policy_file = "config/paymaster-policies.toml"
 
-# Supported entry points
-entry_points = ["0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"]
+# Supported entry points (updated for local)
+entry_points = ["0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"]
 
 [rpc]
 # Gas estimation settings for local testing
@@ -37,4 +41,8 @@ max_call_gas = 10000000
 [mempool]
 # Mempool settings for local testing
 max_send_bundle_txns = 10
-bundle_max_length = 5 
+bundle_max_length = 5
+
+[metrics]
+# Use different port to avoid conflicts
+port = 8081 

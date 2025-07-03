@@ -2,6 +2,8 @@
 members = [
     "bin/rundler/",
     "bin/super-relay/",
+    "bin/dashboard/",
+    "bin/integration-tests/",
     "crates/aggregators/bls/",
     "crates/bindings/fastlz/",
     "crates/builder/",
@@ -10,11 +12,11 @@ members = [
     "crates/pool/",
     "crates/provider/",
     "crates/rpc/",
-    "crates/signer/",
     "crates/sim/",
+    "crates/signer/",
     "crates/task/",
     "crates/types/",
-    "crates/utils/"
+    "crates/utils/",
 ]
 default-members = ["bin/rundler"]
 resolver = "2"
@@ -123,3 +125,5 @@ tempfile = "3.14"
 ethers = "2.0"
 jsonrpsee-core = "0.24"
 jsonrpsee-ws-client = "0.24"
+
+

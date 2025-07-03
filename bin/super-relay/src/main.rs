@@ -123,9 +123,19 @@ impl Cli {
                 let super_config: SuperRelayConfig = toml::from_str(&config_content)
                     .map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
 
-                // Convert config to rundler arguments
-                let mut rundler_args_final = self.config_to_rundler_args(&super_config)?;
-                rundler_args_final.extend(rundler_args.iter().cloned());
+                // Convert config to rundler arguments, avoiding duplicates
+                let config_args = self.config_to_rundler_args(&super_config)?;
+                let mut rundler_args_final = config_args;
+
+                // Only add additional args that don't conflict with config args
+                for arg in rundler_args.iter() {
+                    if !arg.starts_with("--network")
+                        && !arg.starts_with("--node_http")
+                        && !arg.starts_with("--metrics.port")
+                    {
+                        rundler_args_final.push(arg.clone());
+                    }
+                }
 
                 let mut cmd = Command::new("cargo");
                 cmd.args(["run", "--bin", "rundler", "--", "node"]);
@@ -183,13 +193,25 @@ impl Cli {
     }
 
     fn config_to_rundler_args(&self, config: &SuperRelayConfig) -> Result<Vec<String>> {
+        // 从环境变量或配置文件读取网络和节点设置，支持本地开发
+        let network = std::env::var("NETWORK")
+            .or_else(|_| std::env::var("CHAIN_NETWORK"))
+            .unwrap_or_else(|_| "dev".to_string());
+
+        let node_http = std::env::var("RPC_URL")
+            .or_else(|_| std::env::var("NODE_HTTP"))
+            .unwrap_or_else(|_| "http://localhost:8545".to_string());
+
+        let signer_keys = std::env::var("SIGNER_PRIVATE_KEYS")
+            .unwrap_or_else(|_| "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2,0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string());
+
         let mut args = vec![
             "--network".to_string(),
-            "ethereum_sepolia".to_string(),
+            network,
             "--node_http".to_string(),
-            "https://ethereum-sepolia-rpc.publicnode.com".to_string(),
+            node_http,
             "--signer.private_keys".to_string(),
-            "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2,0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string(),
+            signer_keys,
         ];
 
         // Node configuration
@@ -335,5 +357,19 @@ impl Cli {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    // 如果是Node命令，并行启动swagger UI
+    if matches!(cli.command, Commands::Node { .. }) {
+        // 启动swagger UI服务
+        tokio::spawn(async move {
+            // 创建一个简单的测试服务
+            let service = rundler_paymaster_relay::service::PaymasterRelayService::default();
+
+            if let Err(e) = rundler_paymaster_relay::swagger::serve_swagger_ui(service).await {
+                eprintln!("Dashboard error: {}", e);
+            }
+        });
+    }
+
     cli.run().await
 }

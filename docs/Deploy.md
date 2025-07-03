@@ -198,6 +198,259 @@ cargo +nightly fmt --check --all
 cargo clippy --all --all-features --tests -- -D warnings
 ```
 
+## 自动化环境设置
+
+### 开发环境检测脚本
+使用自动化脚本进行环境准备：
+```bash
+# 运行环境检测和设置脚本
+./scripts/dev_env_setup.sh
+```
+
+该脚本会自动：
+- 检查并安装必要依赖 (Rust, Foundry, Node.js, protobuf)
+- 验证项目结构完整性
+- 检查端口可用性
+- 创建 `.env` 配置文件
+- 生成快速启动脚本
+- 提供构建优化建议
+
+### 构建时间优化
+- **首次构建**: ~60秒 (完整编译)
+- **增量构建**: ~20-30秒  
+- **快速检查**: 使用 `cargo check` 进行语法检查
+- **代码规范**: 使用 `cargo clippy` 进行代码检查
+
+## 🚀 服务启动方法指南
+
+SuperRelay 提供多种启动方法，适用于不同场景和需求。构建时间：首次构建约60秒，后续构建20-30秒。
+
+### 方法一：自动化脚本启动 (推荐) ⭐
+
+#### 1. 开发环境检测和准备
+```bash
+# 运行环境检测和自动准备脚本
+./scripts/dev_env_setup.sh
+
+# 该脚本会自动检查和安装：
+# - Rust 工具链 (rustc, cargo, rustfmt, clippy)
+# - Foundry 工具 (anvil, cast, forge)
+# - Node.js 环境 (node, npm, yarn)
+# - 其他工具 (git, jq, protoc)
+# - 项目配置和结构验证
+```
+
+#### 2. 快速启动完整环境
+```bash
+# 使用快速启动脚本 (dev_env_setup.sh 生成)
+./scripts/quick_start.sh
+
+# 该脚本会依次启动：
+# 1. 停止现有服务
+# 2. 启动 Anvil 测试链
+# 3. 部署 EntryPoint 合约
+# 4. 启动 rundler 服务 (包含 paymaster 功能)
+```
+
+#### 3. 传统脚本启动
+```bash
+# 使用原始开发服务器脚本
+./scripts/start_dev_server.sh
+
+# 注意：此脚本可能需要更长构建时间 (60秒+)
+```
+
+### 方法二：手动命令启动 (灵活配置)
+
+#### 1. 启动基础链环境
+```bash
+# 启动 Anvil 测试链
+anvil --port 8545 --chain-id 31337 --accounts 10 --balance 10000 \
+      --gas-limit 30000000 --gas-price 1000000000 \
+      --base-fee 1000000000 --block-time 1 &
+
+# 等待启动
+sleep 3
+
+# 部署 EntryPoint
+./scripts/deploy_entrypoint.sh
+```
+
+#### 2. 手动启动 rundler (解决配置问题版本)
+```bash
+# 设置环境变量
+export RUST_LOG=info
+export NETWORK=dev
+export RPC_URL=http://localhost:8545
+export SIGNER_PRIVATE_KEYS="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2,0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+
+# 启动 rundler (包含 paymaster API)
+cargo run --bin rundler -- node \
+    --network dev \
+    --node_http http://localhost:8545 \
+    --rpc.host 0.0.0.0 \
+    --rpc.port 3000 \
+    --metrics.port 8081 \
+    --signer.private_keys $SIGNER_PRIVATE_KEYS \
+    --paymaster.enabled \
+    --paymaster.private_key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2 \
+    --paymaster.policy_file config/paymaster-policies.toml \
+    --rpc.api eth,rundler,paymaster
+```
+
+### 方法三：Super-Relay 二进制启动 (配置修复后)
+
+```bash
+# 设置环境变量以覆盖硬编码配置
+export NETWORK=dev
+export RPC_URL=http://localhost:8545
+export SIGNER_PRIVATE_KEYS="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2,0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+
+# 使用 super-relay 二进制启动
+cargo run --bin super-relay --manifest-path bin/super-relay/Cargo.toml -- node \
+    --config config/config.toml
+```
+
+### 方法四：Docker 容器化启动 (生产环境)
+
+#### 1. 构建 Docker 镜像
+```bash
+# 构建开发版本
+docker build -t super-relay:dev -f docker/Dockerfile.dev .
+
+# 构建生产版本
+docker build -t super-relay:prod -f docker/Dockerfile.prod .
+```
+
+#### 2. 使用 Docker Compose
+```bash
+# 启动完整开发环境
+docker-compose -f docker/docker-compose.dev.yml up -d
+
+# 启动生产环境
+docker-compose -f docker/docker-compose.prod.yml up -d
+
+# 查看服务状态
+docker-compose ps
+```
+
+### 方法五：运营者Dashboard启动
+
+#### 1. 启动Web Dashboard
+```bash
+# 启动运营者管理界面
+./dashboard/start_dashboard.sh
+
+# 默认端口 8090，访问地址：
+# http://localhost:8090
+```
+
+Dashboard提供功能：
+- 🌐 **系统状态监控**: 网络、EntryPoint、RPC和API状态
+- 💰 **余额管理**: Paymaster余额、EntryPoint存款管理
+- 📋 **策略管理**: 白名单、Gas限制配置
+- ⚙️ **系统配置**: 链参数、合约地址显示
+- 📊 **监控面板**: 交易历史、性能指标
+- 🔗 **快速链接**: Prometheus指标、Swagger API文档
+
+#### 2. 集成到现有axum服务 (可选)
+```bash
+# 将Dashboard集成到端口9000的swagger服务中
+# 修改axum服务器配置，添加静态文件服务
+# 访问地址: http://localhost:9000/dashboard/
+```
+
+## 🔍 服务验证和监控
+
+### 基础健康检查
+```bash
+# 检查 Anvil 状态
+curl -s http://localhost:8545 >/dev/null && echo "✅ Anvil OK" || echo "❌ Anvil down"
+
+# 检查 rundler 健康状态
+curl -s http://localhost:3000/health
+
+# 检查基础 RPC 功能
+curl -s -X POST http://localhost:3000 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}'
+
+# 检查 paymaster API (重要!)
+curl -s -X POST http://localhost:3000 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"pm_sponsorUserOperation","params":[...]}'
+```
+
+### 完整功能测试
+```bash
+# 运行简单测试套件
+./scripts/test_simple.sh
+
+# 运行完整 E2E 测试 
+./scripts/test_e2e.sh
+
+# 运行性能测试
+./scripts/test_performance.sh
+```
+
+### 实时监控
+```bash
+# 查看实时日志
+tail -f logs/rundler.log
+tail -f logs/anvil.log
+
+# 监控 paymaster 资金
+./scripts/fund_paymaster.sh monitor 60
+
+# 查看 metrics
+curl http://localhost:8081/metrics
+
+# 监控进程状态
+ps aux | grep -E "(anvil|rundler|super-relay)"
+```
+
+## ⚠️ 常见问题和解决方案
+
+### 构建问题
+- **首次构建慢**: 正常，需要60秒左右，后续20-30秒
+- **yarn 未安装**: 运行 `npm install -g yarn`
+- **protoc 未安装**: 运行 `brew install protobuf` (macOS) 或安装相应系统版本
+
+### 启动问题
+- **端口冲突**: 检查 8545, 3000, 8081 端口占用情况
+- **paymaster API 不可用**: 确认启动参数包含 `--paymaster.enabled` 和 `--rpc.api eth,rundler,paymaster`
+- **super-relay 配置问题**: 使用环境变量覆盖硬编码配置
+
+### 运行时问题
+- **资金不足**: 运行 `./scripts/fund_paymaster.sh auto-rebalance`
+- **EntryPoint 未部署**: 运行 `./scripts/deploy_entrypoint.sh`
+- **网络连接失败**: 检查 Anvil 是否正常运行
+
+## 🎯 部署检查清单
+
+启动前确认：
+- [ ] 所有依赖工具已安装 (使用 `./scripts/dev_env_setup.sh` 检查)
+- [ ] Git 子模块已初始化
+- [ ] 项目完整编译成功
+- [ ] 环境变量和配置文件就绪
+- [ ] Anvil 测试链正常运行
+- [ ] EntryPoint 合约已部署
+- [ ] Paymaster 账户资金充足
+
+启动后验证：
+- [ ] 健康检查通过 (`curl http://localhost:3000/health`)
+- [ ] 基础 RPC 功能正常 (`eth_chainId`, `eth_supportedEntryPoints`)
+- [ ] Paymaster API 可用 (`pm_sponsorUserOperation`)
+- [ ] 测试套件通过 (`./scripts/test_simple.sh`)
+- [ ] 监控指标正常 (`http://localhost:8081/metrics`)
+
+生产部署额外检查：
+- [ ] HTTPS 证书配置
+- [ ] 防火墙和安全组设置
+- [ ] 日志轮转和持久化存储
+- [ ] 备份和恢复策略
+- [ ] 监控和告警配置
+
 #### 功能验证测试
 ```bash
 # 启动 SuperPaymaster 服务

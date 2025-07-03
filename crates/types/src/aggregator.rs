@@ -16,11 +16,12 @@
 use std::fmt::Debug;
 
 use alloy_primitives::{Address, Bytes};
+use serde::{Deserialize, Serialize};
 
 use crate::UserOperationVariant;
 
 /// Costs associated with an aggregator
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct AggregatorCosts {
     /// Fixed gas of the aggregator's `validateSignatures` function
     pub execution_fixed_gas: u128,

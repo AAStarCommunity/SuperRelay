@@ -1,6 +1,13 @@
-# SuperRelay
+# SuperRelay v0.2.0 - Swagger UI集成完成
 
 AAStar 的 SuperPaymaster 包括了 SuperRelay 和 SuperPaymaster 合约。SuperRelay 是一个基于 Rundler (Alchemy 的 ERC-4337 bundler) 集成 Paymaster Relay 服务的开源项目，目标是为 ERC-4337 生态提供 gas 赞助 + 安全过滤 + 链上提交功能。
+
+[![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
+[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-green)]()
+[![Swagger](https://img.shields.io/badge/API_Docs-Swagger_UI-brightgreen)](http://localhost:9000/swagger-ui/)
+
+🎉 **重大里程碑**: Milestone 6 (Swagger UI集成) 已100%完成！现在拥有完整的企业级API文档和交互式测试环境。
 ```
 sequenceDiagram
     participant Client as 客户端

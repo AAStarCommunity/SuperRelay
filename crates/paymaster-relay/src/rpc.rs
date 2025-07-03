@@ -6,6 +6,7 @@ use std::str::FromStr;
 use alloy_primitives::{Address as AlloyAddress, Bytes, U256};
 use async_trait::async_trait;
 use ethers::types::Address;
+use jsonrpsee::{proc_macros::rpc, types::ErrorObjectOwned};
 use rundler_types::{chain::ChainSpec, v0_6, v0_7, UserOperationVariant};
 use serde::{Deserialize, Serialize};
 
@@ -182,13 +183,15 @@ pub struct SponsorUserOperationResponse {
     pub user_op_hash: String,
 }
 
+#[rpc(client, server, namespace = "pm")]
 #[async_trait]
 pub trait PaymasterRelayApi {
+    #[method(name = "sponsorUserOperation")]
     async fn sponsor_user_operation(
         &self,
         user_op: serde_json::Value,
         entry_point: String,
-    ) -> Result<String, jsonrpsee::types::ErrorObjectOwned>;
+    ) -> Result<String, ErrorObjectOwned>;
 }
 
 pub struct PaymasterRelayApiServerImpl {
@@ -196,31 +199,27 @@ pub struct PaymasterRelayApiServerImpl {
 }
 
 #[async_trait]
-impl PaymasterRelayApi for PaymasterRelayApiServerImpl {
+impl PaymasterRelayApiServer for PaymasterRelayApiServerImpl {
     async fn sponsor_user_operation(
         &self,
         user_op: serde_json::Value,
         entry_point: String,
-    ) -> Result<String, jsonrpsee::types::ErrorObjectOwned> {
+    ) -> Result<String, ErrorObjectOwned> {
         // Convert JSON to UserOperation
         let json_user_op: JsonUserOperation = serde_json::from_value(user_op).map_err(|e| {
-            jsonrpsee::types::ErrorObjectOwned::owned(
+            ErrorObjectOwned::owned(
                 -32602,
                 "Invalid user operation format",
                 Some(format!("JSON parsing error: {}", e)),
             )
         })?;
 
-        let user_op_variant: UserOperationVariant = json_user_op.try_into().map_err(|e| {
-            jsonrpsee::types::ErrorObjectOwned::owned(
-                -32602,
-                "Invalid user operation data",
-                Some(e),
-            )
-        })?;
+        let user_op_variant: UserOperationVariant = json_user_op
+            .try_into()
+            .map_err(|e| ErrorObjectOwned::owned(-32602, "Invalid user operation data", Some(e)))?;
 
         let entry_point_addr = Address::from_str(&entry_point).map_err(|e| {
-            jsonrpsee::types::ErrorObjectOwned::owned(
+            ErrorObjectOwned::owned(
                 -32602,
                 "Invalid entry point address",
                 Some(format!("Address parsing error: {}", e)),
