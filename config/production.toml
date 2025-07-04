@@ -143,4 +143,4 @@ report_suspicious_activity = true
 # Maintenance windows
 enable_maintenance_mode = false
 maintenance_message = "SuperPaymaster is temporarily unavailable for maintenance"
-maintenance_allowed_ips = ["10.0.0.0/8"] 
+maintenance_allowed_ips = ["10.0.0.0/8"]

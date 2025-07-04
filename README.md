@@ -191,7 +191,7 @@ graph TB
         A[DApp Frontend]
         B[SDK/Library]
     end
-    
+
     subgraph "SuperPaymaster Relay"
         C[Swagger UI<br/>:9000]
         D[JSON-RPC API<br/>:3000]
@@ -199,18 +199,18 @@ graph TB
         F[PolicyEngine]
         G[SignerManager]
     end
-    
+
     subgraph "Rundler Infrastructure"
         H[Pool Service]
         I[Builder Service]
         J[RPC Service]
     end
-    
+
     subgraph "Blockchain"
         K[EntryPoint Contract]
         L[Paymaster Contract]
     end
-    
+
     A --> C
     A --> D
     D --> E
@@ -286,4 +286,4 @@ def sponsor_user_operation(user_op, entry_point):
 
 *Made with ❤️ by [AAStar Community](https://github.com/AAStarCommunity)*
 
-</div> 
+</div>

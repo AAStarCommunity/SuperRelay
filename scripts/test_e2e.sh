@@ -29,9 +29,9 @@ FAILED=0
 run_test() {
     local test_name="$1"
     local test_command="$2"
-    
+
     echo -e "\n${BLUE}🧪 Testing: $test_name${NC}"
-    
+
     if eval "$test_command"; then
         echo -e "${GREEN}✅ PASSED: $test_name${NC}"
         ((PASSED++))
@@ -47,14 +47,14 @@ test_rpc() {
     local params="$2"
     local expected_pattern="$3"
     local description="$4"
-    
+
     local response=$(curl -s -X POST $RPC_URL \
         -H "Content-Type: application/json" \
         -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"$method\",\"params\":$params}")
-    
+
     echo "📤 Request: $method"
     echo "📥 Response: $response"
-    
+
     if echo "$response" | grep -q "$expected_pattern"; then
         return 0
     else
@@ -93,7 +93,7 @@ test_userOperation_v06_format() {
         "verificationGasLimit": "0x249f0",
         "callGasLimit": "0x9c40"
     }'
-    
+
     test_rpc "pm_sponsorUserOperation" "[$user_op, \"0x5FbDB2315678afecb367f032d93F642f64180aa3\"]" "error" "Should parse v0.6 UserOperation format"
 }
 
@@ -110,7 +110,7 @@ test_userOperation_v07_format() {
         "verificationGasLimit": "0x249f0",
         "callGasLimit": "0x9c40"
     }'
-    
+
     test_rpc "pm_sponsorUserOperation" "[$user_op, \"0x5FbDB2315678afecb367f032d93F642f64180aa3\"]" "error" "Should parse v0.7 UserOperation format"
 }
 
@@ -130,11 +130,11 @@ test_policy_allowlist() {
         "verificationGasLimit": "0x249f0",
         "callGasLimit": "0x9c40"
     }'
-    
+
     local response=$(curl -s -X POST $RPC_URL \
         -H "Content-Type: application/json" \
         -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"pm_sponsorUserOperation\",\"params\":[$user_op, \"0x5FbDB2315678afecb367f032d93F642f64180aa3\"]}")
-    
+
     # Should not get policy violation error
     if echo "$response" | grep -q "policy"; then
         echo "❌ Policy violation detected"
@@ -161,7 +161,7 @@ test_policy_reject() {
         "verificationGasLimit": "0x249f0",
         "callGasLimit": "0x9c40"
     }'
-    
+
     test_rpc "pm_sponsorUserOperation" "[$user_op, \"0x5FbDB2315678afecb367f032d93F642f64180aa3\"]" "error" "Should reject unauthorized sender"
 }
 
@@ -181,7 +181,7 @@ test_number_formats() {
         "verificationGasLimit": "150000",
         "callGasLimit": "40000"
     }'
-    
+
     test_rpc "pm_sponsorUserOperation" "[$user_op_decimal, \"0x5FbDB2315678afecb367f032d93F642f64180aa3\"]" "error" "Should parse decimal format numbers"
 }
 
@@ -200,13 +200,13 @@ test_entrypoint_validation() {
         "verificationGasLimit": "0x249f0",
         "callGasLimit": "0x9c40"
     }'
-    
+
     # Test with wrong EntryPoint address
     local wrong_entrypoint="0x0000000000000000000000000000000000000001"
     local response=$(curl -s -X POST $RPC_URL \
         -H "Content-Type: application/json" \
         -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"pm_sponsorUserOperation\",\"params\":[$user_op, \"$wrong_entrypoint\"]}")
-    
+
     if echo "$response" | grep -q "Unknown entry point"; then
         echo "✅ Correctly rejects unknown EntryPoint"
         return 0
@@ -231,27 +231,27 @@ main() {
     echo "🚀 Starting comprehensive SuperPaymaster testing..."
     echo "📋 Testing core features from Solution.md and Features.md"
     echo ""
-    
+
     # Core service tests
     run_test "Service Health Check" "test_service_health"
     run_test "Standard RPC Functionality" "test_standard_rpc"
     run_test "Paymaster API Discovery" "test_paymaster_api_discovery"
-    
+
     # UserOperation format tests
     run_test "UserOperation v0.6 Format" "test_userOperation_v06_format"
     run_test "UserOperation v0.7 Format" "test_userOperation_v07_format"
     run_test "Number Format Support" "test_number_formats"
-    
+
     # Policy engine tests
     run_test "Policy Allowlist Validation" "test_policy_allowlist"
     run_test "Policy Rejection Test" "test_policy_reject"
-    
+
     # Security and validation tests
     run_test "EntryPoint Validation" "test_entrypoint_validation"
-    
+
     # Integration status
     run_test "Service Integration Status" "test_service_integration"
-    
+
     # Summary
     echo ""
     echo "🏁 Test Summary"
@@ -259,7 +259,7 @@ main() {
     echo -e "${GREEN}✅ Passed: $PASSED${NC}"
     echo -e "${RED}❌ Failed: $FAILED${NC}"
     echo -e "${BLUE}📊 Total: $((PASSED + FAILED))${NC}"
-    
+
     if [ $FAILED -eq 0 ]; then
         echo -e "\n${GREEN}🎉 All tests passed! SuperPaymaster is working correctly!${NC}"
         return 0
@@ -270,4 +270,4 @@ main() {
 }
 
 # Run tests
-main "$@" 
+main "$@"

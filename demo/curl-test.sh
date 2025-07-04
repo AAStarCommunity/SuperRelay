@@ -78,4 +78,4 @@ echo "curl -s $SUPER_RELAY_URL/metrics | jq '.service'"
 curl -s "$SUPER_RELAY_URL/metrics" | jq '.service' || echo "❌ Metrics check failed"
 echo ""
 
-echo "✅ Test completed! Check Swagger UI at: $SUPER_RELAY_URL/swagger-ui/" 
+echo "✅ Test completed! Check Swagger UI at: $SUPER_RELAY_URL/swagger-ui/"

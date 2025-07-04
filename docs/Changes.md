@@ -2,6 +2,35 @@
 
 本文档记录 SuperPaymaster 项目的开发历程和版本变更。
 
+## Version 0.1.6 - Git工作流与钩子修复 🛠️ (2025-01-04)
+
+### Git Hooks 核心问题修复 ✅
+- 🎯 **正确定位问题**: 识别出 `pre-push` 和 `commit-msg` 钩子中使用的 `cog` 命令是错误的，正确的工具应为 `convco`。
+- 📦 **安装 `convco`**: 通过 `cargo install convco` 成功安装了正确的 Conventional Commits 验证工具。
+- 🔧 **解决编译依赖**: 在安装 `convco` 过程中，补充安装了缺失的 `cmake` 依赖。
+- 🔄 **修复钩子脚本**:
+  - 将 `.git/hooks/commit-msg` 中的 `cog verify` 修改为 `convco verify`。
+  - 重写了 `.git/hooks/pre-push` 脚本，将 `cog check -l` 修改为正确的 `convco check $remote_sha..$local_sha`，并能正确处理新分支的推送。
+- 🚀 **恢复提交流程**: 经过修复，`git push` 命令成功执行，开发者可以无障碍推送代码。
+
+### 编译错误修复 ⚙️
+- 🔧 **修复编译问题**: 在解决 `scripts/format.sh` 脚本失败的过程中，修复了多个 Rust 编译错误，主要是由于 structs 缺少 `serde` 相关的 `derive` 宏。
+- ✅ **依赖特性完整**: 为 `alloy-sol-macro` 和 `rundler-contracts` 等 crate 添加了必要的 `json` 和 `serde` 特性。
+- 🛠️ **类型转换**: 修复了 `paymaster-relay` 中 `alloy_primitives::Address` 到 `ethers::types::Address` 的类型不匹配问题。
+- ✨ **代码整洁**: 抑制了 `UserOperationVariant` 的 `large_enum_variant` 警告，使编译输出更干净。
+
+### 影响范围
+- **Git Hooks**: `.git/hooks/commit-msg`, `.git/hooks/pre-push`
+- **Rust Crates**:
+  - `crates/types/src/user_operation/mod.rs`
+  - `crates/contracts/Cargo.toml`
+  - `crates/paymaster-relay/src/swagger.rs`
+  - `Cargo.toml` (workspace root)
+
+### 开发者收益 ⭐
+- 提交和推送流程完全恢复正常，不再被错误的钩子脚本阻塞。
+- 项目的编译状态更加稳健，消除了潜在的序列化和类型转换错误。
+
 ## Version 0.1.5 - 开发环境自动化与Demo完善 🛠️ (2025-01-03)
 
 ### 自动化工具完善 ⚙️
@@ -231,7 +260,7 @@ curl -X POST http://localhost:3000 -H "Content-Type: application/json" -d '{"jso
 - 🐍 **Python 比较逻辑修复**: 修复 bash 条件测试，将 Python 的 True/False 改为 1/0 数值比较
 - 💰 **资金状态验证**: EntryPoint 现在正确显示 2.0 ETH 存款，健康检查显示🟢 HEALTHY 状态
 
-### Pre-commit Hooks 完全解决 ✅  
+### Pre-commit Hooks 完全解决 ✅
 - 🎯 **安装 cocogitto**: 成功安装`cargo install cocogitto`作为 commit 格式验证工具
 - 🛠️ **buf 工具配置**: protobuf 文件验证正常（有 deprecation 警告但功能正常）
 - ✅ **hooks 运行验证**: 所有 hooks 正常工作：rustfmt、clippy、buf、cargo-sort、commit-msg
@@ -264,7 +293,7 @@ curl -X POST http://localhost:3000 -H "Content-Type: application/json" -d '{"jso
 
 ### 当前状态
 - ✅ **链上测试**: EntryPoint 2.0 ETH 存款正常，账户余额充足
-- ✅ **代码提交**: Pre-commit hooks 全部正常，conventional commit 验证成功  
+- ✅ **代码提交**: Pre-commit hooks 全部正常，conventional commit 验证成功
 - ✅ **开发环境**: 完整的工具链和配置指南，新人友好
 - ✅ **文档完善**: Deploy.md 包含所有环境相关信息
 
@@ -455,7 +484,7 @@ curl -X POST http://localhost:3000 -H "Content-Type: application/json" -d '{"jso
 - 改进代码结构，去除未使用的 Swagger UI 依赖
 
 ### 测试验证
-- ✅ Rundler 原有功能测试全部通过 (297 tests passed)  
+- ✅ Rundler 原有功能测试全部通过 (297 tests passed)
 - ✅ Paymaster-relay 编译完全成功，无编译错误
 - ✅ Paymaster-relay 单元测试全部通过 (3 tests passed)
 - ✅ 整体项目 Release 编译成功，生产就绪
@@ -554,7 +583,7 @@ crates/paymaster-relay/
 ### 影响范围
 - 新增文件：`crates/paymaster-relay/` 目录下所有文件
 - 修改文件：`Cargo.toml` (添加 paymaster-relay 到工作空间)
-- 影响功能：新增 paymaster gas sponsorship 功能，不影响现有 bundler 功能 
+- 影响功能：新增 paymaster gas sponsorship 功能，不影响现有 bundler 功能
 
 # SuperPaymaster 开发变更记录
 
@@ -676,7 +705,7 @@ crates/paymaster-relay/
 ### v0.0.1 - 项目初始化 (2025-01-15)
 - 项目基础结构搭建
 - Rust 代码框架实现
-- 基础测试用例创建 
+- 基础测试用例创建
 
 # SuperRelay 变更记录
 
@@ -687,7 +716,7 @@ crates/paymaster-relay/
   - API从"Method not found"修复为正常业务逻辑响应
   - 支持完整的ERC-4337 UserOperation赞助功能
 
-- **✅ 启动参数错误完全修复**  
+- **✅ 启动参数错误完全修复**
   - 修复rundler启动命令参数格式 (--rpc.listen -> node子命令)
   - 支持正确的API namespace注册 (eth,rundler,paymaster)
   - 启动成功率从失败提升到100%
@@ -745,7 +774,7 @@ crates/paymaster-relay/
 - **API可用性**: 0% → 100% (修复Method not found)
 - **启动成功率**: 失败 → 100% (修复参数错误)
 - **开发效率**: 提升90% (自动化脚本 + 统一界面)
-- **运维便利性**: 大幅提升 (集成监控面板) 
+- **运维便利性**: 大幅提升 (集成监控面板)
 
 ## v0.2.0 - Milestone 6: Swagger UI集成完成 (2025-01-03)
 
@@ -779,7 +808,7 @@ crates/paymaster-relay/
 4. ✅ **集成测试验证**: 100%通过率 (6/6测试全部通过)
 
 #### 🔧 技术架构亮点
-1. **模块化设计**: 
+1. **模块化设计**:
    - `crates/paymaster-relay/src/api_schemas.rs` - API数据模型
    - `crates/paymaster-relay/src/swagger.rs` - Swagger UI服务器
    - `crates/paymaster-relay/src/api_docs.rs` - OpenAPI文档结构
@@ -821,7 +850,7 @@ crates/paymaster-relay/
 #### 📋 影响的文件和功能
 **新增文件:**
 - `crates/paymaster-relay/src/swagger.rs` - Swagger UI服务器
-- `crates/paymaster-relay/src/api_schemas.rs` - API数据模型 
+- `crates/paymaster-relay/src/api_schemas.rs` - API数据模型
 - `crates/paymaster-relay/src/schemas.rs` - 详细schema定义
 - `crates/paymaster-relay/tests/swagger_test.rs` - Swagger测试
 
@@ -838,8 +867,6 @@ crates/paymaster-relay/
 
 ### 📊 版本进展总结
 - **v0.1.0**: 核心功能完成 ✅
-- **v0.2.0**: Swagger UI集成完成 ✅ 
+- **v0.2.0**: Swagger UI集成完成 ✅
 - **v0.2.1**: 监控增强 (计划中)
 - **v0.3.0**: 安全和性能优化 (计划中)
-
----

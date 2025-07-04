@@ -1,9 +1,9 @@
 [workspace]
 members = [
-    "bin/rundler/",
-    "bin/super-relay/",
     "bin/dashboard/",
     "bin/integration-tests/",
+    "bin/rundler/",
+    "bin/super-relay/",
     "crates/aggregators/bls/",
     "crates/bindings/fastlz/",
     "crates/builder/",
@@ -12,8 +12,8 @@ members = [
     "crates/pool/",
     "crates/provider/",
     "crates/rpc/",
-    "crates/sim/",
     "crates/signer/",
+    "crates/sim/",
     "crates/task/",
     "crates/types/",
     "crates/utils/",
@@ -29,6 +29,67 @@ license = "LGPL-3.0-only"
 repository = "https://github.com/alchemyplatform/rundler"
 
 [workspace.dependencies]
+
+# alloy
+alloy-consensus = "1.0.9"
+alloy-contract = "1.0.9"
+alloy-eips = { version = "1.0.9", features = ["k256","serde", "std"] }
+alloy-json-rpc = "1.0.9"
+alloy-network = { version = "1.0.9" }
+alloy-network-primitives = "1.0.9"
+
+# alloy core
+alloy-primitives = "1.1.2"
+alloy-provider = { version = "1.0.9", default-features = false, features = ["reqwest", "reqwest-rustls-tls"] }
+
+# alloy other
+alloy-rlp = "0.3.12"
+alloy-rpc-client = "1.0.9"
+alloy-rpc-types-any = "1.0.9"
+alloy-rpc-types-eth = "1.0.9"
+alloy-rpc-types-trace = "1.0.9"
+alloy-serde = "1.0.9"
+alloy-signer = "1.0.9"
+alloy-signer-aws = "1.0.9"
+alloy-signer-local = { version = "1.0.9" }
+alloy-sol-macro = "1.1.2"
+alloy-sol-types =  "1.1.2"
+alloy-transport = "1.0.9"
+alloy-transport-http = { version = "1.0.9", default-features = false, features = ["reqwest", "reqwest-rustls-tls"] }
+
+anyhow = "1.0.89"
+async-trait = "0.1.83"
+auto_impl = "1.2.0"
+aws-config = { version = "1.5.6", default-features = false, features = ["rt-tokio", "rustls"] }
+
+# paymaster-relay dependencies
+axum = "0.7"
+cargo-husky = { version = "1", default-features = false, features = ["user-hooks"] }
+
+# CLI and common dependencies
+clap = { version = "4.5", features = ["derive"] }
+const-hex = "1.12.0"
+ethers = "2.0"
+eyre = "0.6"
+futures = "0.3.30"
+futures-util = "0.3.30"
+http = "1.1.0"
+itertools = "0.13.0"
+jsonrpsee = "0.24.5"
+jsonrpsee-core = "0.24"
+jsonrpsee-ws-client = "0.24"
+metrics = "0.24.1"
+metrics-derive = "0.1.0"
+mockall = "0.13.0"
+parking_lot = "0.12.3"
+parse-display = "0.10.0"
+pin-project = "1.1.5"
+prost = "0.13.3"
+rand = "0.8.5"
+reqwest = { version = "0.12.8", default-features = false, features = ["rustls-tls"] }
+
+# reth
+reth-tasks = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.4.7" }
 # rundler crates
 rundler-bindings-fastlz = { path = "crates/bindings/fastlz" }
 rundler-bls = { path = "crates/aggregators/bls" }
@@ -39,68 +100,21 @@ rundler-pbh = { path = "crates/aggregators/pbh" }
 rundler-pool = { path = "crates/pool" }
 rundler-provider = { path = "crates/provider" }
 rundler-rpc = { path = "crates/rpc" }
-rundler-sim = { path = "crates/sim" }
 rundler-signer = { path = "crates/signer" }
+rundler-sim = { path = "crates/sim" }
 rundler-task = { path = "crates/task" }
 rundler-types = { path = "crates/types" }
 rundler-utils = { path = "crates/utils" }
-
-# alloy core
-alloy-primitives = "1.1.2"
-alloy-sol-macro = "1.1.2"
-alloy-sol-types =  "1.1.2"
-
-# alloy
-alloy-consensus = "1.0.9"
-alloy-contract = "1.0.9"
-alloy-eips = { version = "1.0.9", features = ["k256","serde", "std"] }
-alloy-json-rpc = "1.0.9"
-alloy-network-primitives = "1.0.9"
-alloy-provider = { version = "1.0.9", default-features = false, features = ["reqwest", "reqwest-rustls-tls"] }
-alloy-rpc-client = "1.0.9"
-alloy-rpc-types-any = "1.0.9"
-alloy-rpc-types-eth = "1.0.9"
-alloy-rpc-types-trace = "1.0.9"
-alloy-serde = "1.0.9"
-alloy-signer = "1.0.9"
-alloy-signer-aws = "1.0.9"
-alloy-signer-local = { version = "1.0.9" }
-alloy-transport = "1.0.9"
-alloy-transport-http = { version = "1.0.9", default-features = false, features = ["reqwest", "reqwest-rustls-tls"] }
-alloy-network = { version = "1.0.9" }
-
-# alloy other
-alloy-rlp = "0.3.12"
-
-# reth
-reth-tasks = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.4.7" }
-
-anyhow = "1.0.89"
-async-trait = "0.1.83"
-auto_impl = "1.2.0"
-aws-config = { version = "1.5.6", default-features = false, features = ["rt-tokio", "rustls"] }
-cargo-husky = { version = "1", default-features = false, features = ["user-hooks"] }
-const-hex = "1.12.0"
-futures = "0.3.30"
-futures-util = "0.3.30"
-itertools = "0.13.0"
-jsonrpsee = "0.24.5"
-http = "1.1.0"
-metrics = "0.24.1"
-metrics-derive = "0.1.0"
-mockall = "0.13.0"
-parking_lot = "0.12.3"
-parse-display = "0.10.0"
-pin-project = "1.1.5"
-prost = "0.13.3"
 secrecy = "0.10.3"
 serde = "1.0.210"
 serde_json = "1.0.128"
-rand = "0.8.5"
-reqwest = { version = "0.12.8", default-features = false, features = ["rustls-tls"] }
+strum = { version = "0.26.3", features = ["derive"] }
+tempfile = "3.14"
 thiserror = "1.0.64"
+tiny_http = "0.12.0"
 tokio = { version = "1.44.2", default-features = false, features = ["rt", "sync", "time"] }
 tokio-util = "0.7.12"
+toml = "0.8"
 tonic = "0.12.3"
 tonic-build = "0.12.3"
 tonic-health = "0.12.3"
@@ -108,22 +122,8 @@ tonic-reflection = "0.12.3"
 tower = { version = "0.4.13", features = ["timeout"] }
 tower-http = { version = "0.6.2", features = ["cors"] }
 tracing = "0.1.40"
-strum = { version = "0.26.3", features = ["derive"] }
 url = "2.5.2"
-tiny_http = "0.12.0"
-
-# CLI and common dependencies
-clap = { version = "4.5", features = ["derive"] }
-eyre = "0.6"
-
-# paymaster-relay dependencies
-axum = "0.7"
 utoipa = "5.0"
 utoipa-swagger-ui = "8.0"
-toml = "0.8"
-tempfile = "3.14"
-ethers = "2.0"
-jsonrpsee-core = "0.24"
-jsonrpsee-ws-client = "0.24"
 
 

@@ -7,6 +7,9 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[features]
+test-utils = ["mockall"]
+
 [dependencies]
 
 alloy-consensus.workspace = true
@@ -45,9 +48,6 @@ tokio.workspace = true
 tower.workspace = true
 tracing.workspace = true
 url.workspace = true
-
-[features]
-test-utils = ["mockall"]
 
 [dev-dependencies]
 alloy-provider = { workspace = true, features = ["debug-api", "anvil-node"] }

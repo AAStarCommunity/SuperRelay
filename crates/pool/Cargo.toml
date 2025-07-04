@@ -36,6 +36,9 @@ tonic-health.workspace = true
 tonic-reflection.workspace = true
 tracing.workspace = true
 
+[build-dependencies]
+tonic-build.workspace = true
+
 [dev-dependencies]
 alloy-consensus.workspace = true
 alloy-eips.workspace = true
@@ -50,6 +53,3 @@ rundler-provider = { workspace = true, features = ["test-utils"] }
 rundler-sim = { workspace = true, features = ["test-utils"] }
 rundler-types = { workspace = true, features = ["test-utils"] }
 serde_json.workspace = true
-
-[build-dependencies]
-tonic-build.workspace = true

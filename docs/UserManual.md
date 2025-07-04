@@ -209,7 +209,7 @@ import json
 class SuperPaymasterClient:
     def __init__(self, base_url='http://localhost:9000'):
         self.base_url = base_url
-    
+
     def sponsor_user_operation(self, user_op, entry_point):
         """赞助一个 UserOperation"""
         response = requests.post(
@@ -220,10 +220,10 @@ class SuperPaymasterClient:
                 'entry_point': entry_point
             }
         )
-        
+
         response.raise_for_status()
         return response.json()['user_op_hash']
-    
+
     def get_health_status(self):
         """获取服务健康状态"""
         response = requests.get(f'{self.base_url}/health')
@@ -240,7 +240,7 @@ user_op = {
 
 try:
     user_op_hash = client.sponsor_user_operation(
-        user_op, 
+        user_op,
         "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
     )
     print(f'User operation hash: {user_op_hash}')
@@ -252,7 +252,7 @@ except requests.exceptions.RequestException as e:
 
 **文档入口**
 - **交互式文档**: http://localhost:9000/swagger-ui/
-- **代码示例生成**: 
+- **代码示例生成**:
   - curl: http://localhost:9000/codegen/curl/sponsor
   - JavaScript: http://localhost:9000/codegen/javascript/sponsor
   - Python: http://localhost:9000/codegen/python/sponsor
@@ -272,7 +272,7 @@ except requests.exceptions.RequestException as e:
 **个人用户**
 1. **邮箱注册**: 发送邮件到 support@superrelay.com
 2. **免费额度**: 每月 3 次免费转账
-3. **账户特性**: 
+3. **账户特性**:
    - 安全的多签账户
    - 社交恢复功能
    - 免基础日常 gas 费
@@ -280,7 +280,7 @@ except requests.exceptions.RequestException as e:
 **社区用户（增强权益）**
 1. **ENS 设置**: 注册 .eth 域名
 2. **社区注册**: 使用 COS72 注册社区身份
-3. **增强额度**: 
+3. **增强额度**:
    - 个人：每月 5 次免费操作
    - 社区合约：完全免 gas
    - 特殊活动：赞助空投和积分
@@ -368,4 +368,4 @@ except requests.exceptions.RequestException as e:
 
 ---
 
-*SuperPaymaster - 让 Web3 交易更简单、更安全、更经济* 🚀 
+*SuperPaymaster - 让 Web3 交易更简单、更安全、更经济* 🚀

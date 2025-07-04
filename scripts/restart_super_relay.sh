@@ -22,20 +22,20 @@ wait_for_port_free() {
     local port=$1
     local max_wait=30
     local count=0
-    
+
     echo "⏳ Waiting for port $port to be free..."
-    
+
     while check_port $port && [ $count -lt $max_wait ]; do
         sleep 1
         count=$((count + 1))
         echo -n "."
     done
-    
+
     if [ $count -ge $max_wait ]; then
         echo "❌ Timeout waiting for port $port to be free"
         return 1
     fi
-    
+
     echo "✅ Port $port is now free"
     return 0
 }
@@ -206,4 +206,4 @@ echo "🔍 To monitor logs in real-time:"
 echo "  tail -f logs/super-relay.log"
 echo ""
 echo "🛑 To stop services:"
-echo "  kill $ANVIL_PID $RELAY_PID" 
+echo "  kill $ANVIL_PID $RELAY_PID"

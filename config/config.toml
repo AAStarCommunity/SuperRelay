@@ -13,7 +13,7 @@ max_entries_per_chain = 100
 max_mem_entries_per_chain = 50
 
 [pool]
-# How long a user operation is valid for (in seconds)  
+# How long a user operation is valid for (in seconds)
 max_expire_duration_seconds = 60
 # How many mempool entries for a given sender
 max_ops_per_unstaked_sender = 1
@@ -45,4 +45,4 @@ bundle_max_length = 5
 
 [metrics]
 # Use different port to avoid conflicts
-port = 8081 
+port = 8081

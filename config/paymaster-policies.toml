@@ -16,7 +16,7 @@ senders = [
 senders = [
     # Anvil test accounts (all 10 default accounts)
     "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",  # Account #0
-    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",  # Account #1  
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",  # Account #1
     "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",  # Account #2
     "0x90F79bf6EB2c4f870365E785982E1f101E93b906",  # Account #3
     "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",  # Account #4
@@ -72,4 +72,4 @@ senders = [
 #   - max_gas_limit: Maximum gas limit per operation
 #   - daily_limits: Daily spending limits per sender
 #   - time_restrictions: Time-based access controls
-#   - value_limits: Maximum ETH value per operation 
+#   - value_limits: Maximum ETH value per operation

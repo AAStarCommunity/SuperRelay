@@ -9,6 +9,6 @@ path = "src/main.rs"
 
 [dependencies]
 axum = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
+chrono = { features = ["serde"], version = "0.4" }
 serde_json = { workspace = true }
-chrono = { features = ["serde"], version = "0.4" } 
+tokio = { workspace = true, features = ["full"] }

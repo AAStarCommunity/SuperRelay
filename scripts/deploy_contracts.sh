@@ -54,11 +54,11 @@ update_contracts_file() {
     local name=$1
     local address=$2
     local temp_file=$(mktemp)
-    
+
     jq --arg name "$name" --arg address "$address" \
        '.[$name] = $address' $CONTRACTS_FILE > $temp_file
     mv $temp_file $CONTRACTS_FILE
-    
+
     echo "📝 $name: $address" >> data/deployment.log
 }
 
@@ -69,18 +69,18 @@ echo "=================================="
 
 if [ -f "crates/contracts/contracts/bytecode/entrypoint/0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789.txt" ]; then
     ENTRYPOINT_BYTECODE=$(cat crates/contracts/contracts/bytecode/entrypoint/0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789.txt)
-    
+
     echo "🚀 Deploying EntryPoint v0.6..."
     DEPLOY_RESULT=$(cast send --rpc-url $RPC_URL --private-key $DEPLOYER_KEY --value 0 --create $ENTRYPOINT_BYTECODE)
-    
+
     ENTRYPOINT_ADDRESS=$(echo "$DEPLOY_RESULT" | grep "contractAddress" | awk '{print $2}')
-    
+
     echo "✅ EntryPoint v0.6 deployed at: $ENTRYPOINT_ADDRESS"
     update_contracts_file "EntryPointV06" "$ENTRYPOINT_ADDRESS"
-    
+
     # Save to legacy file for backward compatibility
     echo $ENTRYPOINT_ADDRESS > .entrypoint_address
-    
+
     # Verify deployment
     CODE=$(cast code --rpc-url $RPC_URL $ENTRYPOINT_ADDRESS)
     if [ ${#CODE} -gt 2 ]; then
@@ -182,4 +182,4 @@ echo "2. Run tests: ./scripts/test_all.sh"
 echo "3. Start Super-Relay: ./scripts/start_super_relay.sh"
 echo ""
 echo "📖 Contract addresses are also available in:"
-echo "   cat $CONTRACTS_FILE | jq ." 
+echo "   cat $CONTRACTS_FILE | jq ."

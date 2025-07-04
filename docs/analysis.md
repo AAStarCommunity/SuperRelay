@@ -68,4 +68,4 @@ This document provides a comparative analysis of several key ERC-4337 Bundler pr
 
 -   **Key Takeaways for `super-relay`**:
     -   **Helper APIs**: Beyond our core `pm_sponsorUserOperation`, we could consider adding utility endpoints to enhance developer experience. For example, a `super_getSponsorshipPolicy` method could allow a dApp to query which sponsorship rules apply to a given user or transaction before submission.
-    -   **Structured Multi-Chain Configuration**: Their configuration file structure, which cleanly separates parameters (EntryPoint, RPC nodes, etc.) for each chain, is a good reference for our own configuration design as we expand. 
+    -   **Structured Multi-Chain Configuration**: Their configuration file structure, which cleanly separates parameters (EntryPoint, RPC nodes, etc.) for each chain, is a good reference for our own configuration design as we expand.

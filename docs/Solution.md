@@ -35,8 +35,8 @@ Rundler 通过`PaymasterTracker`组件跟踪 paymaster 的余额状态 [1](#0-0)
 在用户操作预检查阶段，Rundler 会验证 paymaster 合约是否存在 [2](#0-1) ，并检查 paymaster 的存款是否足够支付最大 gas 成本。
 
 ### 3. 支持两种 Entry Point 版本的 Paymaster 字段
-- **v0.6**: 使用`paymaster_and_data`字段 [3](#0-2) 
-- **v0.7**: 分离为`paymaster`、`paymaster_data`、`paymaster_verification_gas_limit`和`paymaster_post_op_gas_limit`字段 [4](#0-3) 
+- **v0.6**: 使用`paymaster_and_data`字段 [3](#0-2)
+- **v0.7**: 分离为`paymaster`、`paymaster_data`、`paymaster_verification_gas_limit`和`paymaster_post_op_gas_limit`字段 [4](#0-3)
 
 ## 缺失的 Relay 功能
 
@@ -80,13 +80,13 @@ graph TB
         RelayService["PaymasterRelayService<br/>签名服务核心"]
         SignerManager["PaymasterSignerManager<br/>密钥管理"]
     end
-    
+
     subgraph "现有Rundler架构"
         RPC["RPC Task"]
         EthAPI["EthApi"]
         Pool["Pool Task"]
     end
-    
+
     RelayAPI --> RelayService
     RelayService --> SignerManager
     RPC --> RelayAPI
@@ -120,7 +120,7 @@ impl<P: Pool> PaymasterRelayApi<P> {
         // 2. 生成 paymaster 签名
         // 3. 返回签名数据
     }
-    
+
     pub async fn sponsor_user_operation(
         &self,
         user_op: UserOperationVariant,
@@ -163,7 +163,7 @@ impl<P> EthApi<P> {
                 .process_paymaster_request(op, relay_req)
                 .await?;
         }
-        
+
         // 继续使用现有的 send_user_operation 逻辑
         self.send_user_operation(op, entry_point, permissions).await
     }
@@ -211,21 +211,21 @@ Wiki pages you might want to explore:
 
 ## Rundler 的实际技术栈
 
-Rundler 使用的是**jsonrpsee**作为 JSON-RPC 服务器框架，而不是 Axum。 [1](#2-0) 
+Rundler 使用的是**jsonrpsee**作为 JSON-RPC 服务器框架，而不是 Axum。 [1](#2-0)
 
-从 RPC 任务的实现可以看到，Rundler 构建了一个基于 jsonrpsee 的 RPC 服务器： [1](#2-0) 
+从 RPC 任务的实现可以看到，Rundler 构建了一个基于 jsonrpsee 的 RPC 服务器： [1](#2-0)
 
 ## 核心技术组件
 
 ### 1. JSON-RPC 服务器
-- **jsonrpsee**: 用于构建 JSON-RPC 服务器和客户端 [2](#2-1) 
-- **tower**: 用于 HTTP 中间件和服务抽象 [3](#2-2) 
+- **jsonrpsee**: 用于构建 JSON-RPC 服务器和客户端 [2](#2-1)
+- **tower**: 用于 HTTP 中间件和服务抽象 [3](#2-2)
 
 ### 2. API 定义方式
-Rundler 使用 jsonrpsee 的过程宏来定义 API 接口，而不是 utoipa 的 OpenAPI 规范： [4](#2-3) 
+Rundler 使用 jsonrpsee 的过程宏来定义 API 接口，而不是 utoipa 的 OpenAPI 规范： [4](#2-3)
 
 ### 3. HTTP 服务器构建
-RPC 服务器使用 jsonrpsee 的 ServerBuilder 而不是 Axum 的路由系统： [1](#2-0) 
+RPC 服务器使用 jsonrpsee 的 ServerBuilder 而不是 Axum 的路由系统： [1](#2-0)
 
 ## 为什么选择 jsonrpsee 而不是 Axum
 

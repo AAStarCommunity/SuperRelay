@@ -5,7 +5,7 @@ set -e
 
 echo "🧪 Starting Super-Relay Integration Tests"
 
-# Check prerequisites  
+# Check prerequisites
 if ! lsof -i :8545 >/dev/null 2>&1; then
     echo "❌ Anvil not running on port 8545"
     echo "Please start anvil first: anvil --port 8545 --host 0.0.0.0 --chain-id 31337"
@@ -67,11 +67,11 @@ echo "🔍 Test 2: Testing pm_sponsorUserOperation endpoint"
 # Create a test UserOperation
 USER_OP='{
     "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-    "nonce": "0x0", 
+    "nonce": "0x0",
     "initCode": "0x",
     "callData": "0x",
     "callGasLimit": "0x186A0",
-    "verificationGasLimit": "0x186A0", 
+    "verificationGasLimit": "0x186A0",
     "preVerificationGas": "0x5208",
     "maxFeePerGas": "0x3B9ACA00",
     "maxPriorityFeePerGas": "0x3B9ACA00",
@@ -85,7 +85,7 @@ RESPONSE=$(curl -s -X POST http://localhost:3000 \
     -H "Content-Type: application/json" \
     -d '{
         "jsonrpc": "2.0",
-        "method": "pm_sponsorUserOperation", 
+        "method": "pm_sponsorUserOperation",
         "params": ['"$USER_OP"', "'"$ENTRYPOINT_ADDRESS"'"],
         "id": 1
     }')
@@ -125,9 +125,9 @@ fi
 echo ""
 echo "🎉 Integration tests completed!"
 echo "📊 Test Results Summary:"
-echo "  - Server Health: ✅"  
+echo "  - Server Health: ✅"
 echo "  - Paymaster Relay API: $(echo "$RESPONSE" | grep -q '"result"' && echo '✅' || echo '❌')"
 echo "  - EntryPoint Config: $(echo "$ENTRY_POINTS_RESPONSE" | grep -q "$ENTRYPOINT_ADDRESS" && echo '✅' || echo '❌')"
 echo ""
 echo "🔗 API Endpoint: http://localhost:3000"
-echo "📖 Test your API with tools like curl or Postman" 
+echo "📖 Test your API with tools like curl or Postman"

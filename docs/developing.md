@@ -12,7 +12,7 @@ git submodule update --init --recursive
 
 2. Install prerequisites
 
-* [Rust/Cargo](https://www.rust-lang.org/tools/install): 1.85 or higher with nightly 
+* [Rust/Cargo](https://www.rust-lang.org/tools/install): 1.85 or higher with nightly
 * [Cocogitto](https://github.com/cocogitto/cocogitto): Commit linting
 * [Docker](https://docs.docker.com/engine/install/): Run spec tests
 * [PDM](https://pdm.fming.dev/latest/#installation): Run spec tests
@@ -26,7 +26,7 @@ Rundler contains a `Makefile` to simplify common build/test commands
 
 ```
 # build rundler
-$ make build 
+$ make build
 
 # run unit tests
 $ make test-unit

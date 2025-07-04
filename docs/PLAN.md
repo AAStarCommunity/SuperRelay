@@ -104,27 +104,11 @@ This document breaks down the features from `FEATURES.md` into a sequential deve
 
 **问题识别**: 开发者体验不足，API文档缺失，难以快速上手和集成。
 
-**解决方案**: 
-- **Milestone 6: 完整的Swagger UI集成**
-  - **Task 6.1: 增强API文档结构**
-    - 使用`utoipa`为所有RPC方法添加完整的OpenAPI注解
-    - 创建`docs/api_schemas.rs`定义请求/响应数据模型
-    - 添加详细的错误代码文档和示例
-  
-  - **Task 6.2: 交互式Swagger UI**
-    - 基于axum实现独立的Swagger服务器(端口9000)
-    - 集成实时API测试功能
-    - 添加代码示例生成(curl, JavaScript, Python)
-  
-  - **Task 6.3: API使用统计**
-    - 添加API调用计数和响应时间监控
-    - 实现请求日志和错误追踪
-    - 集成到健康检查端点
-
-**验收标准**: 
-- Swagger UI在 `http://localhost:9000` 可访问
-- 所有API方法有完整文档和示例
-- 支持直接在UI中测试API
+**解决方案**:
+- **Milestone 6: Swagger UI (已完成)**
+  - **Task 6.1: 增强API文档结构 - ✅ COMPLETED**
+  - **Task 6.2: 交互式Swagger UI - ✅ COMPLETED**
+  - **Task 6.3: API使用统计 - ✅ COMPLETED**
 
 ### 优先级P1: 监控增强 (3-4天工作量)
 
@@ -136,12 +120,12 @@ This document breaks down the features from `FEATURES.md` into a sequential deve
     - 添加`prometheus`和`tokio-metrics`依赖
     - 实现核心业务指标：签名成功率、策略拒绝率、响应时间分位数
     - 创建`crates/paymaster-relay/src/metrics.rs`模块
-  
+
   - **Task 7.2: 健康检查增强**
     - 实现`/health`、`/metrics`、`/ready`端点
     - 添加依赖服务检查(Ethereum节点连接、签名服务状态)
     - 实现故障自诊断和恢复建议
-  
+
   - **Task 7.3: 告警和日志**
     - 集成结构化日志(tracing + json格式)
     - 实现关键事件告警(签名失败、策略违规、性能异常)
@@ -162,12 +146,12 @@ This document breaks down the features from `FEATURES.md` into a sequential deve
     - 创建`crates/security-filter/`新crate
     - 实现`SecurityFilter` trait和基础风险评估
     - 添加Rate Limiting和IP白名单功能
-  
+
   - **Task 8.2: 风险评估引擎**
     - 实现UserOperation风险评分算法
     - 添加异常行为检测(高频调用、大额交易)
     - 集成黑名单/白名单管理
-  
+
   - **Task 8.3: 安全策略配置**
     - 扩展policy.toml支持安全规则配置
     - 实现动态策略更新(无需重启)
@@ -216,7 +200,7 @@ This document breaks down the features from `FEATURES.md` into a sequential deve
 ### 技术债务清理
 
 - **重构代码结构**，提升可维护性
-- **优化错误处理**，统一错误码体系  
+- **优化错误处理**，统一错误码体系
 - **增强文档**，包括架构图和部署指南
 - **CI/CD优化**，添加自动化测试和部署
 
@@ -229,4 +213,23 @@ This document breaks down the features from `FEATURES.md` into a sequential deve
 3. **后续实施**: 安全模块 (长期安全保障)
 4. **持续优化**: 性能测试和架构扩展验证
 
-每个里程碑完成后更新`docs/Changes.md`，并进行完整的回归测试。 
+每个里程碑完成后更新`docs/Changes.md`，并进行完整的回归测试。
+
+## Phase 2: Enterprise-Grade Hardening (Post-Review Plan)
+
+Based on the comprehensive review (v0.1.6), this phase focuses on security, testing, and developer experience to mature SuperRelay into an enterprise-grade service.
+
+### Milestone 7: Security Enhancement (Priority: Critical)
+- **Task 7.1 (Design)**: Design a dedicated, extensible `SecurityFilter` module. It should act as middleware to process requests before they hit the policy engine. The design should be documented with a Mermaid diagram in `docs/architecture/security.md`.
+- **Task 7.2 (Implementation)**: Implement the `SecurityFilter` module. Initial filters should include basic rate limiting (by IP and/or sender address) and a blacklist for known malicious addresses.
+- **Task 7.3 (Integration)**: Integrate the `SecurityFilter` into the main request processing pipeline.
+
+### Milestone 8: Comprehensive Testing (Priority: High)
+- **Task 8.1 (Documentation)**: Create the `docs/UserCaseTest.md` document, outlining key end-to-end testing scenarios from a user's perspective.
+- **Task 8.2 (E2E Tests)**: Implement an end-to-end test suite within the `integration-tests` binary. These tests should cover the happy paths defined in `UserCaseTest.md`, including submitting a valid UserOperation and verifying its inclusion on an Anvil node.
+- **Task 8.3 (Stress Test Script)**: Develop a basic stress-testing script (e.g., using k6 or a simple Rust script) to send a high volume of concurrent requests to the `pm_sponsorUserOperation` endpoint and measure performance.
+
+### Milestone 9: Developer Experience & Monitoring (Priority: Medium)
+- **Task 9.1 (Health Check)**: Add a simple, human-readable `/health` endpoint that returns a JSON object with the service status, timestamp, and the latest block number seen. Update `demo/curl-test.sh` to use this endpoint for its primary health check.
+- **Task 9.2 (Real-time Dashboard)**: Design and implement a simple, real-time status dashboard (e.g., at `/dashboard`). It should be a single HTML page that uses JavaScript to periodically fetch data from the `/metrics` endpoint and display key indicators like "Operations Sponsored (last hour)", "Current Paymaster Balance", and "Error Rate".
+- **Task 9.3 (Demo Unification)**: Deprecate the standalone `interactive-demo.html` and integrate its functionality into the new `/dashboard` to create a single, unified interface for interaction and observation.

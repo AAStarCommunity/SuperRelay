@@ -17,11 +17,11 @@ run_test_with_timeout() {
     local test_name="$1"
     local test_command="$2"
     local timeout_seconds=${3:-300}  # Default 5 minutes
-    
+
     echo "🔍 Running $test_name..."
     echo "⏱️  Timeout: ${timeout_seconds}s"
     echo "📝 Command: $test_command"
-    
+
     if timeout $timeout_seconds bash -c "$test_command"; then
         echo "✅ $test_name: PASSED"
         return 0
@@ -213,4 +213,4 @@ else
     echo "🔍 For detailed error information:"
     echo "   tail -n 50 $TEST_LOG"
     exit 1
-fi 
+fi

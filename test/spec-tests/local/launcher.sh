@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 # Launcher script for geth and the entrypoint
 set +x
 cd `dirname \`realpath $0\``
