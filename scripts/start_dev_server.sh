@@ -94,14 +94,26 @@ addresses = ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"] # Anvil default accou
 EOM
 export PAYMASTER_POLICY_PATH=$TEMP_POLICY_FILE
 
-# 5. 启动 SuperRelay (rundler)
-echo "🚀 正在启动 SuperRelay 服务... 按 Ctrl+C 停止."
-echo "----------------------------------------------------"
-# Execute the command in the foreground to see live logs
-# The cleanup trap will handle shutting down anvil when you press Ctrl+C
-cargo run --bin rundler -- node \
+# 5. 编译并启动 SuperRelay (rundler)
+echo "🛠️  正在编译 SuperRelay... (首次运行可能需要一些时间)"
+cargo build --bin rundler
+
+echo "🚀 正在启动 SuperRelay 服务..."
+./target/debug/rundler node \
     --node_http "$ANVIL_RPC_URL" \
     --signer.private_keys "$PAYMASTER_SIGNER_KEY,$BUNDLER_SIGNER_KEY_2" \
     --rpc.port 3000 \
     --rpc.host 0.0.0.0 \
-    --paymaster.enabled
+    --paymaster.enabled > /dev/null 2>&1 &
+echo $! > $RUNDLER_PID_FILE
+
+echo "✅ SuperRelay (rundler) 已在后台运行 (PID: $(cat $RUNDLER_PID_FILE))"
+sleep 3 # 等待服务启动
+
+# 6. 打开 Dashboard
+echo "🌐 正在打开 Dashboard: http://localhost:9000/dashboard"
+open "http://localhost:9000/dashboard"
+
+echo "✅ 环境已就绪! 按 Ctrl+C 停止所有服务."
+# 让脚本保持运行，以便 trap 可以捕获 Ctrl+C
+wait
