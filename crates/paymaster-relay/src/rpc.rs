@@ -195,7 +195,7 @@ pub trait PaymasterRelayApi {
 }
 
 pub struct PaymasterRelayApiServerImpl {
-    pub service: PaymasterRelayService,
+    pub service: std::sync::Arc<PaymasterRelayService>,
 }
 
 #[async_trait]

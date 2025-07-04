@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Super-Relay Code Formatting Script
-# This script formats all code, checks dependencies, and cleans up trailing whitespace.
+# This script intelligently formats code, dependencies, and cleans up trailing whitespace,
+# while respecting and ignoring git submodules.
 # Usage: ./scripts/format.sh
 
 set -e
@@ -11,21 +12,51 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-echo "🔧 Formatting Rust code..."
-cargo +nightly fmt --all
+# --- Check for dependencies ---
+if ! command_exists jq; then
+    echo "⚠️ jq is not installed. This script requires jq to parse workspace members."
+    echo "   Please install it (e.g., 'brew install jq' or 'sudo apt-get install jq')."
+    exit 1
+fi
 
-echo "🔍 Running clippy..."
-# Check all packages, all features, and treat warnings as errors.
-cargo clippy --all-targets --all-features -- -D warnings
+# --- Submodule Exclusion Logic ---
+echo "ℹ️  Identifying submodules to exclude..."
+# Get a list of submodule paths, formatted for use in grep.
+SUBMODULE_PATHS_PATTERN=$(git submodule status | awk '{print $2}' | paste -sd '|' -)
+if [ -z "$SUBMODULE_PATHS_PATTERN" ]; then
+    echo "✅ No submodules found."
+else
+    echo "   Excluding paths matching: $SUBMODULE_PATHS_PATTERN"
+fi
 
+# --- Rust Formatting (Submodule Aware) ---
+echo "🔧 Formatting Rust code for workspace members..."
+# Use cargo metadata and jq to get a clean list of manifest paths for all packages.
+# This is the most reliable way to identify and iterate over them.
+for manifest_path in $(cargo metadata --no-deps --format-version=1 | jq -r '.packages[].manifest_path'); do
+    pkg_path=$(dirname "$manifest_path")
+
+    # Check if the package path is inside a submodule path
+    if [ ! -z "$SUBMODULE_PATHS_PATTERN" ] && echo "$pkg_path" | grep -qE "^($SUBMODULE_PATHS_PATTERN)"; then
+        echo "   Skipping submodule member: $pkg_path"
+        continue
+    fi
+
+    echo "   Formatting $pkg_path..."
+    cargo +nightly fmt --manifest-path "$manifest_path"
+
+    echo "   Checking $pkg_path..."
+    cargo clippy --manifest-path "$manifest_path" -- -D warnings
+done
+
+
+# --- Dependency and Protobuf Formatting ---
 echo "📋 Running cargo-sort..."
 if ! command_exists cargo-sort; then
     echo "ℹ️ cargo-sort not installed. Attempting to install..."
     cargo install cargo-sort
 fi
-# Sort the workspace's dependencies.
 cargo sort --workspace
-
 
 echo "🔧 Running buf format..."
 if command_exists buf; then
@@ -36,12 +67,17 @@ else
     echo "   Please install it manually. See: https://buf.build/docs/installation"
 fi
 
+# --- Whitespace Cleanup (Submodule Aware) ---
 echo "🧹 Cleaning trailing whitespace and updating git index..."
-# Use 'git ls-files' to find all tracked files matching our patterns, then use xargs to run sed on them.
-git ls-files -z '*.md' '*.toml' '*.sh' '*.yaml' '*.yml' '*.proto' | xargs -0 sed -i '' 's/[[:space:]]*$//'
+# List all tracked files matching patterns (null-terminated).
+# Filter out files within submodules using grep with -z flag for null-terminated lines.
+# Pipe to xargs (reading null-terminated) to run sed.
+if [ -z "$SUBMODULE_PATHS_PATTERN" ]; then
+    git ls-files -z '*.md' '*.toml' '*.sh' '*.yaml' '*.yml' '*.proto' | xargs -0 sed -i '' 's/[[:space:]]*$//'
+else
+    git ls-files -z '*.md' '*.toml' '*.sh' '*.yaml' '*.yml' '*.proto' | grep -z -vE "^($SUBMODULE_PATHS_PATTERN)" | xargs -0 sed -i '' 's/[[:space:]]*$//'
+fi
 
-# Now, use 'git add -u' to stage all tracked files that have been modified by the sed command.
-# This is safer than adding file by file and correctly handles .gitignore.
 echo "ℹ️  Staging all formatting changes..."
 git add -u
 

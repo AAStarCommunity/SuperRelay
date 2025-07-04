@@ -357,19 +357,5 @@ impl Cli {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-
-    // 如果是Node命令，并行启动swagger UI
-    if matches!(cli.command, Commands::Node { .. }) {
-        // 启动swagger UI服务
-        tokio::spawn(async move {
-            // 创建一个简单的测试服务
-            let service = rundler_paymaster_relay::service::PaymasterRelayService::default();
-
-            if let Err(e) = rundler_paymaster_relay::swagger::serve_swagger_ui(service).await {
-                eprintln!("Dashboard error: {}", e);
-            }
-        });
-    }
-
     cli.run().await
 }

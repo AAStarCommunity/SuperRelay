@@ -11,7 +11,7 @@
 // You should have received a copy of the GNU General Public License along with Rundler.
 // If not, see https://www.gnu.org/licenses/.
 
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use clap::Args;
 use rundler_builder::{BuilderEvent, BuilderTask, LocalBuilderBuilder};
@@ -157,7 +157,7 @@ pub async fn spawn_tasks<T: TaskSpawnerExt + 'static>(
     .spawn(task_spawner.clone())
     .await?;
 
-    // Initialize PaymasterRelayService if enabled
+    // Create paymaster relay service
     let paymaster_service = if common_args.paymaster_enabled {
         tracing::info!("Initializing PaymasterRelayService");
 
@@ -190,12 +190,30 @@ senders = ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
                 .map_err(|e| anyhow::anyhow!("Failed to create default policy engine: {}", e))?
         };
 
-        // Create paymaster relay service
-        Some(PaymasterRelayService::new(
+        let service = Arc::new(PaymasterRelayService::new(
             signer_manager,
             policy_engine,
             Arc::new(pool_handle.clone()),
-        ))
+        ));
+
+        let swagger_addr = format!("{}:{}", rpc_args.swagger_ui_host, rpc_args.swagger_ui_port)
+            .parse::<SocketAddr>()
+            .expect("Failed to parse Swagger UI address");
+
+        let service_clone = service.clone();
+        task_spawner.spawn_critical(
+            "swagger ui server",
+            Box::pin(async move {
+                if let Err(e) =
+                    rundler_paymaster_relay::swagger::serve_swagger_ui(service_clone, swagger_addr)
+                        .await
+                {
+                    tracing::error!("Swagger UI server error: {}", e);
+                }
+            }),
+        );
+
+        Some(service)
     } else {
         None
     };
