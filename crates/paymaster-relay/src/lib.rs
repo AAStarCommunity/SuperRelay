@@ -8,6 +8,7 @@ pub mod schemas;
 pub mod service;
 pub mod signer;
 pub mod swagger;
+pub mod statistics;
 
 // Re-export commonly used types
 pub use error::PaymasterError;

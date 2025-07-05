@@ -6405,6 +6405,7 @@ dependencies = [
  "clap",
  "ethers",
  "eyre",
+ "futures-util",
  "jsonrpsee",
  "jsonrpsee-core",
  "jsonrpsee-ws-client",

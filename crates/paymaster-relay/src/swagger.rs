@@ -26,11 +26,16 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+use tower::{Layer, Service};
+use std::task::{Context, Poll};
+use futures_util::future::BoxFuture;
+use axum::http::Request;
 
 use crate::{
     api_docs::{ApiDoc, ErrorResponse, SponsorUserOperationRequest, SponsorUserOperationResponse},
     api_schemas::examples,
-    PaymasterRelayService,
+    service::PaymasterRelayService,
+    statistics::StatisticsService,
 };
 
 /// Swagger server state including metrics
@@ -38,6 +43,7 @@ use crate::{
 pub struct SwaggerState<P: Providers> {
     pub paymaster_service: Arc<PaymasterRelayService>,
     pub providers: P,
+    pub statistics: StatisticsService,
     pub metrics: SwaggerMetrics,
     pub start_time: Instant,
     pub prometheus_handle: PrometheusHandle,
@@ -93,6 +99,64 @@ impl Default for SwaggerMetrics {
     }
 }
 
+#[derive(Clone)]
+pub struct StatisticsLayer {
+    service: StatisticsService,
+}
+
+impl<S> Layer<S> for StatisticsLayer {
+    type Service = StatisticsMiddleware<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        StatisticsMiddleware {
+            inner,
+            service: self.service.clone(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct StatisticsMiddleware<S> {
+    inner: S,
+    service: StatisticsService,
+}
+
+impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for StatisticsMiddleware<S>
+where
+    S: Service<Request<ReqBody>, Response = axum::response::Response<ResBody>> + Send + 'static,
+    S::Future: Send + 'static,
+    ReqBody: Send + 'static,
+    ResBody: Send + 'static,
+{
+    type Response = S::Response;
+    type Error = S::Error;
+    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
+        let start = Instant::now();
+        let path = req.uri().path().to_string();
+        let method = req.method().clone();
+        
+        let service = self.service.clone();
+        let fut = self.inner.call(req);
+
+        Box::pin(async move {
+            let res = fut.await?;
+            let latency = start.elapsed();
+            
+            if path != "/statistics" {
+                 service.record(&format!("{} {}", method, path), res.status().as_u16(), latency.as_millis());
+            }
+
+            Ok(res)
+        })
+    }
+}
+
 /// Start the Swagger UI server with Prometheus metrics
 pub async fn serve_swagger_ui<P: Providers + 'static>(
     paymaster_service: Arc<PaymasterRelayService>,
@@ -106,12 +170,15 @@ pub async fn serve_swagger_ui<P: Providers + 'static>(
     let state = SwaggerState {
         paymaster_service,
         providers,
+        statistics: StatisticsService::new(),
         metrics: SwaggerMetrics::new(),
         start_time: Instant::now(),
         prometheus_handle,
     };
 
-    let app = create_router().with_state(state);
+    let app = create_router()
+        .with_state(state.clone())
+        .layer(StatisticsLayer { service: state.statistics });
 
     info!("Starting Swagger UI server on {}", addr);
     info!("Prometheus metrics available on http://{}/prometheus", addr);
@@ -1112,28 +1179,15 @@ async fn get_transaction_history() -> Json<serde_json::Value> {
 async fn get_api_statistics<P: Providers>(
     State(state): State<SwaggerState<P>>,
 ) -> Json<serde_json::Value> {
-    let total_requests = state.metrics.total_requests.load(Ordering::Relaxed);
+    let stats = state.statistics.aggregate();
+
     Json(json!({
-        "total_calls": total_requests,
-        "calls_by_method": {
-            "pm_sponsorUserOperation": total_requests,
-            "health": 0,
-            "balance": 0,
-            "metrics": 0
-        },
-        "response_times": {
-            "pm_sponsorUserOperation": {
-                "avg": state.metrics.avg_response_time_ms.load(Ordering::Relaxed),
-                "p95": 0,
-                "p99": 0
-            }
-        },
-        "error_rates": {
-            "pm_sponsorUserOperation": 0.0,
-            "overall": 0.0
-        },
-        "peak_rps": 0.0,
-        "peak_time": "N/A"
+        "total_calls": stats.total_calls,
+        "calls_by_method": stats.calls_by_method,
+        "response_times": stats.response_times,
+        "error_rates": stats.error_rates,
+        "peak_rps": 0.0, // TODO
+        "peak_time": "N/A" // TODO
     }))
 }
 
