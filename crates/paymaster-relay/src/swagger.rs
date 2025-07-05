@@ -10,7 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use alloy_primitives::Address;
+use alloy_primitives::{utils::format_ether, Address, U256};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -19,6 +19,7 @@ use axum::{
     Router,
 };
 use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
+use rundler_provider::{EntryPoint, EvmProvider, Providers};
 use serde_json::json;
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
@@ -34,8 +35,9 @@ use crate::{
 
 /// Swagger server state including metrics
 #[derive(Clone)]
-pub struct SwaggerState {
+pub struct SwaggerState<P: Providers> {
     pub paymaster_service: Arc<PaymasterRelayService>,
+    pub providers: P,
     pub metrics: SwaggerMetrics,
     pub start_time: Instant,
     pub prometheus_handle: PrometheusHandle,
@@ -92,8 +94,9 @@ impl Default for SwaggerMetrics {
 }
 
 /// Start the Swagger UI server with Prometheus metrics
-pub async fn serve_swagger_ui(
+pub async fn serve_swagger_ui<P: Providers + 'static>(
     paymaster_service: Arc<PaymasterRelayService>,
+    providers: P,
     addr: SocketAddr,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // TODO: Fix Prometheus integration - temporarily disabled for service startup
@@ -102,6 +105,7 @@ pub async fn serve_swagger_ui(
 
     let state = SwaggerState {
         paymaster_service,
+        providers,
         metrics: SwaggerMetrics::new(),
         start_time: Instant::now(),
         prometheus_handle,
@@ -119,24 +123,27 @@ pub async fn serve_swagger_ui(
 }
 
 /// Create the Swagger router with all endpoints
-fn create_router() -> Router<SwaggerState> {
+fn create_router<P: Providers + 'static>() -> Router<SwaggerState<P>> {
     Router::new()
         // Swagger UI with integrated dashboard
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         // Dashboard integration
         .route("/", get(dashboard_home))
         .route("/dashboard", get(dashboard_page))
-        .route("/dashboard/api/balance", get(get_balance_status))
+        .route("/dashboard/api/balance", get(get_balance_status::<P>))
         .route("/dashboard/api/policies", get(get_policies_status))
-        .route("/dashboard/api/metrics", get(get_metrics_dashboard))
+        .route("/dashboard/api/metrics", get(get_metrics_dashboard::<P>))
         .route("/dashboard/api/transactions", get(get_transaction_history))
         // API endpoints
-        .route("/api/v1/sponsor", post(sponsor_user_operation_endpoint))
+        .route(
+            "/api/v1/sponsor",
+            post(sponsor_user_operation_endpoint::<P>),
+        )
         // Health and monitoring endpoints
-        .route("/health", get(health_check))
-        .route("/ready", get(readiness_check))
-        .route("/metrics", get(get_metrics))
-        .route("/prometheus", get(get_prometheus_metrics))
+        .route("/health", get(health_check::<P>))
+        .route("/ready", get(readiness_check::<P>))
+        .route("/metrics", get(get_metrics::<P>))
+        .route("/prometheus", get(get_prometheus_metrics::<P>))
         .route("/examples/:version", get(get_examples))
         // Code generation endpoints
         .route("/codegen/curl/:endpoint", get(generate_curl_example))
@@ -167,8 +174,8 @@ fn create_router() -> Router<SwaggerState> {
     ),
     tag = "Paymaster"
 )]
-async fn sponsor_user_operation_endpoint(
-    State(state): State<SwaggerState>,
+async fn sponsor_user_operation_endpoint<P: Providers + 'static>(
+    State(state): State<SwaggerState<P>>,
     Json(request): Json<SponsorUserOperationRequest>,
 ) -> Result<Json<SponsorUserOperationResponse>, (StatusCode, Json<ErrorResponse>)> {
     let start_time = Instant::now();
@@ -269,7 +276,9 @@ async fn sponsor_user_operation_endpoint(
 }
 
 /// Health check endpoint
-async fn health_check(State(state): State<SwaggerState>) -> Json<serde_json::Value> {
+async fn health_check<P: Providers + 'static>(
+    State(state): State<SwaggerState<P>>,
+) -> Json<serde_json::Value> {
     let uptime = state.start_time.elapsed();
 
     // Create paymaster metrics summary
@@ -300,8 +309,8 @@ async fn health_check(State(state): State<SwaggerState>) -> Json<serde_json::Val
 }
 
 /// Readiness check endpoint
-async fn readiness_check(
-    State(state): State<SwaggerState>,
+async fn readiness_check<P: Providers + 'static>(
+    State(state): State<SwaggerState<P>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Check if paymaster service is ready
     let uptime = state.start_time.elapsed();
@@ -324,7 +333,9 @@ async fn readiness_check(
 }
 
 /// Get service metrics
-async fn get_metrics(State(state): State<SwaggerState>) -> Json<serde_json::Value> {
+async fn get_metrics<P: Providers + 'static>(
+    State(state): State<SwaggerState<P>>,
+) -> Json<serde_json::Value> {
     let uptime = state.start_time.elapsed().as_secs();
     let swagger_metrics = state.metrics.get_stats();
     let paymaster_metrics = json!({
@@ -344,7 +355,9 @@ async fn get_metrics(State(state): State<SwaggerState>) -> Json<serde_json::Valu
 }
 
 /// Get Prometheus metrics in Prometheus format
-async fn get_prometheus_metrics(State(state): State<SwaggerState>) -> impl IntoResponse {
+async fn get_prometheus_metrics<P: Providers + 'static>(
+    State(state): State<SwaggerState<P>>,
+) -> impl IntoResponse {
     let metrics = state.prometheus_handle.render();
     Response::builder()
         .header("content-type", "text/plain; version=0.0.4")
@@ -857,7 +870,7 @@ async fn dashboard_page() -> impl IntoResponse {
             resultDiv.className = 'test-result';
             
             try {
-                const response = await fetch('/api/balance');
+                const response = await fetch('/dashboard/api/balance');
                 const data = await response.json();
                 resultDiv.textContent = JSON.stringify(data, null, 2);
                 resultDiv.classList.add(response.ok ? 'result-success' : 'result-error');
@@ -931,7 +944,7 @@ async fn dashboard_page() -> impl IntoResponse {
 
         async function loadBalanceStatus() {
             try {
-                const response = await fetch('/api/balance');
+                const response = await fetch('/dashboard/api/balance');
                 if (response.ok) {
                     const balance = await response.json();
                     document.getElementById('paymaster-balance').textContent = `${balance.paymaster_balance} ETH`;
@@ -975,13 +988,43 @@ async fn dashboard_page() -> impl IntoResponse {
 }
 
 /// Get balance status for dashboard
-async fn get_balance_status() -> Json<serde_json::Value> {
-    // TODO: Implement actual balance checking
+async fn get_balance_status<P: Providers>(
+    State(state): State<SwaggerState<P>>,
+) -> Json<serde_json::Value> {
+    let paymaster_address_ethers = state.paymaster_service.signer_manager().address();
+    let paymaster_address_alloy = Address::from(paymaster_address_ethers.0);
+    let evm_provider = state.providers.evm();
+
+    // 1. Get Paymaster's own ETH balance
+    let paymaster_eth_balance = evm_provider
+        .get_balance(paymaster_address_alloy, None)
+        .await
+        .unwrap_or_default();
+
+    // 2. Get Paymaster's deposit in the EntryPoint
+    let entrypoint_deposit = if let Some(ep) = state.providers.ep_v0_6() {
+        ep.balance_of(paymaster_address_alloy, None)
+            .await
+            .unwrap_or_default()
+    } else {
+        U256::ZERO
+    };
+
+    // 3. Determine status
+    let min_deposit = U256::from(10).pow(U256::from(17)); // 0.1 ETH
+    let status = if entrypoint_deposit > min_deposit {
+        "healthy"
+    } else if entrypoint_deposit > U256::ZERO {
+        "warning"
+    } else {
+        "critical"
+    };
+
     Json(json!({
-        "paymaster_balance_eth": 0.0,
-        "entrypoint_deposit_eth": 0.0,
-        "network": "dev",
-        "status": "unknown"
+        "paymaster_balance": format_ether(paymaster_eth_balance),
+        "entrypoint_deposit": format_ether(entrypoint_deposit),
+        "network": "dev", // TODO: Get this from provider/chain_spec
+        "status": status
     }))
 }
 
@@ -995,7 +1038,9 @@ async fn get_policies_status() -> Json<serde_json::Value> {
 }
 
 /// Get metrics for dashboard (different from Prometheus)
-async fn get_metrics_dashboard(State(state): State<SwaggerState>) -> Json<serde_json::Value> {
+async fn get_metrics_dashboard<P: Providers + 'static>(
+    State(state): State<SwaggerState<P>>,
+) -> Json<serde_json::Value> {
     let uptime = state.start_time.elapsed().as_secs();
     let total_requests = state.metrics.total_requests.load(Ordering::Relaxed);
     let successful_requests = state.metrics.successful_requests.load(Ordering::Relaxed);

@@ -42,6 +42,10 @@ impl PaymasterRelayService {
         &self.metrics
     }
 
+    pub fn signer_manager(&self) -> &SignerManager {
+        &self.signer_manager
+    }
+
     pub async fn sponsor_user_operation(
         &self,
         user_op: UserOperationVariant,

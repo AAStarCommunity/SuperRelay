@@ -201,12 +201,16 @@ senders = ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
             .expect("Failed to parse Swagger UI address");
 
         let service_clone = service.clone();
+        let providers_clone = providers.clone();
         task_spawner.spawn_critical(
             "swagger ui server",
             Box::pin(async move {
-                if let Err(e) =
-                    rundler_paymaster_relay::swagger::serve_swagger_ui(service_clone, swagger_addr)
-                        .await
+                if let Err(e) = rundler_paymaster_relay::swagger::serve_swagger_ui(
+                    service_clone,
+                    providers_clone,
+                    swagger_addr,
+                )
+                .await
                 {
                     tracing::error!("Swagger UI server error: {}", e);
                 }

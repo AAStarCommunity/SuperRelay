@@ -1,109 +1,89 @@
 #!/bin/bash
-# Integration test script for super-relay
+# set -ex # Exit on error, print commands
 
-set -e
+echo "🚀 Running Super-Relay Integration Tests..."
 
-echo "🧪 Starting Super-Relay Integration Tests"
-
-# Check prerequisites
-if ! lsof -i :8545 >/dev/null 2>&1; then
-    echo "❌ Anvil not running on port 8545"
-    echo "Please start anvil first: anvil --port 8545 --host 0.0.0.0 --chain-id 31337"
+# 1. Check if server is running
+if [ ! -f "scripts/.rundler.pid" ]; then
+    echo "❌ Super-Relay server not running."
+    echo "Please start the server in another terminal with: ./scripts/start_dev_server.sh"
     exit 1
 fi
 
+RUNDLER_PID=$(cat scripts/.rundler.pid)
+echo "✅ Super-Relay server is running with PID: $RUNDLER_PID"
+
+# 2. Get EntryPoint address
 if [ ! -f ".entrypoint_address" ]; then
-    echo "❌ EntryPoint contract not deployed"
-    echo "Please deploy EntryPoint first: ./scripts/deploy_entrypoint.sh"
+    echo "❌ EntryPoint address file not found."
+    echo "Please ensure start_dev_server.sh has run successfully."
     exit 1
 fi
-
 ENTRYPOINT_ADDRESS=$(cat .entrypoint_address)
 echo "📍 Using EntryPoint at: $ENTRYPOINT_ADDRESS"
 
-# Kill any existing rundler process
-echo "🧹 Cleaning up any existing processes..."
-pkill -f rundler || true
-sleep 2
+# 3. Test pm_sponsorUserOperation
+echo "📤 Calling pm_sponsorUserOperation with a minimal valid UserOp..."
 
-# Start super-relay in background
-echo "🚀 Starting Super-Relay server..."
-RUST_LOG=debug cargo run --bin rundler -- node \
-    --node_http http://localhost:8545 \
-    --paymaster.enabled \
-    --paymaster.private_key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2 \
-    --paymaster.policy_file config/paymaster-policies.toml \
-    --max_verification_gas 10000000 \
-    --rpc.port 3000 \
-    --rpc.host 0.0.0.0 &
+# This is a sample UserOperation. In a real scenario, many of these values
+# would be calculated by a client library. For this test, we use minimal
+# valid values to ensure the RPC endpoint is responsive.
+USER_OP_SENDER="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+USER_OP='{
+    "sender": "'$USER_OP_SENDER'",
+    "nonce": "0x0",
+    "initCode": "0x",
+    "callData": "0xdeadbeef",
+    "callGasLimit": "0x55555",
+    "verificationGasLimit": "0x186A0",
+    "preVerificationGas": "0xC350",
+    "maxFeePerGas": "0x1",
+    "maxPriorityFeePerGas": "0x1",
+    "paymasterAndData": "0x",
+    "signature": "0xdeadbeef"
+}'
 
-RUNDLER_PID=$!
-echo "📊 Super-Relay started with PID: $RUNDLER_PID"
-
-# Wait for server to start
-echo "⏳ Waiting for server to start..."
-sleep 5
-
-# Function to cleanup
-cleanup() {
-    echo "🧹 Cleaning up..."
-    kill $RUNDLER_PID 2>/dev/null || true
-    wait $RUNDLER_PID 2>/dev/null || true
+# Use a HEREDOC to build the JSON payload, ensuring the UserOp is a compact, single-line string.
+USER_OP_COMPACT=$(echo "$USER_OP" | tr -d '\\n\\r\\t ')
+JSON_PAYLOAD=$(cat <<EOF
+{
+    "jsonrpc": "2.0",
+    "method": "pm_sponsorUserOperation",
+    "params": [
+        ${USER_OP_COMPACT},
+        "${ENTRYPOINT_ADDRESS}"
+    ],
+    "id": 1
 }
-trap cleanup EXIT
+EOF
+)
 
-# Test 1: Check if server is responding
-echo "🔍 Test 1: Server health check"
-if curl -s http://localhost:3000 >/dev/null; then
-    echo "✅ Server is responding"
-else
-    echo "❌ Server is not responding"
+RESPONSE=$(curl -v --max-time 15 -s -X POST http://localhost:3000 \
+    -H "Content-Type: application/json" \
+    -d "${JSON_PAYLOAD}")
+
+echo "Full server response:"
+echo "$RESPONSE"
+echo "-------------------"
+
+# Check for a result field first
+if ! echo "$RESPONSE" | jq -e '.result' > /dev/null; then
+    echo "❌ Test FAILED: pm_sponsorUserOperation did not return a 'result' field."
     exit 1
 fi
 
-# Test 2: Test pm_sponsorUserOperation endpoint
-echo "🔍 Test 2: Testing pm_sponsorUserOperation endpoint"
-
-# Create a test UserOperation
-USER_OP='{
-    "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-    "nonce": "0x0",
-    "initCode": "0x",
-    "callData": "0x",
-    "callGasLimit": "0x186A0",
-    "verificationGasLimit": "0x186A0",
-    "preVerificationGas": "0x5208",
-    "maxFeePerGas": "0x3B9ACA00",
-    "maxPriorityFeePerGas": "0x3B9ACA00",
-    "paymasterAndData": "0x",
-    "signature": "0x"
-}'
-
-# Test the RPC call
-echo "📤 Calling pm_sponsorUserOperation..."
-RESPONSE=$(curl -s -X POST http://localhost:3000 \
-    -H "Content-Type: application/json" \
-    -d '{
-        "jsonrpc": "2.0",
-        "method": "pm_sponsorUserOperation",
-        "params": ['"$USER_OP"', "'"$ENTRYPOINT_ADDRESS"'"],
-        "id": 1
-    }')
-
-echo "📥 Response: $RESPONSE"
-
-# Check if we got a valid response
-if echo "$RESPONSE" | grep -q '"result"'; then
-    echo "✅ pm_sponsorUserOperation endpoint is working"
-else
-    echo "❌ pm_sponsorUserOperation endpoint failed"
-    echo "Response: $RESPONSE"
+# Check that paymasterAndData is not null or empty
+PAYMASTER_AND_DATA=$(echo "$RESPONSE" | jq -r '.result.paymasterAndData')
+if [ -z "$PAYMASTER_AND_DATA" ] || [ "$PAYMASTER_AND_DATA" == "null" ] || [ "$PAYMASTER_AND_DATA" == "0x" ]; then
+    echo "❌ Test FAILED: pm_sponsorUserOperation returned empty 'paymasterAndData'."
+    echo "This might indicate the paymaster logic rejected the UserOp."
+    exit 1
 fi
 
-# Test 3: Check basic RPC endpoints
-echo "🔍 Test 3: Testing standard RPC endpoints"
+echo "✅ Test PASSED: pm_sponsorUserOperation returned a valid paymasterAndData."
 
-# Test eth_supportedEntryPoints
+
+# 4. Test eth_supportedEntryPoints
 echo "📤 Calling eth_supportedEntryPoints..."
 ENTRY_POINTS_RESPONSE=$(curl -s -X POST http://localhost:3000 \
     -H "Content-Type: application/json" \
@@ -114,20 +94,12 @@ ENTRY_POINTS_RESPONSE=$(curl -s -X POST http://localhost:3000 \
         "id": 2
     }')
 
-echo "📥 Supported Entry Points: $ENTRY_POINTS_RESPONSE"
+echo "📥 Response: $ENTRY_POINTS_RESPONSE"
 
-if echo "$ENTRY_POINTS_RESPONSE" | grep -q "$ENTRYPOINT_ADDRESS"; then
-    echo "✅ EntryPoint is properly configured"
-else
-    echo "❌ EntryPoint configuration issue"
+if ! echo "$ENTRY_POINTS_RESPONSE" | jq -e --arg addr "$ENTRYPOINT_ADDRESS" '.result | index($addr)' > /dev/null; then
+    echo "❌ Test FAILED: eth_supportedEntryPoints did not contain the deployed EntryPoint address."
+    exit 1
 fi
+echo "✅ Test PASSED: eth_supportedEntryPoints contains the correct EntryPoint."
 
-echo ""
-echo "🎉 Integration tests completed!"
-echo "📊 Test Results Summary:"
-echo "  - Server Health: ✅"
-echo "  - Paymaster Relay API: $(echo "$RESPONSE" | grep -q '"result"' && echo '✅' || echo '❌')"
-echo "  - EntryPoint Config: $(echo "$ENTRY_POINTS_RESPONSE" | grep -q "$ENTRYPOINT_ADDRESS" && echo '✅' || echo '❌')"
-echo ""
-echo "🔗 API Endpoint: http://localhost:3000"
-echo "📖 Test your API with tools like curl or Postman"
+echo -e "\n🎉 All tests passed successfully!"
