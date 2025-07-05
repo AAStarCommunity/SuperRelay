@@ -46,6 +46,10 @@ impl PaymasterRelayService {
         &self.signer_manager
     }
 
+    pub fn policy_engine(&self) -> &PolicyEngine {
+        &self.policy_engine
+    }
+
     pub async fn sponsor_user_operation(
         &self,
         user_op: UserOperationVariant,

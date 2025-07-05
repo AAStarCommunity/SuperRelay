@@ -131,7 +131,7 @@ fn create_router<P: Providers + 'static>() -> Router<SwaggerState<P>> {
         .route("/", get(dashboard_home))
         .route("/dashboard", get(dashboard_page))
         .route("/dashboard/api/balance", get(get_balance_status::<P>))
-        .route("/dashboard/api/policies", get(get_policies_status))
+        .route("/dashboard/api/policies", get(get_policies_status::<P>))
         .route("/dashboard/api/metrics", get(get_metrics_dashboard::<P>))
         .route("/dashboard/api/transactions", get(get_transaction_history))
         // API endpoints
@@ -659,6 +659,15 @@ async fn dashboard_page() -> impl IntoResponse {
             max-height: 300px;
             overflow-y: auto;
         }
+
+        #policies-container {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9rem;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
         
         .result-success {
             background: #f0fdf4;
@@ -708,6 +717,7 @@ async fn dashboard_page() -> impl IntoResponse {
     <div class="container">
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="showTab('overview')">📊 Overview</button>
+            <button class="nav-tab" onclick="showTab('policies')">📜 Policies</button>
             <button class="nav-tab" onclick="showTab('api-tests')">🧪 API Tests</button>
             <button class="nav-tab" onclick="showTab('swagger')">📚 API Docs</button>
             <button class="nav-tab" onclick="showTab('monitoring')">📈 Monitoring</button>
@@ -746,6 +756,13 @@ async fn dashboard_page() -> impl IntoResponse {
                         <div class="stat-value" id="uptime">0s</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Policies Tab -->
+            <div id="policies" class="tab-panel">
+                <h2>Active Paymaster Policies</h2>
+                <p>This shows the currently loaded policies from the configuration file.</p>
+                <div id="policies-container" style="margin-top: 20px;">Loading policies...</div>
             </div>
 
             <!-- API Tests Tab -->
@@ -967,9 +984,26 @@ async fn dashboard_page() -> impl IntoResponse {
             }
         }
 
+        async function loadPoliciesStatus() {
+            try {
+                const response = await fetch('/dashboard/api/policies');
+                if (response.ok) {
+                    const data = await response.json();
+                    const container = document.getElementById('policies-container');
+                    container.textContent = JSON.stringify(data.active_policies, null, 2);
+                } else {
+                    document.getElementById('policies-container').textContent = 'Error loading policies.';
+                }
+            } catch (error) {
+                console.error('Failed to load policies status:', error);
+                document.getElementById('policies-container').textContent = 'Error loading policies.';
+            }
+        }
+
         function refreshMetrics() {
             loadMetrics();
             loadBalanceStatus();
+            loadPoliciesStatus();
         }
 
         // Auto-refresh metrics every 30 seconds
@@ -1029,11 +1063,13 @@ async fn get_balance_status<P: Providers>(
 }
 
 /// Get policies status for dashboard
-async fn get_policies_status() -> Json<serde_json::Value> {
-    // TODO: Implement actual policy reading
+async fn get_policies_status<P: Providers>(
+    State(state): State<SwaggerState<P>>,
+) -> Json<serde_json::Value> {
+    let policies = state.paymaster_service.policy_engine().get_policies();
     Json(json!({
-        "active_policies": [],
-        "total_policies": 0
+        "active_policies": policies,
+        "total_policies": policies.len(),
     }))
 }
 

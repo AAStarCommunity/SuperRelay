@@ -5,11 +5,11 @@ use std::{collections::HashMap, path::Path};
 
 use alloy_primitives::Address;
 use rundler_types::{UserOperation, UserOperationVariant};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::PaymasterError;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Policy {
     pub senders: Vec<Address>,
     // We can add more policy rules here later, e.g.,
@@ -17,7 +17,7 @@ pub struct Policy {
     // max_gas_limit: u64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PolicyConfig {
     #[serde(flatten)]
     pub policies: HashMap<String, Policy>,
@@ -37,6 +37,10 @@ impl PolicyEngine {
             PaymasterError::PolicyRejected(format!("Failed to parse policy file: {}", e))
         })?;
         Ok(Self { config })
+    }
+
+    pub fn get_policies(&self) -> &HashMap<String, Policy> {
+        &self.config.policies
     }
 
     pub fn check_policy(&self, user_op: &UserOperationVariant) -> Result<(), PaymasterError> {
