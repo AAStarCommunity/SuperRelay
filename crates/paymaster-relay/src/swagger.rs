@@ -114,7 +114,7 @@ pub async fn serve_swagger_ui<P: Providers + 'static>(
     let app = create_router().with_state(state);
 
     info!("Starting Swagger UI server on {}", addr);
-    info!("Prometheus metrics available on http://localhost:8080/metrics");
+    info!("Prometheus metrics available on http://{}/prometheus", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
