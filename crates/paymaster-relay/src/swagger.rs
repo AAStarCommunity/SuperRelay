@@ -144,6 +144,7 @@ fn create_router<P: Providers + 'static>() -> Router<SwaggerState<P>> {
         .route("/ready", get(readiness_check::<P>))
         .route("/metrics", get(get_metrics::<P>))
         .route("/prometheus", get(get_prometheus_metrics::<P>))
+        .route("/statistics", get(get_api_statistics::<P>))
         .route("/examples/:version", get(get_examples))
         // Code generation endpoints
         .route("/codegen/curl/:endpoint", get(generate_curl_example))
@@ -1104,6 +1105,35 @@ async fn get_transaction_history() -> Json<serde_json::Value> {
     Json(json!({
         "recent_transactions": [],
         "total_count": 0
+    }))
+}
+
+/// Get API statistics (placeholder)
+async fn get_api_statistics<P: Providers>(
+    State(state): State<SwaggerState<P>>,
+) -> Json<serde_json::Value> {
+    let total_requests = state.metrics.total_requests.load(Ordering::Relaxed);
+    Json(json!({
+        "total_calls": total_requests,
+        "calls_by_method": {
+            "pm_sponsorUserOperation": total_requests,
+            "health": 0,
+            "balance": 0,
+            "metrics": 0
+        },
+        "response_times": {
+            "pm_sponsorUserOperation": {
+                "avg": state.metrics.avg_response_time_ms.load(Ordering::Relaxed),
+                "p95": 0,
+                "p99": 0
+            }
+        },
+        "error_rates": {
+            "pm_sponsorUserOperation": 0.0,
+            "overall": 0.0
+        },
+        "peak_rps": 0.0,
+        "peak_time": "N/A"
     }))
 }
 
