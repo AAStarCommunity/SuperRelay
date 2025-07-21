@@ -38,7 +38,7 @@ mod events;
 const REQUEST_CHANNEL_CAPACITY: usize = 1024;
 const BLOCK_CHANNEL_CAPACITY: usize = 1024;
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Clone)]
 pub struct NodeCliArgs {
     #[command(flatten)]
     pool: PoolArgs,

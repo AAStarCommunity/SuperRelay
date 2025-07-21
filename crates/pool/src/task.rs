@@ -13,6 +13,7 @@
 
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 
+use alloy_primitives::Address;
 use anyhow::{bail, Context};
 use futures::FutureExt;
 use rundler_provider::{EntryPoint, Providers, ProvidersWithEntryPointT};
@@ -97,17 +98,26 @@ where
         tracing::info!("Http url: {:?}", self.args.http_url);
 
         // create chain
+        let mut entry_points = vec![];
+        if self.args.chain_spec.entry_point_address_v0_6 != Address::ZERO {
+            entry_points.push((
+                self.args.chain_spec.entry_point_address_v0_6,
+                EntryPointVersion::V0_6,
+            ));
+        }
+        if self.args.chain_spec.entry_point_address_v0_7 != Address::ZERO {
+            entry_points.push((
+                self.args.chain_spec.entry_point_address_v0_7,
+                EntryPointVersion::V0_7,
+            ));
+        }
+
         let chain_settings = chain::Settings {
             history_size: self.args.chain_spec.chain_history_size,
             poll_interval: self.args.chain_poll_interval,
             max_sync_retries: self.args.chain_max_sync_retries,
             channel_capacity: self.args.chain_update_channel_capacity,
-            entry_point_addresses: self
-                .args
-                .pool_configs
-                .iter()
-                .map(|config| (config.entry_point, config.entry_point_version))
-                .collect(),
+            entry_point_addresses: entry_points.iter().cloned().collect(),
         };
 
         let chain = Chain::new(self.providers.evm().clone(), chain_settings);
@@ -117,16 +127,24 @@ where
             chain.watch(shutdown)
         });
 
+        let Some(pool_config_template) = self.args.pool_configs.first() else {
+            bail!("Pool configs cannot be empty");
+        };
+
         // create mempools
         let mut mempools = HashMap::new();
-        for pool_config in &self.args.pool_configs {
+        for (entry_point_address, entry_point_version) in entry_points {
+            let mut pool_config = pool_config_template.clone();
+            pool_config.entry_point = entry_point_address;
+            pool_config.entry_point_version = entry_point_version;
+
             match pool_config.entry_point_version {
                 EntryPointVersion::V0_6 => {
                     let pool = self
                         .create_mempool_v0_6(
                             &task_spawner,
                             self.args.chain_spec.clone(),
-                            pool_config,
+                            &pool_config,
                             self.args.unsafe_mode,
                             self.event_sender.clone(),
                         )
@@ -139,7 +157,7 @@ where
                         .create_mempool_v0_7(
                             &task_spawner,
                             self.args.chain_spec.clone(),
-                            pool_config,
+                            &pool_config,
                             self.args.unsafe_mode,
                             self.event_sender.clone(),
                         )

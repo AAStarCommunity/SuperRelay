@@ -48,7 +48,7 @@ use super::{
 const REQUEST_CHANNEL_CAPACITY: usize = 1024;
 
 /// CLI options for the builder
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 #[command(next_help_heading = "BUILDER")]
 pub struct BuilderArgs {
     /// Port to listen on for gRPC requests
@@ -423,7 +423,7 @@ fn builder_settings_from_cli(count: u64) -> Vec<BuilderSettings> {
 }
 
 /// CLI options for the Builder server standalone
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct BuilderCliArgs {
     #[command(flatten)]
     builder: BuilderArgs,

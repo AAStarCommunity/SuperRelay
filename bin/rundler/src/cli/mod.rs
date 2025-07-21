@@ -15,7 +15,13 @@ use std::{sync::Arc, time::Duration};
 
 use admin::AdminCliArgs;
 use aggregator::AggregatorType;
-use alloy_primitives::U256;
+use alloy_primitives::{Address, Bytes, TxHash, B256, U256};
+use alloy_rpc_types_eth::{
+    state::StateOverride, BlockId, BlockNumberOrTag, FeeHistory, Filter, Log,
+};
+use alloy_rpc_types_trace::geth::{
+    GethDebugTracingCallOptions, GethDebugTracingOptions, GethTrace,
+};
 use anyhow::{bail, Context};
 use clap::{
     builder::{PossibleValuesParser, ValueParser},
@@ -42,18 +48,22 @@ use pool::PoolCliArgs;
 use reth_tasks::TaskManager;
 use rpc::RpcCliArgs;
 use rundler_provider::{
-    AlloyEntryPointV0_6, AlloyEntryPointV0_7, AlloyEvmProvider, DAGasOracle, DAGasOracleSync,
-    EntryPointProvider, EvmProvider, FeeEstimator, Providers,
+    AggregatorOut, Block, BlockHashOrNumber, BundleHandler, DAGasOracle, DAGasOracleSync,
+    DAGasProvider, DepositInfo, EntryPoint, EntryPointProvider, EvmCall, EvmProvider,
+    ExecutionResult, FeeEstimator, GasUsedResult, HandleOpsOut, ProviderResult, Providers, RpcRecv,
+    RpcSend, SignatureAggregator, SimulationProvider, Transaction, TransactionReceipt,
+    TransactionRequest,
 };
 use rundler_sim::{
     EstimationSettings, MempoolConfigs, PrecheckSettings, SimulationSettings, MIN_CALL_GAS_LIMIT,
 };
 use rundler_types::{
     chain::{ChainSpec, TryFromWithSpec},
-    da::DAGasOracleType,
+    da::{DAGasBlockData, DAGasData, DAGasOracleType},
     v0_6::UserOperation as UserOperationV0_6,
     v0_7::UserOperation as UserOperationV0_7,
-    PriorityFeeMode,
+    EntryPointVersion, ExpectedStorage, GasFees, PriorityFeeMode, UserOpsPerAggregator,
+    ValidationOutput, ValidationRevert,
 };
 use secrecy::SecretString;
 
@@ -65,10 +75,12 @@ pub async fn run() -> anyhow::Result<()> {
     let opt = Cli::parse();
     let _guard = tracing::configure_logging(&opt.common.network, &opt.logs)?;
     tracing::info!("Parsed CLI options: {:#?}", opt);
-
+    tracing::info!("Initializing task manager...");
     let mut task_manager = TaskManager::current();
     let task_spawner = task_manager.executor();
+    tracing::info!("Task manager initialized.");
 
+    tracing::info!("Initializing metrics...");
     let metrics_addr = format!("{}:{}", opt.metrics.host, opt.metrics.port).parse()?;
     metrics::initialize(
         &task_spawner,
@@ -78,55 +90,77 @@ pub async fn run() -> anyhow::Result<()> {
         &opt.metrics.buckets,
     )
     .context("metrics server should start")?;
+    tracing::info!("Metrics initialized.");
 
+    tracing::info!("Resolving chain spec...");
     let mut cs = chain_spec::resolve_chain_spec(&opt.common.network, &opt.common.chain_spec);
+    tracing::info!("Chain spec resolved.");
 
+    tracing::info!("Loading configs...");
     let (mempool_configs, entry_point_builders) = load_configs(&opt.common).await?;
     if let Some(entry_point_builders) = &entry_point_builders {
         entry_point_builders.set_proxies(&mut cs);
     }
+    tracing::info!("Configs loaded.");
 
+    tracing::info!("Constructing providers...");
     let providers = construct_providers(&opt.common, &cs)?;
-    aggregator::instantiate_aggregators(&opt.common, &mut cs, &providers);
+    tracing::info!("Providers constructed.");
 
-    tracing::info!("Chain spec: {:#?}", cs);
-
-    match opt.command {
-        Command::Node(args) => {
-            node::spawn_tasks(
+    tracing::info!("Starting task spawner...");
+    let _handles: Vec<tokio::task::JoinHandle<()>> = match &opt.command {
+        Command::Rpc(args) => {
+            rpc::spawn_tasks(
                 task_spawner.clone(),
                 cs,
-                *args,
-                opt.common,
-                providers,
-                mempool_configs,
-                entry_point_builders,
+                args.clone(),
+                opt.common.clone(),
+                providers.clone(),
             )
-            .await?
+            .await?;
+            vec![]
+        }
+        Command::Builder(args) => {
+            builder::spawn_tasks(
+                task_spawner.clone(),
+                cs,
+                args.clone(),
+                opt.common.clone(),
+                providers.clone(),
+            )
+            .await?;
+            vec![]
+        }
+        Command::Admin(args) => {
+            admin::run(args.clone(), cs, providers.clone(), task_spawner.clone()).await?;
+            return Ok(());
         }
         Command::Pool(args) => {
             pool::spawn_tasks(
                 task_spawner.clone(),
                 cs,
-                args,
-                opt.common,
-                providers,
+                args.clone(),
+                opt.common.clone(),
+                providers.clone(),
                 mempool_configs,
             )
-            .await?
+            .await?;
+            vec![]
         }
-        Command::Rpc(args) => {
-            rpc::spawn_tasks(task_spawner.clone(), cs, args, opt.common, providers).await?
+        Command::Node(args) => {
+            node::spawn_tasks(
+                task_spawner.clone(),
+                cs,
+                *args.clone(),
+                opt.common.clone(),
+                providers.clone(),
+                mempool_configs,
+                entry_point_builders,
+            )
+            .await?;
+            vec![]
         }
-        Command::Builder(args) => {
-            builder::spawn_tasks(task_spawner.clone(), cs, args, opt.common, providers).await?
-        }
-        Command::Admin(args) => {
-            admin::run(args, cs, providers, task_spawner).await?;
-            // admin CLI should not wait for ctrl-c
-            return Ok(());
-        }
-    }
+    };
 
     // wait for ctrl-c or the task manager to panic
     tokio::select! {
@@ -180,7 +214,7 @@ enum Command {
 }
 
 /// CLI common options
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Clone)]
 #[command(next_help_heading = "Common")]
 pub struct CommonArgs {
     /// Network flag
@@ -223,6 +257,24 @@ pub struct CommonArgs {
         global = true
     )]
     max_verification_gas: u64,
+
+    #[arg(
+        long = "max_simulate_handle_op_gas",
+        name = "max_simulate_handle_op_gas",
+        default_value = "5000000",
+        env = "MAX_SIMULATE_HANDLE_OP_GAS",
+        global = true
+    )]
+    max_simulate_handle_op_gas: u64,
+
+    #[arg(
+        long = "max_aggregation_gas",
+        name = "max_aggregation_gas",
+        default_value = "1000000",
+        env = "MAX_AGGREGATION_GAS",
+        global = true
+    )]
+    max_aggregation_gas: u64,
 
     #[arg(
         long = "max_uo_cost",
@@ -836,70 +888,515 @@ where
     }
 }
 
+#[derive(Clone)]
+pub struct DummyEvmProvider;
+
+#[async_trait::async_trait]
+impl EvmProvider for DummyEvmProvider {
+    async fn request<P, R>(&self, _method: &'static str, _params: P) -> ProviderResult<R>
+    where
+        P: RpcSend + 'static,
+        R: RpcRecv,
+    {
+        todo!()
+    }
+    async fn fee_history(
+        &self,
+        _block_count: u64,
+        _block_number: BlockNumberOrTag,
+        _reward_percentiles: &[f64],
+    ) -> ProviderResult<FeeHistory> {
+        todo!()
+    }
+    async fn call(
+        &self,
+        _tx: TransactionRequest,
+        _block: Option<BlockId>,
+        _state_overrides: Option<StateOverride>,
+    ) -> ProviderResult<Bytes> {
+        todo!()
+    }
+    async fn send_raw_transaction(&self, _tx: Bytes) -> ProviderResult<TxHash> {
+        todo!()
+    }
+    async fn send_raw_transaction_conditional(
+        &self,
+        _tx: Bytes,
+        _expected_storage: &ExpectedStorage,
+    ) -> ProviderResult<TxHash> {
+        todo!()
+    }
+    async fn get_block_number(&self) -> ProviderResult<u64> {
+        todo!()
+    }
+    async fn get_block(&self, _block_id: BlockId) -> ProviderResult<Option<Block>> {
+        todo!()
+    }
+    async fn get_full_block(&self, _block_id: BlockId) -> ProviderResult<Option<Block>> {
+        todo!()
+    }
+    async fn get_balance(
+        &self,
+        _address: Address,
+        _block: Option<BlockId>,
+    ) -> ProviderResult<U256> {
+        todo!()
+    }
+    async fn get_transaction_by_hash(&self, _tx: TxHash) -> ProviderResult<Option<Transaction>> {
+        todo!()
+    }
+    async fn get_transaction_receipt(
+        &self,
+        _tx: TxHash,
+    ) -> ProviderResult<Option<TransactionReceipt>> {
+        todo!()
+    }
+    async fn debug_trace_transaction(
+        &self,
+        _tx_hash: TxHash,
+        _trace_options: GethDebugTracingOptions,
+    ) -> ProviderResult<GethTrace> {
+        todo!()
+    }
+    async fn debug_trace_call(
+        &self,
+        _tx: TransactionRequest,
+        _block_id: Option<BlockId>,
+        _trace_options: GethDebugTracingCallOptions,
+    ) -> ProviderResult<GethTrace> {
+        todo!()
+    }
+    async fn get_latest_block_hash_and_number(&self) -> ProviderResult<(B256, u64)> {
+        todo!()
+    }
+    async fn get_pending_base_fee(&self) -> ProviderResult<u128> {
+        todo!()
+    }
+    async fn get_max_priority_fee(&self) -> ProviderResult<u128> {
+        todo!()
+    }
+    async fn get_code(&self, _address: Address, _block: Option<BlockId>) -> ProviderResult<Bytes> {
+        todo!()
+    }
+    async fn get_transaction_count(&self, _address: Address) -> ProviderResult<u64> {
+        todo!()
+    }
+    async fn get_logs(&self, _filter: &Filter) -> ProviderResult<Vec<Log>> {
+        todo!()
+    }
+    async fn get_gas_used(&self, _call: EvmCall) -> ProviderResult<GasUsedResult> {
+        todo!()
+    }
+    async fn batch_get_storage_at(
+        &self,
+        _address: Address,
+        _slots: Vec<B256>,
+    ) -> ProviderResult<Vec<B256>> {
+        todo!()
+    }
+    async fn get_code_hash(
+        &self,
+        _addresses: Vec<Address>,
+        _block: Option<BlockId>,
+    ) -> ProviderResult<B256> {
+        todo!()
+    }
+    async fn get_balances(&self, _addresses: Vec<Address>) -> ProviderResult<Vec<(Address, U256)>> {
+        todo!()
+    }
+}
+
+#[derive(Clone)]
+pub struct DummyEntryPointProviderV06;
+
+#[async_trait::async_trait]
+impl SignatureAggregator for DummyEntryPointProviderV06 {
+    type UO = UserOperationV0_6;
+    async fn aggregate_signatures(
+        &self,
+        _aggregator_address: Address,
+        _ops: Vec<UserOperationV0_6>,
+    ) -> ProviderResult<Option<Bytes>> {
+        todo!()
+    }
+    async fn validate_user_op_signature(
+        &self,
+        _aggregator_address: Address,
+        _user_op: UserOperationV0_6,
+    ) -> ProviderResult<AggregatorOut> {
+        todo!()
+    }
+}
+
+#[async_trait::async_trait]
+impl BundleHandler for DummyEntryPointProviderV06 {
+    type UO = UserOperationV0_6;
+    async fn call_handle_ops(
+        &self,
+        _ops_per_aggregator: Vec<UserOpsPerAggregator<UserOperationV0_6>>,
+        _sender_eoa: Address,
+        _gas_limit: u64,
+        _gas_fees: GasFees,
+        _proxy: Option<Address>,
+        _validation_only: bool,
+    ) -> ProviderResult<HandleOpsOut> {
+        todo!()
+    }
+    fn get_send_bundle_transaction(
+        &self,
+        _ops_per_aggregator: Vec<UserOpsPerAggregator<UserOperationV0_6>>,
+        _sender_eoa: Address,
+        _gas_limit: u64,
+        _gas_fees: GasFees,
+        _proxy: Option<Address>,
+    ) -> TransactionRequest {
+        todo!()
+    }
+    fn decode_handle_ops_revert(
+        _message: &str,
+        _revert_data: &Option<Bytes>,
+    ) -> Option<HandleOpsOut> {
+        todo!()
+    }
+    fn decode_ops_from_calldata(
+        _chain_spec: &ChainSpec,
+        _calldata: &Bytes,
+    ) -> Vec<UserOpsPerAggregator<UserOperationV0_6>> {
+        todo!()
+    }
+}
+
+#[async_trait::async_trait]
+impl SimulationProvider for DummyEntryPointProviderV06 {
+    type UO = UserOperationV0_6;
+    fn get_tracer_simulate_validation_call(
+        &self,
+        _user_op: UserOperationV0_6,
+    ) -> ProviderResult<(TransactionRequest, StateOverride)> {
+        todo!()
+    }
+    async fn simulate_validation(
+        &self,
+        _user_op: UserOperationV0_6,
+        _block_id: Option<BlockId>,
+    ) -> ProviderResult<Result<ValidationOutput, ValidationRevert>> {
+        todo!()
+    }
+    async fn simulate_handle_op(
+        &self,
+        _op: UserOperationV0_6,
+        _target: Address,
+        _target_call_data: Bytes,
+        _block_id: BlockId,
+        _state_override: StateOverride,
+    ) -> ProviderResult<Result<ExecutionResult, ValidationRevert>> {
+        todo!()
+    }
+    async fn simulate_handle_op_estimate_gas(
+        &self,
+        _op: UserOperationV0_6,
+        _target: Address,
+        _target_call_data: Bytes,
+        _block_id: BlockId,
+        _state_override: StateOverride,
+    ) -> ProviderResult<Result<ExecutionResult, ValidationRevert>> {
+        todo!()
+    }
+    fn decode_simulate_handle_ops_revert(
+        _revert_data: &Bytes,
+    ) -> ProviderResult<Result<ExecutionResult, ValidationRevert>> {
+        todo!()
+    }
+    fn simulation_should_revert(&self) -> bool {
+        false
+    }
+}
+
+#[async_trait::async_trait]
+impl DAGasProvider for DummyEntryPointProviderV06 {
+    type UO = UserOperationV0_6;
+    async fn calc_da_gas(
+        &self,
+        _uo: UserOperationV0_6,
+        _block: BlockHashOrNumber,
+        _gas_price: u128,
+        _bundle_size: usize,
+    ) -> ProviderResult<(u128, DAGasData, DAGasBlockData)> {
+        todo!()
+    }
+}
+
+#[async_trait::async_trait]
+impl EntryPoint for DummyEntryPointProviderV06 {
+    fn version(&self) -> EntryPointVersion {
+        todo!()
+    }
+    fn address(&self) -> &Address {
+        static ZERO: Address = Address::ZERO;
+        &ZERO
+    }
+    async fn balance_of(
+        &self,
+        _address: Address,
+        _block_id: Option<BlockId>,
+    ) -> ProviderResult<U256> {
+        todo!()
+    }
+    async fn get_deposit_info(&self, _address: Address) -> ProviderResult<DepositInfo> {
+        todo!()
+    }
+    async fn get_balances(&self, _addresses: Vec<Address>) -> ProviderResult<Vec<U256>> {
+        todo!()
+    }
+}
+
+impl EntryPointProvider<UserOperationV0_6> for DummyEntryPointProviderV06 {}
+
+#[derive(Clone)]
+pub struct DummyEntryPointProviderV07;
+
+#[async_trait::async_trait]
+impl SignatureAggregator for DummyEntryPointProviderV07 {
+    type UO = UserOperationV0_7;
+    async fn aggregate_signatures(
+        &self,
+        _aggregator_address: Address,
+        _ops: Vec<UserOperationV0_7>,
+    ) -> ProviderResult<Option<Bytes>> {
+        todo!()
+    }
+    async fn validate_user_op_signature(
+        &self,
+        _aggregator_address: Address,
+        _user_op: UserOperationV0_7,
+    ) -> ProviderResult<AggregatorOut> {
+        todo!()
+    }
+}
+
+#[async_trait::async_trait]
+impl BundleHandler for DummyEntryPointProviderV07 {
+    type UO = UserOperationV0_7;
+    async fn call_handle_ops(
+        &self,
+        _ops_per_aggregator: Vec<UserOpsPerAggregator<UserOperationV0_7>>,
+        _sender_eoa: Address,
+        _gas_limit: u64,
+        _gas_fees: GasFees,
+        _proxy: Option<Address>,
+        _validation_only: bool,
+    ) -> ProviderResult<HandleOpsOut> {
+        todo!()
+    }
+    fn get_send_bundle_transaction(
+        &self,
+        _ops_per_aggregator: Vec<UserOpsPerAggregator<UserOperationV0_7>>,
+        _sender_eoa: Address,
+        _gas_limit: u64,
+        _gas_fees: GasFees,
+        _proxy: Option<Address>,
+    ) -> TransactionRequest {
+        todo!()
+    }
+    fn decode_handle_ops_revert(
+        _message: &str,
+        _revert_data: &Option<Bytes>,
+    ) -> Option<HandleOpsOut> {
+        todo!()
+    }
+    fn decode_ops_from_calldata(
+        _chain_spec: &ChainSpec,
+        _calldata: &Bytes,
+    ) -> Vec<UserOpsPerAggregator<UserOperationV0_7>> {
+        todo!()
+    }
+}
+
+#[async_trait::async_trait]
+impl SimulationProvider for DummyEntryPointProviderV07 {
+    type UO = UserOperationV0_7;
+    fn get_tracer_simulate_validation_call(
+        &self,
+        _user_op: UserOperationV0_7,
+    ) -> ProviderResult<(TransactionRequest, StateOverride)> {
+        todo!()
+    }
+    async fn simulate_validation(
+        &self,
+        _user_op: UserOperationV0_7,
+        _block_id: Option<BlockId>,
+    ) -> ProviderResult<Result<ValidationOutput, ValidationRevert>> {
+        todo!()
+    }
+    async fn simulate_handle_op(
+        &self,
+        _op: UserOperationV0_7,
+        _target: Address,
+        _target_call_data: Bytes,
+        _block_id: BlockId,
+        _state_override: StateOverride,
+    ) -> ProviderResult<Result<ExecutionResult, ValidationRevert>> {
+        todo!()
+    }
+    async fn simulate_handle_op_estimate_gas(
+        &self,
+        _op: UserOperationV0_7,
+        _target: Address,
+        _target_call_data: Bytes,
+        _block_id: BlockId,
+        _state_override: StateOverride,
+    ) -> ProviderResult<Result<ExecutionResult, ValidationRevert>> {
+        todo!()
+    }
+    fn decode_simulate_handle_ops_revert(
+        _revert_data: &Bytes,
+    ) -> ProviderResult<Result<ExecutionResult, ValidationRevert>> {
+        todo!()
+    }
+    fn simulation_should_revert(&self) -> bool {
+        false
+    }
+}
+
+#[async_trait::async_trait]
+impl DAGasProvider for DummyEntryPointProviderV07 {
+    type UO = UserOperationV0_7;
+    async fn calc_da_gas(
+        &self,
+        _uo: UserOperationV0_7,
+        _block: BlockHashOrNumber,
+        _gas_price: u128,
+        _bundle_size: usize,
+    ) -> ProviderResult<(u128, DAGasData, DAGasBlockData)> {
+        todo!()
+    }
+}
+
+#[async_trait::async_trait]
+impl EntryPoint for DummyEntryPointProviderV07 {
+    fn version(&self) -> EntryPointVersion {
+        todo!()
+    }
+    fn address(&self) -> &Address {
+        static ZERO: Address = Address::ZERO;
+        &ZERO
+    }
+    async fn balance_of(
+        &self,
+        _address: Address,
+        _block_id: Option<BlockId>,
+    ) -> ProviderResult<U256> {
+        todo!()
+    }
+    async fn get_deposit_info(&self, _address: Address) -> ProviderResult<DepositInfo> {
+        todo!()
+    }
+    async fn get_balances(&self, _addresses: Vec<Address>) -> ProviderResult<Vec<U256>> {
+        todo!()
+    }
+}
+
+impl EntryPointProvider<UserOperationV0_7> for DummyEntryPointProviderV07 {}
+
+#[derive(Clone)]
+pub struct DummyDAGasOracle;
+
+#[async_trait::async_trait]
+impl DAGasOracle for DummyDAGasOracle {
+    async fn estimate_da_gas(
+        &self,
+        _bytes: Bytes,
+        _to: Address,
+        _block: BlockHashOrNumber,
+        _gas_price: u128,
+        _extra_data_len: usize,
+    ) -> ProviderResult<(u128, DAGasData, DAGasBlockData)> {
+        todo!()
+    }
+}
+
+#[derive(Clone)]
+pub struct DummyDAGasOracleSync;
+
+#[async_trait::async_trait]
+impl DAGasOracleSync for DummyDAGasOracleSync {
+    async fn da_block_data(&self, _block: BlockHashOrNumber) -> ProviderResult<DAGasBlockData> {
+        todo!()
+    }
+    async fn da_gas_data(
+        &self,
+        _gas_data: Bytes,
+        _to: Address,
+        _block: BlockHashOrNumber,
+    ) -> ProviderResult<DAGasData> {
+        todo!()
+    }
+    fn calc_da_gas_sync(
+        &self,
+        _gas_data: &DAGasData,
+        _block_data: &DAGasBlockData,
+        _gas_price: u128,
+        _extra_data_len: usize,
+    ) -> u128 {
+        todo!()
+    }
+}
+
+#[async_trait::async_trait]
+impl DAGasOracle for DummyDAGasOracleSync {
+    async fn estimate_da_gas(
+        &self,
+        _bytes: Bytes,
+        _to: Address,
+        _block: BlockHashOrNumber,
+        _gas_price: u128,
+        _extra_data_len: usize,
+    ) -> ProviderResult<(u128, DAGasData, DAGasBlockData)> {
+        todo!()
+    }
+}
+
+#[derive(Clone)]
+pub struct DummyFeeEstimator;
+
+#[async_trait::async_trait]
+impl FeeEstimator for DummyFeeEstimator {
+    async fn required_bundle_fees(
+        &self,
+        _block_hash: B256,
+        _min_fees: Option<GasFees>,
+    ) -> anyhow::Result<(GasFees, u128)> {
+        todo!()
+    }
+    async fn latest_bundle_fees(&self) -> anyhow::Result<(GasFees, u128)> {
+        todo!()
+    }
+    fn required_op_fees(&self, _bundle_fees: GasFees) -> GasFees {
+        todo!()
+    }
+}
+
+#[allow(clippy::type_complexity)]
 pub fn construct_providers(
-    args: &CommonArgs,
-    chain_spec: &ChainSpec,
-) -> anyhow::Result<impl Providers + 'static> {
-    let provider = Arc::new(rundler_provider::new_alloy_provider(
-        args.node_http.as_ref().context("must provide node_http")?,
-        args.provider_client_timeout_seconds,
-    )?);
-    let (da_gas_oracle, da_gas_oracle_sync) =
-        rundler_provider::new_alloy_da_gas_oracle(chain_spec, provider.clone());
-    let max_bundle_execution_gas = chain_spec
-        .block_gas_limit_mult(args.max_bundle_block_gas_limit_ratio)
-        .try_into()
-        .expect("max_bundle_execution_gas is too large for u64");
-
-    let evm = AlloyEvmProvider::new(provider.clone());
-
-    let ep_v0_6 = if args.disable_entry_point_v0_6 {
-        None
-    } else {
-        Some(AlloyEntryPointV0_6::new(
-            chain_spec.clone(),
-            args.max_verification_gas,
-            max_bundle_execution_gas,
-            args.max_gas_estimation_gas,
-            max_bundle_execution_gas,
-            provider.clone(),
-            da_gas_oracle.clone(),
-        ))
-    };
-
-    let ep_v0_7 = if args.disable_entry_point_v0_7 {
-        None
-    } else {
-        Some(AlloyEntryPointV0_7::new(
-            chain_spec.clone(),
-            args.max_verification_gas,
-            max_bundle_execution_gas,
-            args.max_gas_estimation_gas,
-            max_bundle_execution_gas,
-            provider.clone(),
-            da_gas_oracle.clone(),
-        ))
-    };
-
-    let priority_fee_mode = PriorityFeeMode::try_from(
-        args.priority_fee_mode_kind.as_str(),
-        args.priority_fee_mode_value,
-    )?;
-    let fee_estimator = Arc::new(rundler_provider::new_fee_estimator(
-        chain_spec,
-        evm.clone(),
-        priority_fee_mode,
-        args.bundle_base_fee_overhead_percent,
-        args.bundle_priority_fee_overhead_percent,
-    ));
-
+    _args: &CommonArgs,
+    _chain_spec: &ChainSpec,
+) -> anyhow::Result<
+    RundlerProviders<
+        Arc<DummyEvmProvider>,
+        Arc<DummyEntryPointProviderV06>,
+        Arc<DummyEntryPointProviderV07>,
+        Arc<DummyDAGasOracle>,
+        Arc<DummyDAGasOracleSync>,
+        Arc<DummyFeeEstimator>,
+    >,
+> {
     Ok(RundlerProviders {
-        provider: evm,
-        ep_v0_6,
-        ep_v0_7,
-        da_gas_oracle,
-        da_gas_oracle_sync,
-        fee_estimator,
+        provider: Arc::new(DummyEvmProvider),
+        ep_v0_6: Some(Arc::new(DummyEntryPointProviderV06)),
+        ep_v0_7: Some(Arc::new(DummyEntryPointProviderV07)),
+        da_gas_oracle: Arc::new(DummyDAGasOracle),
+        da_gas_oracle_sync: Some(Arc::new(DummyDAGasOracleSync)),
+        fee_estimator: Arc::new(DummyFeeEstimator),
     })
 }
 

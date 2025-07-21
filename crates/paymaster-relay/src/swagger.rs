@@ -7,29 +7,27 @@ use std::{
         atomic::{AtomicU64, Ordering},
         Arc,
     },
+    task::{Context, Poll},
     time::{Duration, Instant},
 };
 
 use alloy_primitives::{utils::format_ether, Address, U256};
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{Request, StatusCode},
     response::{Html, IntoResponse, Json, Response},
     routing::{get, post},
     Router,
 };
+use futures_util::future::BoxFuture;
 use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
 use rundler_provider::{EntryPoint, EvmProvider, Providers};
 use serde_json::json;
-use tower::ServiceBuilder;
+use tower::{Layer, Service, ServiceBuilder};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-use tower::{Layer, Service};
-use std::task::{Context, Poll};
-use futures_util::future::BoxFuture;
-use axum::http::Request;
 
 use crate::{
     api_docs::{ApiDoc, ErrorResponse, SponsorUserOperationRequest, SponsorUserOperationResponse},
@@ -140,16 +138,20 @@ where
         let start = Instant::now();
         let path = req.uri().path().to_string();
         let method = req.method().clone();
-        
+
         let service = self.service.clone();
         let fut = self.inner.call(req);
 
         Box::pin(async move {
             let res = fut.await?;
             let latency = start.elapsed();
-            
+
             if path != "/statistics" {
-                 service.record(&format!("{} {}", method, path), res.status().as_u16(), latency.as_millis());
+                service.record(
+                    &format!("{} {}", method, path),
+                    res.status().as_u16(),
+                    latency.as_millis(),
+                );
             }
 
             Ok(res)
@@ -178,7 +180,9 @@ pub async fn serve_swagger_ui<P: Providers + 'static>(
 
     let app = create_router()
         .with_state(state.clone())
-        .layer(StatisticsLayer { service: state.statistics });
+        .layer(StatisticsLayer {
+            service: state.statistics,
+        });
 
     info!("Starting Swagger UI server on {}", addr);
     info!("Prometheus metrics available on http://{}/prometheus", addr);

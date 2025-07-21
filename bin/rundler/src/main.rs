@@ -19,7 +19,8 @@
 ))]
 //! Main CLI entry point for Rundler
 
-use dotenvy::dotenv;
+use alloy_provider as _;
+use dotenvy::dotenv; // Required dependency for provider types
 mod cli;
 
 #[tokio::main]

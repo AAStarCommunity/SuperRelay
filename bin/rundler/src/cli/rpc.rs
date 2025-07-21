@@ -25,7 +25,7 @@ use rundler_types::chain::{ChainSpec, TryIntoWithSpec};
 use super::CommonArgs;
 
 /// CLI options for the RPC server
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 #[command(next_help_heading = "RPC")]
 pub struct RpcArgs {
     /// Port to listen on for JSON-RPC requests
@@ -159,7 +159,7 @@ impl RpcArgs {
 }
 
 /// CLI options for the RPC server standalone
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct RpcCliArgs {
     #[command(flatten)]
     rpc: RpcArgs,

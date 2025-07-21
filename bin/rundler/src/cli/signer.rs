@@ -19,7 +19,7 @@ use clap::Args;
 use rundler_signer::{FundingSettings, KmsLockingSettings, SigningScheme};
 use secrecy::SecretString;
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 #[command(next_help_heading = "SIGNER")]
 pub struct SignerArgs {
     /// Private keys to use for signing transactions

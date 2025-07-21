@@ -12,6 +12,7 @@
 trap "cleanup" INT TERM
 
 # 环境变量和默认值
+export RUST_LOG="info,rundler_rpc=debug"
 export RUNDLER_CONFIG=${RUNDLER_CONFIG:-"config/config.toml"}
 export ANVIL_RPC_URL=${ANVIL_RPC_URL:-"http://localhost:8545"}
 export PAYMASTER_RPC_URL=${PAYMASTER_RPC_URL:-"http://localhost:3000"}
@@ -63,17 +64,27 @@ check_tool "anvil"
 check_tool "cargo"
 check_tool "jq"
 
-# 2. 强制停止并清理旧的 Anvil 实例
-echo "🧼 正在清理旧的 Anvil 实例 (如有)..."
-pkill -f anvil || echo "No running anvil process to kill."
-rm -f "$ANVIL_PID_FILE"
-rm -f "$ENTRYPOINT_ADDRESS_FILE" # Remove old address file to force redeployment
-sleep 1
+# 2. 强制停止并清理旧的 Anvil 和 Rundler 实例
+echo "🧼 正在清理旧的 Anvil 和 Rundler 实例 (如有)..."
+# Terminate existing anvil process
+if [ -f scripts/.anvil.pid ]; then
+    kill "$(cat scripts/.anvil.pid)" || true
+    rm scripts/.anvil.pid
+fi
+# Terminate existing rundler process
+if [ -f scripts/.rundler.pid ]; then
+    kill "$(cat scripts/.rundler.pid)" || true
+    rm scripts/.rundler.pid
+fi
+# Force kill anything on the RPC and metrics ports
+lsof -t -i:3000 | xargs kill -9 2>/dev/null || true
+lsof -t -i:8080 | xargs kill -9 2>/dev/null || true
 
 # 3. 启动 Anvil
 echo "🔥 正在启动一个新的 Anvil 实例..."
-anvil > anvil.log 2>&1 &
-echo $! > $ANVIL_PID_FILE
+anvil --silent > scripts/.anvil.log 2>&1 &
+ANVIL_PID=$!
+echo $ANVIL_PID > scripts/.anvil.pid
 
 echo "⏳ 正在等待 Anvil 启动..."
 max_attempts=30
@@ -92,7 +103,7 @@ echo "✅ Anvil 已在后台运行 (PID: $(cat $ANVIL_PID_FILE))"
 # 3. 部署 EntryPoint
 if [ -f "$ENTRYPOINT_ADDRESS_FILE" ]; then
     ENTRY_POINT_ADDRESS=$(cat $ENTRYPOINT_ADDRESS_FILE)
-    echo "ℹ️  EntryPoint 已部署在地址: $ENTRY_POINT_ADDRESS"
+    echo "✅ EntryPoint 已部署在地址: $ENTRY_POINT_ADDRESS"
 else
     echo "📦 正在部署 EntryPoint 合约..."
     ./scripts/deploy_entrypoint.sh > deploy_entrypoint.log 2>&1
@@ -104,12 +115,18 @@ else
     ENTRY_POINT_ADDRESS=$(cat $ENTRYPOINT_ADDRESS_FILE)
     echo "✅ EntryPoint 已部署在地址: $ENTRY_POINT_ADDRESS"
 fi
-export ENTRY_POINT_ADDRESS
+export CHAIN_ENTRY_POINT_ADDRESS_V0_6=$ENTRY_POINT_ADDRESS
+export CHAIN_ENTRY_POINT_ADDRESS_V0_7=$ENTRY_POINT_ADDRESS
 
 # 3.5. 为 Paymaster 充值
 PAYMASTER_ADDRESS=$(cast wallet address "$PAYMASTER_SIGNER_KEY")
 echo "ℹ️  Paymaster 地址: $PAYMASTER_ADDRESS"
 
+# 查询Paymaster余额，替换为cast balance
+PAYMASTER_BALANCE=$(cast balance $PAYMASTER_ADDRESS --rpc-url http://127.0.0.1:8545)
+echo "ℹ️  Paymaster 当前存款: $PAYMASTER_BALANCE Wei"
+
+# 5. 为 Paymaster 存款
 DEPOSIT_HEX=$(cast call "$ENTRY_POINT_ADDRESS" "balanceOf(address)" "$PAYMASTER_ADDRESS" --rpc-url "$ANVIL_RPC_URL" | tail -n 1)
 # Add a fallback for empty output or "0x" from cast call
 if [ -z "$DEPOSIT_HEX" ] || [ "$DEPOSIT_HEX" == "0x" ]; then
@@ -163,28 +180,16 @@ export PAYMASTER_POLICY_PATH=$TEMP_POLICY_FILE
 
 # 5. 编译并启动 SuperRelay (rundler)
 echo "🛠️  正在编译 SuperRelay... (首次运行可能需要一些时间)"
-cargo build --bin rundler
+cargo build --package rundler
 
 echo "🚀 正在启动 SuperRelay 服务..."
-./target/debug/rundler node \
-    --node_http "$ANVIL_RPC_URL" \
-    --signer.private_keys "$PAYMASTER_SIGNER_KEY,$BUNDLER_SIGNER_KEY_2" \
-    --rpc.port 3000 \
-    --rpc.host 0.0.0.0 \
-    --paymaster.enabled > rundler.log 2>&1 &
+# Run with default logging to stdout
+nohup target/debug/rundler node "$@" &
 RUNDLER_PID=$!
 echo $RUNDLER_PID > "$RUNDLER_PID_FILE"
+
 echo "✅ SuperRelay (rundler) 已在后台运行 (PID: $RUNDLER_PID)"
-
-echo "🌐 正在打开 Dashboard: http://localhost:9000/dashboard"
-# open "http://localhost:9000/dashboard"
-
-echo "✅ ✅ ✅ 环境已就绪! ✅ ✅ ✅"
-echo "SuperRelay 正在运行中..."
-echo "您现在可以在另一个终端中运行集成测试:"
-echo "    ./scripts/test_integration.sh"
-echo ""
 echo "按 Ctrl+C 停止所有服务."
 
-# Wait for user interruption
+# Wait for rundler to exit
 wait $RUNDLER_PID

@@ -20,13 +20,13 @@ mod defund_signers;
 mod fund_signers;
 mod list_signers;
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, Clone)]
 pub(crate) struct AdminCliArgs {
     #[clap(subcommand)]
     command: Command,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Subcommand, Clone)]
 #[allow(clippy::enum_variant_names)]
 enum Command {
     /// List all signers

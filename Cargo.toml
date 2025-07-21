@@ -16,7 +16,7 @@ members = [
     "crates/sim/",
     "crates/task/",
     "crates/types/",
-    "crates/utils/",
+    "crates/utils/"
 ]
 default-members = ["bin/rundler"]
 resolver = "2"

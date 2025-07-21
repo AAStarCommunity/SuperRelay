@@ -22,6 +22,20 @@ fi
 ENTRYPOINT_ADDRESS=$(cat .entrypoint_address)
 echo "📍 Using EntryPoint at: $ENTRYPOINT_ADDRESS"
 
+# Wait for the server to be ready
+echo "⏳ Waiting for Super-Relay RPC to be available at http://localhost:3000..."
+max_attempts=30
+count=0
+while ! curl -s http://localhost:3000/health > /dev/null; do
+    if [ $count -ge $max_attempts ]; then
+        echo "❌ Super-Relay RPC did not become available after 30 seconds."
+        exit 1
+    fi
+    sleep 1
+    count=$((count+1))
+done
+echo "✅ Super-Relay RPC is ready."
+
 # 3. Test pm_sponsorUserOperation
 echo "📤 Calling pm_sponsorUserOperation with a minimal valid UserOp..."
 
@@ -29,28 +43,15 @@ echo "📤 Calling pm_sponsorUserOperation with a minimal valid UserOp..."
 # would be calculated by a client library. For this test, we use minimal
 # valid values to ensure the RPC endpoint is responsive.
 USER_OP_SENDER="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-USER_OP='{
-    "sender": "'$USER_OP_SENDER'",
-    "nonce": "0x0",
-    "initCode": "0x",
-    "callData": "0xdeadbeef",
-    "callGasLimit": "0x55555",
-    "verificationGasLimit": "0x186A0",
-    "preVerificationGas": "0xC350",
-    "maxFeePerGas": "0x1",
-    "maxPriorityFeePerGas": "0x1",
-    "paymasterAndData": "0x",
-    "signature": "0xdeadbeef"
-}'
+USER_OP='{"sender":"'$USER_OP_SENDER'","nonce":"0x0","initCode":"0x","callData":"0xdeadbeef","callGasLimit":"0x55555","verificationGasLimit":"0x186A0","preVerificationGas":"0xC350","maxFeePerGas":"0x1","maxPriorityFeePerGas":"0x1","paymasterAndData":"0x","signature":"0xdeadbeef"}'
 
-# Use a HEREDOC to build the JSON payload, ensuring the UserOp is a compact, single-line string.
-USER_OP_COMPACT=$(echo "$USER_OP" | tr -d '\\n\\r\\t ')
+# Use a HEREDOC to build the JSON payload
 JSON_PAYLOAD=$(cat <<EOF
 {
     "jsonrpc": "2.0",
     "method": "pm_sponsorUserOperation",
     "params": [
-        ${USER_OP_COMPACT},
+        ${USER_OP},
         "${ENTRYPOINT_ADDRESS}"
     ],
     "id": 1

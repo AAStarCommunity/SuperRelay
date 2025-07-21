@@ -31,6 +31,7 @@ pub enum AggregatorType {
 }
 
 /// Instantiate aggregators and pass to chain spec
+#[allow(dead_code)]
 pub fn instantiate_aggregators(
     args: &CommonArgs,
     chain_spec: &mut ChainSpec,
@@ -65,6 +66,7 @@ pub fn instantiate_aggregators(
     chain_spec.set_signature_aggregators(Arc::new(registry));
 }
 
+#[allow(dead_code)]
 fn get_option_value<'a>(options: &'a [(String, String)], key: &str) -> Option<&'a str> {
     options
         .iter()

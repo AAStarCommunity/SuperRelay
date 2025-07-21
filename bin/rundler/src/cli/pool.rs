@@ -34,7 +34,7 @@ const REQUEST_CHANNEL_CAPACITY: usize = 1024;
 const BLOCK_CHANNEL_CAPACITY: usize = 1024;
 
 /// CLI options for the OP Pool
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 #[command(next_help_heading = "POOL")]
 pub struct PoolArgs {
     /// Port to listen on for gRPC requests
@@ -267,7 +267,7 @@ impl PoolArgs {
 }
 
 /// CLI options for the Pool server standalone
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Clone)]
 pub struct PoolCliArgs {
     #[command(flatten)]
     pool: PoolArgs,

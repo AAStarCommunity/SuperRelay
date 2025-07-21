@@ -9,6 +9,7 @@ use std::{
 
 // A single recorded request
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct RequestRecord {
     method: String,
     status_code: u16,
@@ -46,6 +47,7 @@ impl MethodStats {
 pub struct StatisticsService {
     requests: Arc<RwLock<Vec<RequestRecord>>>,
     by_method: Arc<RwLock<BTreeMap<String, MethodStats>>>,
+    #[allow(dead_code)]
     start_time: Instant,
 }
 
@@ -77,7 +79,7 @@ impl StatisticsService {
         let method_stats = by_method.entry(method.to_string()).or_default();
 
         method_stats.total_calls += 1;
-        if status_code >= 200 && status_code < 300 {
+        if (200..300).contains(&status_code) {
             method_stats.successful_calls += 1;
         }
         method_stats.response_times.push(response_time);
@@ -93,7 +95,7 @@ impl StatisticsService {
 
     pub fn aggregate(&self) -> AggregatedStats {
         let by_method = self.by_method.read().unwrap();
-        
+
         let total_calls = by_method.values().map(|stats| stats.total_calls).sum();
 
         let calls_by_method = by_method
@@ -105,14 +107,18 @@ impl StatisticsService {
             .iter()
             .map(|(method, stats)| (method.clone(), stats.avg_response_time()))
             .collect();
-            
+
         let mut error_rates: BTreeMap<String, f64> = by_method
             .iter()
             .map(|(method, stats)| (method.clone(), stats.error_rate()))
             .collect();
 
         let total_successful: u64 = by_method.values().map(|s| s.successful_calls).sum();
-        let overall_error_rate = if total_calls == 0 { 0.0 } else { (total_calls - total_successful) as f64 / total_calls as f64 };
+        let overall_error_rate = if total_calls == 0 {
+            0.0
+        } else {
+            (total_calls - total_successful) as f64 / total_calls as f64
+        };
         error_rates.insert("overall".to_string(), overall_error_rate);
 
         AggregatedStats {
@@ -122,4 +128,4 @@ impl StatisticsService {
             error_rates,
         }
     }
-} 
+}

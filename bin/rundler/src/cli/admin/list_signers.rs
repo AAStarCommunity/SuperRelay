@@ -18,7 +18,7 @@ use rundler_types::chain::ChainSpec;
 
 use crate::cli::signer::SignerArgs;
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Clone)]
 pub(super) struct ListSignersArgs {
     /// The number of signers to list
     #[arg(short, long)]
