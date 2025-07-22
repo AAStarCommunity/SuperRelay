@@ -183,8 +183,15 @@ echo "🛠️  正在编译 SuperRelay... (首次运行可能需要一些时间)
 cargo build --package rundler
 
 echo "🚀 正在启动 SuperRelay 服务..."
-# Run with default logging to stdout
-nohup target/debug/rundler node "$@" &
+# Run with required parameters and default logging to stdout
+nohup target/debug/rundler node \
+    --node_http="$ANVIL_RPC_URL" \
+    --paymaster.enabled \
+    --paymaster.private_key="$PAYMASTER_SIGNER_KEY" \
+    --paymaster.policy_file="$TEMP_POLICY_FILE" \
+    --rpc.api="eth,rundler,paymaster" \
+    --unsafe \
+    "$@" &
 RUNDLER_PID=$!
 echo $RUNDLER_PID > "$RUNDLER_PID_FILE"
 

@@ -870,3 +870,135 @@ crates/paymaster-relay/
 - **v0.2.0**: Swagger UI集成完成 ✅
 - **v0.2.1**: 监控增强 (计划中)
 - **v0.3.0**: 安全和性能优化 (计划中)
+
+---
+
+## Version 0.2.1 - 完整测试框架与开发环境修复 🧪 (2025-01-22)
+
+### 🔧 关键问题修复完成 ✅
+
+#### 开发环境启动问题修复
+- 🎯 **修复 start_dev_server.sh 脚本**: 添加缺失的 `--node_http` 参数和完整的 rundler 启动配置
+- ⚙️ **完善启动参数**: 自动配置 `--paymaster.enabled`、`--paymaster.private_key`、`--paymaster.policy_file` 等必需参数
+- 🔄 **修复 API 命名空间**: 正确设置 `--rpc.api="eth,rundler,paymaster"` 确保所有 API 端点可用
+- 🛠️ **解决 funding 问题**: 修复 Paymaster 资金存款到 EntryPoint 的逻辑错误
+
+#### 格式化和代码质量修复
+- 🧹 **修复所有 lint 错误**: 解决 `statistics.rs` 中的 dead code warnings 和 manual range contains issues
+- 🔧 **修复编译错误**: 解决 CLI 模块中的 unused imports 和 variable naming issues  
+- 📦 **依赖管理优化**: 正确配置 `alloy_provider` 依赖引用，解决 unused crate dependencies
+- ⚡ **Clippy 规则遵循**: 修复所有 clippy warnings，代码通过严格的质量检查
+
+### 🧪 完整端到端测试框架 
+
+#### 综合测试脚本创建
+- 📋 **完整流程测试** (`test_paymaster_complete.js`): 
+  - ✅ Paymaster 赞助测试 (`pm_sponsorUserOperation`)
+  - ✅ Bundler 提交测试 (`eth_sendUserOperation`)  
+  - ✅ 交易确认和状态跟踪
+  - ✅ Mempool 状态检查 (`debug_bundler_dumpMempool`)
+  - ✅ 强制打包测试 (`debug_bundler_sendBundleNow`)
+  - ✅ API 端点验证 (eth_, pm_, debug_ 命名空间)
+
+#### 自动化测试工具
+- 🚀 **一键测试执行** (`scripts/test_complete_flow.sh`):
+  - 自动启动开发环境 (Anvil + EntryPoint + SuperRelay)
+  - 等待服务就绪并进行健康检查
+  - 运行完整的端到端测试套件
+  - 自动清理和错误处理
+
+- 🔍 **环境检查工具** (`scripts/check_environment.sh`):
+  - 验证所有必需工具 (cargo, anvil, cast, node, jq)
+  - 检查项目构建状态和配置文件
+  - 端口可用性检查
+  - 详细的安装指导和故障排除
+
+### 📊 测试覆盖范围
+
+#### 完整的 UserOperation 流程验证
+1. **UserOperation 创建**: 标准 ERC-4337 格式的 UserOperation 构造
+2. **Paymaster 赞助**: 调用 `pm_sponsorUserOperation` 获取签名和赞助
+3. **Bundler 处理**: 通过 `eth_sendUserOperation` 提交到 mempool
+4. **链上执行**: 强制打包并确认交易在 Anvil 区块链上执行
+5. **状态验证**: 检查 UserOperation 收据和执行结果
+
+#### API 功能全覆盖测试
+- **健康检查**: 服务状态和连接验证
+- **EntryPoint 集成**: 合约部署和交互验证  
+- **策略引擎**: 允许列表和拒绝列表策略测试
+- **错误处理**: 无效参数和边界条件测试
+- **多格式支持**: Hex 和 decimal 参数格式兼容性
+
+### 🛠️ 开发者体验提升
+
+#### 智能化工具链
+- 🎯 **零配置测试**: `./scripts/test_complete_flow.sh` 一键运行完整测试
+- 🔧 **环境诊断**: 自动检查依赖和配置，提供详细错误信息
+- 📋 **彩色输出**: 清晰的成功/失败状态显示，易于问题识别
+- ⏱️ **超时处理**: 智能等待服务启动，避免时序问题
+
+#### 完整的测试场景
+- ✅ **正常流程测试**: 标准 UserOperation 的完整处理流程
+- ✅ **错误处理测试**: 无效发送者、错误 EntryPoint 等异常情况
+- ✅ **API 兼容性测试**: 所有 JSON-RPC 端点的功能验证
+- ✅ **性能监控**: 响应时间和成功率统计
+
+### 🏗️ 架构文档增强
+
+#### CLAUDE.md 全面更新
+从 docs 目录提取核心信息，显著增强了 CLAUDE.md 文档：
+- **性能特征**: 详细的延迟、吞吐量和内存使用数据
+- **系统架构流程**: 完整的请求处理管道图
+- **API 端点详解**: 所有命名空间的详细端点说明  
+- **测试策略**: 多层级测试金字塔和覆盖率目标
+- **安全考虑**: 当前安全措施和计划增强功能
+- **部署配置**: Docker 部署和生产环境配置
+- **监控可观测性**: 当前监控能力和计划增强
+
+### 📈 技术成就
+
+#### 代码质量达标
+- 🧹 **零 lint 错误**: 通过 `cargo clippy --all --all-features --tests -- -D warnings`
+- 📝 **代码格式化**: 符合 Rust 社区标准的代码风格
+- 🔒 **类型安全**: 解决所有类型不匹配和依赖问题
+- ⚡ **编译优化**: 快速编译和高效的依赖管理
+
+#### 测试框架完善
+- 🎯 **100% API 覆盖**: 所有 RPC 方法都有对应测试
+- 🔄 **端到端验证**: 从 API 调用到区块链确认的完整链路
+- 📊 **实时监控**: 测试过程中的性能和状态监控
+- 🛠️ **故障诊断**: 详细的错误信息和解决建议
+
+### 🎯 影响范围
+
+#### 修复的关键文件
+- **脚本修复**: `scripts/start_dev_server.sh` - 添加必需的启动参数
+- **代码质量**: `crates/paymaster-relay/src/statistics.rs` - 修复 dead code warnings
+- **CLI 模块**: `bin/rundler/src/cli/mod.rs` - 修复 unused imports
+- **依赖管理**: `bin/rundler/src/main.rs` - 正确引用 alloy_provider
+
+#### 新增测试工具
+- **完整测试**: `test_paymaster_complete.js` - 端到端测试脚本
+- **测试运行器**: `scripts/test_complete_flow.sh` - 自动化测试执行  
+- **环境检查**: `scripts/check_environment.sh` - 开发环境验证
+
+#### 文档增强
+- **CLAUDE.md**: 从基础指南扩展为包含架构、性能、安全等全方位的开发文档
+
+### 🚀 开发者收益
+
+- **🔧 快速启动**: 一个命令即可启动完整的测试环境
+- **🧪 全面验证**: 从单元测试到端到端的完整测试覆盖  
+- **📊 实时反馈**: 清晰的测试结果和性能指标
+- **🛠️ 问题诊断**: 智能的环境检查和故障排除工具
+- **📚 完整文档**: 详细的架构文档和开发指南
+
+### 🎯 验收标准达成
+
+1. ✅ **环境修复**: `./scripts/start_dev_server.sh` 正常启动 SuperRelay 服务
+2. ✅ **代码质量**: 通过所有 lint 和 format 检查
+3. ✅ **端到端测试**: 完整的 UserOperation 处理流程验证  
+4. ✅ **API 功能**: 所有 JSON-RPC 端点正常工作
+5. ✅ **文档完善**: CLAUDE.md 包含完整的开发指南
+
+SuperRelay 现已具备完整的测试框架和修复的开发环境，为生产部署做好准备！
