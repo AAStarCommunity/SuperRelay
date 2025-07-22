@@ -48,11 +48,11 @@ use pool::PoolCliArgs;
 use reth_tasks::TaskManager;
 use rpc::RpcCliArgs;
 use rundler_provider::{
-    AggregatorOut, Block, BlockHashOrNumber, BundleHandler, DAGasOracle, DAGasOracleSync,
-    DAGasProvider, DepositInfo, EntryPoint, EntryPointProvider, EvmCall, EvmProvider,
-    ExecutionResult, FeeEstimator, GasUsedResult, HandleOpsOut, ProviderResult, Providers, RpcRecv,
-    RpcSend, SignatureAggregator, SimulationProvider, Transaction, TransactionReceipt,
-    TransactionRequest,
+    new_fee_estimator, AggregatorOut, AlloyEntryPointV0_6, AlloyEntryPointV0_7, AlloyEvmProvider,
+    Block, BlockHashOrNumber, BundleHandler, DAGasOracle, DAGasOracleSync, DAGasProvider,
+    DepositInfo, EntryPoint, EntryPointProvider, EvmCall, EvmProvider, ExecutionResult,
+    FeeEstimator, GasUsedResult, HandleOpsOut, ProviderResult, Providers, RpcRecv, RpcSend,
+    SignatureAggregator, SimulationProvider, Transaction, TransactionReceipt, TransactionRequest,
 };
 use rundler_sim::{
     EstimationSettings, MempoolConfigs, PrecheckSettings, SimulationSettings, MIN_CALL_GAS_LIMIT,
@@ -1378,25 +1378,65 @@ impl FeeEstimator for DummyFeeEstimator {
 
 #[allow(clippy::type_complexity)]
 pub fn construct_providers(
-    _args: &CommonArgs,
-    _chain_spec: &ChainSpec,
-) -> anyhow::Result<
-    RundlerProviders<
-        Arc<DummyEvmProvider>,
-        Arc<DummyEntryPointProviderV06>,
-        Arc<DummyEntryPointProviderV07>,
-        Arc<DummyDAGasOracle>,
-        Arc<DummyDAGasOracleSync>,
-        Arc<DummyFeeEstimator>,
-    >,
-> {
+    args: &CommonArgs,
+    chain_spec: &ChainSpec,
+) -> anyhow::Result<impl Providers + 'static> {
+    let provider = Arc::new(rundler_provider::new_alloy_provider(
+        args.node_http.as_ref().context("must provide node_http")?,
+        args.provider_client_timeout_seconds,
+    )?);
+    let (da_gas_oracle, da_gas_oracle_sync) =
+        rundler_provider::new_alloy_da_gas_oracle(chain_spec, provider.clone());
+
+    let evm = AlloyEvmProvider::new(provider.clone());
+
+    let ep_v0_6 = if args.disable_entry_point_v0_6 {
+        None
+    } else {
+        Some(AlloyEntryPointV0_6::new(
+            chain_spec.clone(),
+            args.max_verification_gas,
+            args.max_simulate_handle_op_gas,
+            args.max_gas_estimation_gas,
+            args.max_aggregation_gas,
+            provider.clone(),
+            da_gas_oracle.clone(),
+        ))
+    };
+
+    let ep_v0_7 = if args.disable_entry_point_v0_7 {
+        None
+    } else {
+        Some(AlloyEntryPointV0_7::new(
+            chain_spec.clone(),
+            args.max_verification_gas,
+            args.max_simulate_handle_op_gas,
+            args.max_gas_estimation_gas,
+            args.max_aggregation_gas,
+            provider.clone(),
+            da_gas_oracle.clone(),
+        ))
+    };
+
+    let priority_fee_mode = PriorityFeeMode::try_from(
+        args.priority_fee_mode_kind.as_str(),
+        args.priority_fee_mode_value,
+    )?;
+    let fee_estimator = Arc::new(new_fee_estimator(
+        chain_spec,
+        evm.clone(),
+        priority_fee_mode,
+        args.bundle_base_fee_overhead_percent,
+        args.bundle_priority_fee_overhead_percent,
+    ));
+
     Ok(RundlerProviders {
-        provider: Arc::new(DummyEvmProvider),
-        ep_v0_6: Some(Arc::new(DummyEntryPointProviderV06)),
-        ep_v0_7: Some(Arc::new(DummyEntryPointProviderV07)),
-        da_gas_oracle: Arc::new(DummyDAGasOracle),
-        da_gas_oracle_sync: Some(Arc::new(DummyDAGasOracleSync)),
-        fee_estimator: Arc::new(DummyFeeEstimator),
+        provider: evm,
+        ep_v0_6,
+        ep_v0_7,
+        da_gas_oracle,
+        da_gas_oracle_sync,
+        fee_estimator,
     })
 }
 

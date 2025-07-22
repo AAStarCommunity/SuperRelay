@@ -19,7 +19,7 @@ errors=0
 check_tool() {
     local tool=$1
     local install_info=$2
-    
+
     if command -v "$tool" &> /dev/null; then
         echo -e "${GREEN}✅ $tool is installed${NC}"
         return 0
@@ -85,7 +85,7 @@ echo -e "\n${BLUE}🔌 Checking port availability...${NC}"
 check_port() {
     local port=$1
     local service=$2
-    
+
     if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
         echo -e "${YELLOW}⚠️  Port $port is in use ($service)${NC}"
         echo -e "${YELLOW}   Stop existing service or use different port${NC}"

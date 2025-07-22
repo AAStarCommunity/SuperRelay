@@ -35,20 +35,20 @@ wait_for_service() {
     local service_name=$2
     local max_attempts=30
     local attempt=1
-    
+
     echo -e "${BLUE}⏳ Waiting for $service_name to be ready...${NC}"
-    
+
     while [ $attempt -le $max_attempts ]; do
         if curl -s "$url" > /dev/null 2>&1; then
             echo -e "${GREEN}✅ $service_name is ready!${NC}"
             return 0
         fi
-        
+
         echo -e "${YELLOW}   Attempt $attempt/$max_attempts: $service_name not ready yet...${NC}"
         sleep 2
         attempt=$((attempt + 1))
     done
-    
+
     echo -e "${RED}❌ $service_name failed to start within timeout${NC}"
     return 1
 }
@@ -56,23 +56,23 @@ wait_for_service() {
 # Function to cleanup processes
 cleanup() {
     echo -e "\n${YELLOW}🧹 Cleaning up...${NC}"
-    
+
     # Kill SuperRelay if running
     if [ -f "scripts/.rundler.pid" ]; then
         kill $(cat scripts/.rundler.pid) 2>/dev/null || true
         rm scripts/.rundler.pid
     fi
-    
+
     # Kill Anvil if running
     if [ -f "scripts/.anvil.pid" ]; then
         kill $(cat scripts/.anvil.pid) 2>/dev/null || true
         rm scripts/.anvil.pid
     fi
-    
+
     # Kill any processes on the ports
     lsof -ti:3000 | xargs kill -9 2>/dev/null || true
     lsof -ti:8545 | xargs kill -9 2>/dev/null || true
-    
+
     echo -e "${GREEN}✅ Cleanup completed${NC}"
 }
 
@@ -111,12 +111,12 @@ TEST_EXIT_CODE=$?
 if [ $TEST_EXIT_CODE -eq 0 ]; then
     echo -e "\n${GREEN}🎉 ALL TESTS PASSED!${NC}"
     echo -e "${GREEN}✅ SuperRelay is working correctly and ready for use!${NC}"
-    
+
     echo -e "\n${BLUE}📚 Next Steps:${NC}"
     echo "1. Customize policies in config/paymaster-policies.toml"
     echo "2. Configure production settings"
     echo "3. Deploy to your target network"
-    
+
 else
     echo -e "\n${RED}❌ Some tests failed. Please check the output above.${NC}"
     exit 1

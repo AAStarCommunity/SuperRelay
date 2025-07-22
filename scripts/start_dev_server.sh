@@ -18,7 +18,8 @@ export ANVIL_RPC_URL=${ANVIL_RPC_URL:-"http://localhost:8545"}
 export PAYMASTER_RPC_URL=${PAYMASTER_RPC_URL:-"http://localhost:3000"}
 export CHAIN_ID=${CHAIN_ID:-31337}
 export PAYMASTER_SIGNER_KEY=${PAYMASTER_SIGNER_KEY:-"0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"} # Anvil default private key 0
-export BUNDLER_SIGNER_KEY_2=${BUNDLER_SIGNER_KEY_2:-"0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"} # Anvil default private key 1
+export BUNDLER_SIGNER_KEY_1=${BUNDLER_SIGNER_KEY_1:-"0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"} # Anvil default private key 1
+export BUNDLER_SIGNER_KEY_2=${BUNDLER_SIGNER_KEY_2:-"0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"} # Anvil default private key 2
 
 # 文件路径
 ANVIL_PID_FILE="scripts/.anvil.pid"
@@ -173,8 +174,7 @@ echo "ℹ️  Paymaster 最新存款: $DEPOSIT_WEI_AFTER Wei"
 # 4. 创建临时策略文件
 cat > $TEMP_POLICY_FILE <<- EOM
 [default]
-type = "allowlist"
-addresses = ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"] # Anvil default account
+senders = ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"] # Anvil default account
 EOM
 export PAYMASTER_POLICY_PATH=$TEMP_POLICY_FILE
 
@@ -186,6 +186,7 @@ echo "🚀 正在启动 SuperRelay 服务..."
 # Run with required parameters and default logging to stdout
 nohup target/debug/rundler node \
     --node_http="$ANVIL_RPC_URL" \
+    --signer.private_keys="$BUNDLER_SIGNER_KEY_1,$BUNDLER_SIGNER_KEY_2" \
     --paymaster.enabled \
     --paymaster.private_key="$PAYMASTER_SIGNER_KEY" \
     --paymaster.policy_file="$TEMP_POLICY_FILE" \
