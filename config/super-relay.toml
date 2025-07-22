@@ -1,0 +1,42 @@
+# SuperRelay Configuration File
+# This file configures the SuperRelay paymaster service
+
+[server]
+# Server bind configuration
+host = "127.0.0.1"
+port = 3001
+max_connections = 1000
+request_timeout = 30
+
+[paymaster]
+# Environment variable containing the paymaster private key
+private_key_env = "PAYMASTER_PRIVATE_KEY"
+
+# Chain ID (31337 for local Anvil, 1 for Ethereum mainnet)
+chain_id = 31337
+
+# Gas limits for sponsored operations
+[paymaster.gas_limits]
+max_verification_gas = 5000000
+max_call_gas = 10000000
+max_pre_verification_gas = 1000000
+
+# Supported EntryPoint addresses
+[paymaster.entry_points]
+"v0.6" = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+"v0.7" = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+
+[rundler]
+# Rundler RPC endpoint for submitting UserOperations
+url = "http://localhost:3000"
+timeout = 10
+max_retries = 3
+retry_delay = 1000
+
+[policy]
+# Path to policy rules file
+rules_path = "config/paymaster-policies.toml"
+# Policy reload interval in seconds
+reload_interval = 60
+# Default action when no policy matches
+default_action = "deny"

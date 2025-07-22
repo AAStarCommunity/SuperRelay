@@ -1,0 +1,28 @@
+[package]
+name = "rundler-paymaster-relay"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "SuperRelay paymaster service for ERC-4337 gas sponsorship"
+
+[dependencies]
+alloy-primitives.workspace = true
+async-trait.workspace = true
+jsonrpsee = { workspace = true, features = ["server", "client", "macros"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+toml = "0.8.2"
+secrecy.workspace = true
+
+# Rundler dependencies for integration
+rundler-types.workspace = true
+
+[dev-dependencies]
+tokio-test = "0.4.3"
+reqwest = { workspace = true, features = ["json"] }
+tempfile = "3.8.1"

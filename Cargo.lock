@@ -5156,6 +5156,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rundler-paymaster-relay"
+version = "0.9.0"
+dependencies = [
+ "alloy-primitives",
+ "async-trait",
+ "jsonrpsee",
+ "reqwest",
+ "rundler-types",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "toml",
+ "tracing",
+]
+
+[[package]]
 name = "rundler-pbh"
 version = "0.9.0"
 dependencies = [
@@ -6141,6 +6161,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "super-relay"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "jsonrpsee",
+ "rundler-paymaster-relay",
+ "serde",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6365,6 +6399,7 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
+ "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
@@ -6425,6 +6460,19 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tokio-util",
+]
+
+[[package]]
+name = "tokio-test"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2468baabc3311435b55dd935f702f42cd1b8abb7e754fb7dfb16bd36aa88f9f7"
+dependencies = [
+ "async-stream",
+ "bytes",
+ "futures-core",
+ "tokio",
+ "tokio-stream",
 ]
 
 [[package]]

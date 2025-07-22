@@ -1,0 +1,55 @@
+# SuperRelay Paymaster Policies
+# This file defines who can use the paymaster service and under what conditions
+
+# Default action for addresses not explicitly defined
+default_action = "deny"
+
+[global]
+# Global gas limits (applies to all operations)
+max_gas_limit = 10000000
+max_verification_gas = 5000000
+max_call_gas = 10000000
+
+# Global rate limit (requests per minute)
+rate_limit_per_minute = 60
+
+# Allowed senders (if specified, only these addresses can use the paymaster)
+# Comment out to allow all addresses (subject to other policies)
+allowed_senders = [
+    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", # Default Anvil account 0
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", # Default Anvil account 1
+    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", # Default Anvil account 2
+]
+
+# Denied senders (these addresses are explicitly blocked)
+# denied_senders = [
+#     "0x0000000000000000000000000000000000000000"
+# ]
+
+# Address-specific policies
+# Format: [addresses."<address>"]
+
+[addresses."0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+action = "allow"
+max_gas_limit = 5000000
+rate_limit_per_minute = 100
+# allowed_targets = ["0x..."] # Specific contracts this address can interact with
+
+[addresses."0x70997970C51812dc3A010C7d01b50e0d17dc79C8"]
+action = "allow"
+max_gas_limit = 2000000
+rate_limit_per_minute = 50
+
+[addresses."0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"]
+action = "allow"
+max_gas_limit = 1000000
+rate_limit_per_minute = 20
+
+# Contract-specific policies (for target contracts)
+# Format: [contracts."<contract_address>"]
+
+# Example: Allow interactions with a specific DEX contract
+# [contracts."0x1234567890abcdef1234567890abcdef12345678"]
+# action = "allow"
+# max_gas_limit = 2000000
+# allowed_functions = ["0x12345678", "0x87654321"] # Function selectors

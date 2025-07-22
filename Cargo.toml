@@ -1,10 +1,12 @@
 [workspace]
 members = [
     "bin/rundler/",
+    "bin/super-relay/",
     "crates/aggregators/bls/",
     "crates/bindings/fastlz/",
     "crates/builder/",
     "crates/contracts/",
+    "crates/paymaster-relay/",
     "crates/pool/",
     "crates/provider/",
     "crates/rpc/",
@@ -30,6 +32,7 @@ rundler-bindings-fastlz = { path = "crates/bindings/fastlz" }
 rundler-bls = { path = "crates/aggregators/bls" }
 rundler-builder = { path = "crates/builder" }
 rundler-contracts = { path = "crates/contracts" }
+rundler-paymaster-relay = { path = "crates/paymaster-relay" }
 rundler-pbh = { path = "crates/aggregators/pbh" }
 rundler-pool = { path = "crates/pool" }
 rundler-provider = { path = "crates/provider" }
@@ -106,3 +109,6 @@ tracing = "0.1.40"
 strum = { version = "0.26.3", features = ["derive"] }
 url = "2.5.2"
 tiny_http = "0.12.0"
+clap = { version = "4.5.20", features = ["derive"] }
+tracing-subscriber = "0.3.18"
+toml = "0.8.2"

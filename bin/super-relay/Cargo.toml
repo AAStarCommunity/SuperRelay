@@ -1,0 +1,24 @@
+[package]
+name = "super-relay"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "SuperRelay standalone paymaster service binary"
+
+[[bin]]
+name = "super-relay"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+anyhow.workspace = true
+serde = { workspace = true, features = ["derive"] }
+jsonrpsee = { workspace = true, features = ["server"] }
+
+# Our paymaster relay crate
+rundler-paymaster-relay = { path = "../../crates/paymaster-relay" }
