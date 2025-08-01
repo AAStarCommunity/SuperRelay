@@ -1,0 +1,94 @@
+# SuperRelay Cursor Rules - Rust/Blockchain项目开发规范
+
+## 🎯 核心原则
+- **最小侵入**: 只修改必要的代码，避免过度优化
+- **安全第一**: 所有操作都必须考虑安全影响
+- **测试驱动**: 每个功能完成后立即测试
+- **文档同步**: 代码变更必须同步更新文档
+
+## 🔧 开发流程
+1. **规划**: 明确功能范围，避免功能蔓延
+2. **设计**: 考虑扩展性和安全性
+3. **实现**: 遵循Rust最佳实践
+4. **测试**: 编译 → 单元测试 → 集成测试
+5. **提交**: 格式化 → 安全检查 → 提交
+
+## 📝 代码规范
+
+### Rust特定
+```rust
+// ✅ 好的做法
+pub async fn safe_operation(&self) -> Result<T, Error> {
+    // 输入验证
+    self.validate_input()?;
+    
+    // 安全操作
+    let result = self.perform_operation().await?;
+    
+    // 结果验证
+    self.validate_result(&result)?;
+    
+    Ok(result)
+}
+
+// ❌ 避免的做法
+pub fn unsafe_operation(&self) -> T {
+    self.data.unwrap() // 可能panic
+}
+```
+
+### 安全要求
+- 🚫 禁止硬编码私钥/密码
+- ✅ 使用环境变量或安全存储
+- ✅ 输入验证必须在业务逻辑之前
+- ✅ 错误处理不能暴露敏感信息
+
+### 异步代码
+- ✅ 使用`async/await`而不是阻塞操作
+- ✅ 合理使用`Arc<RwLock<T>>`共享状态
+- ✅ 避免在异步函数中使用`std::sync`
+
+## 🧪 测试要求
+```bash
+# 每次提交前必须运行
+cargo check --workspace
+cargo test --workspace
+./scripts/security_check.sh
+./scripts/format.sh
+```
+
+## 📋 文档维护
+- **README.md**: 项目概述和快速开始
+- **SECURITY.md**: 安全指南和最佳实践
+- **CHANGELOG.md**: 版本变更记录
+- **docs/**: 详细技术文档
+
+## 🏗️ 架构原则
+- **模块化**: 每个crate职责单一
+- **依赖最小**: 只引入必要的依赖
+- **接口稳定**: 公共API变更需要版本升级
+- **错误透明**: 使用Result<T, E>而不是panic
+
+## 🔒 安全检查清单
+- [ ] 无硬编码敏感信息
+- [ ] 输入验证完整
+- [ ] 错误处理安全
+- [ ] 速率限制适当
+- [ ] 日志不泄露敏感信息
+
+## 🚀 提交规范
+```
+feat: 新功能
+fix: 修复bug
+security: 安全修复
+perf: 性能优化
+refactor: 重构
+docs: 文档更新
+test: 测试相关
+```
+
+## 💡 开发提示
+- 使用`cargo clippy`检查代码质量
+- 使用`cargo fmt`格式化代码
+- 使用`cargo audit`检查漏洞
+- 定期运行`./scripts/security_check.sh`

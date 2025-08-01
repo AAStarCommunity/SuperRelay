@@ -201,6 +201,12 @@ EOF
 
 echo "📝 Created .env file with default values"
 echo "⚠️  Please copy .env to .env.local and update with your actual values"
+echo ""
+echo "🔒 Security Notice:"
+echo "  - Development keys are set for Anvil local testing"
+echo "  - NEVER use these keys in production"
+echo "  - Set SIGNER_PRIVATE_KEYS environment variable for production"
+echo "  - Consider using AWS KMS or other secure key management"
 
 # 9. Install demo dependencies
 echo "📦 Installing demo project dependencies..."

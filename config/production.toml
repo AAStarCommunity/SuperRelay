@@ -110,7 +110,7 @@ max_response_time_ms = 5000
 # Database for transaction tracking (optional but recommended)
 enable_database = true
 type = "postgresql"
-connection_string = "postgres://super_relay:PASSWORD@localhost:5432/super_relay_prod"
+connection_string = "${DATABASE_URL}"
 max_connections = 20
 connection_timeout_seconds = 30
 

@@ -5,12 +5,14 @@ use std::str::FromStr;
 
 use alloy_primitives::{Address as AlloyAddress, Bytes, U256};
 use async_trait::async_trait;
-use ethers::types::Address;
 use jsonrpsee::{proc_macros::rpc, types::ErrorObjectOwned};
 use rundler_types::{chain::ChainSpec, v0_6, v0_7, UserOperationVariant};
 use serde::{Deserialize, Serialize};
 
-use crate::service::PaymasterRelayService;
+use crate::{
+    service::PaymasterRelayService,
+    validation::{InputValidator, ValidationLimits},
+};
 
 /// Parse a number string that can be either hex (0x prefix) or decimal
 fn parse_hex_or_decimal(s: &str) -> Result<u128, String> {
@@ -196,6 +198,26 @@ pub trait PaymasterRelayApi {
 
 pub struct PaymasterRelayApiServerImpl {
     pub service: std::sync::Arc<PaymasterRelayService>,
+    pub validator: InputValidator,
+}
+
+impl PaymasterRelayApiServerImpl {
+    pub fn new(service: std::sync::Arc<PaymasterRelayService>) -> Self {
+        Self {
+            service,
+            validator: InputValidator::new(ValidationLimits::default()),
+        }
+    }
+
+    pub fn new_with_limits(
+        service: std::sync::Arc<PaymasterRelayService>,
+        limits: ValidationLimits,
+    ) -> Self {
+        Self {
+            service,
+            validator: InputValidator::new(limits),
+        }
+    }
 }
 
 #[async_trait]
@@ -205,6 +227,28 @@ impl PaymasterRelayApiServer for PaymasterRelayApiServerImpl {
         user_op: serde_json::Value,
         entry_point: String,
     ) -> Result<String, ErrorObjectOwned> {
+        // Enhanced input validation
+        self.validator
+            .validate_user_operation_json(&user_op)
+            .map_err(|e| {
+                ErrorObjectOwned::owned(
+                    -32602,
+                    "Input validation failed",
+                    Some(format!("Validation error: {}", e)),
+                )
+            })?;
+
+        let entry_point_addr = self
+            .validator
+            .validate_entry_point(&entry_point)
+            .map_err(|e| {
+                ErrorObjectOwned::owned(
+                    -32602,
+                    "Invalid entry point address",
+                    Some(format!("Entry point validation error: {}", e)),
+                )
+            })?;
+
         // Convert JSON to UserOperation
         let json_user_op: JsonUserOperation = serde_json::from_value(user_op).map_err(|e| {
             ErrorObjectOwned::owned(
@@ -218,13 +262,16 @@ impl PaymasterRelayApiServer for PaymasterRelayApiServerImpl {
             .try_into()
             .map_err(|e| ErrorObjectOwned::owned(-32602, "Invalid user operation data", Some(e)))?;
 
-        let entry_point_addr = Address::from_str(&entry_point).map_err(|e| {
-            ErrorObjectOwned::owned(
-                -32602,
-                "Invalid entry point address",
-                Some(format!("Address parsing error: {}", e)),
-            )
-        })?;
+        // Additional validation on converted UserOperation
+        self.validator
+            .validate_user_operation(&user_op_variant)
+            .map_err(|e| {
+                ErrorObjectOwned::owned(
+                    -32602,
+                    "User operation validation failed",
+                    Some(format!("Operation validation error: {}", e)),
+                )
+            })?;
 
         // Call the service
         match self

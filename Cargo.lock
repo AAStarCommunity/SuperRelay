@@ -6541,6 +6541,7 @@ dependencies = [
  "metrics 0.24.1",
  "metrics-derive",
  "mockall",
+ "parking_lot",
  "rundler-contracts",
  "rundler-paymaster-relay",
  "rundler-provider",

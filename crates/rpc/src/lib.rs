@@ -38,6 +38,9 @@ pub use rundler::RundlerApiClient;
 mod task;
 pub use task::{Args as RpcTaskArgs, RpcTask};
 
+mod rate_limiter;
+pub use rate_limiter::{RateLimiter, RateLimiterConfig, RateLimiterStats};
+
 mod rpc_metrics;
 mod types;
 mod utils;

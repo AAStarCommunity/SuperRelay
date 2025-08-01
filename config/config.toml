@@ -24,14 +24,32 @@ max_ops_per_paymaster = 3
 # Enable paymaster relay service
 enabled = true
 
-# Private key for paymaster signing (test key)
-private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2"
+# Private key for paymaster signing
+# ⚠️ SECURITY: Use environment variable PAYMASTER_PRIVATE_KEY instead
+# This is only a placeholder for development
+private_key = "${PAYMASTER_PRIVATE_KEY}"
 
 # Policy configuration file
 policy_file = "config/paymaster-policies.toml"
 
 # Supported entry points (updated for local)
 entry_points = ["0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"]
+
+[rate_limiting]
+# Enable rate limiting for API endpoints
+enabled = true
+
+# Requests per second per IP address
+requests_per_second = 100
+
+# Burst capacity (token bucket size)
+burst_capacity = 200
+
+# Cleanup interval for expired entries (seconds)
+cleanup_interval_seconds = 60
+
+# Entry expiry time for inactive IPs (seconds)
+entry_expiry_seconds = 300
 
 [rpc]
 # Gas estimation settings for local testing

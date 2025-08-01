@@ -76,6 +76,8 @@ pub struct Args {
     pub entry_point_v0_7_enabled: bool,
     /// What domains to use in the corsdomain
     pub corsdomain: Option<Vec<HeaderValue>>,
+    /// Rate limiting configuration
+    pub rate_limit_config: Option<crate::RateLimiterConfig>,
 }
 
 /// JSON-RPC server task.
@@ -86,6 +88,8 @@ pub struct RpcTask<Pool, Builder, Providers> {
     builder: Builder,
     providers: Providers,
     paymaster_service: Option<Arc<PaymasterRelayService>>,
+    #[allow(dead_code)]
+    rate_limiter: Option<Arc<crate::RateLimiter>>,
 }
 
 impl<Pool, Builder, Providers> RpcTask<Pool, Builder, Providers> {
@@ -97,12 +101,19 @@ impl<Pool, Builder, Providers> RpcTask<Pool, Builder, Providers> {
         providers: Providers,
         paymaster_service: Option<Arc<PaymasterRelayService>>,
     ) -> Self {
+        // Initialize rate limiter if configured
+        let rate_limiter = args
+            .rate_limit_config
+            .as_ref()
+            .map(|config| Arc::new(crate::RateLimiter::new(config.clone())));
+
         Self {
             args,
             pool,
             builder,
             providers,
             paymaster_service,
+            rate_limiter,
         }
     }
 }
@@ -304,9 +315,7 @@ where
         // Add paymaster relay API if service is available
         if let Some(ref paymaster_service) = self.paymaster_service {
             if self.args.api_namespaces.contains(&ApiNamespace::Paymaster) {
-                let paymaster_api = PaymasterRelayApiServerImpl {
-                    service: paymaster_service.clone(),
-                };
+                let paymaster_api = PaymasterRelayApiServerImpl::new(paymaster_service.clone());
                 module.merge(paymaster_api.into_rpc())?;
             }
         }

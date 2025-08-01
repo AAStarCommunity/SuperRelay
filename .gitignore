@@ -23,3 +23,11 @@ demo/node_modules/
 
 # Development processes
 .anvil.pid
+
+# Security-sensitive files
+*.key
+*.pem
+*.p12
+*.keystore
+*.env.local
+secrets/

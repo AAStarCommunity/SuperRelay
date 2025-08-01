@@ -62,6 +62,7 @@ struct SuperRelayConfig {
     rpc: RpcConfig,
     paymaster_relay: PaymasterRelayConfig,
     mempool: MempoolConfig,
+    rate_limiting: Option<RateLimitingConfig>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -102,6 +103,16 @@ struct PaymasterRelayConfig {
 struct MempoolConfig {
     max_send_bundle_txns: Option<u32>,
     bundle_max_length: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+struct RateLimitingConfig {
+    enabled: Option<bool>,
+    requests_per_second: Option<u32>,
+    burst_capacity: Option<u32>,
+    cleanup_interval_seconds: Option<u64>,
+    entry_expiry_seconds: Option<u64>,
 }
 
 impl Cli {
@@ -202,8 +213,34 @@ impl Cli {
             .or_else(|_| std::env::var("NODE_HTTP"))
             .unwrap_or_else(|_| "http://localhost:8545".to_string());
 
+        // 智能私钥管理：优先使用环境变量，测试阶段支持.env文件
         let signer_keys = std::env::var("SIGNER_PRIVATE_KEYS")
-            .unwrap_or_else(|_| "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2,0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string());
+            .or_else(|_| {
+                // 测试/开发阶段：尝试从.env文件加载
+                if let Ok(env_content) = std::fs::read_to_string(".env") {
+                    for line in env_content.lines() {
+                        if line.starts_with("SIGNER_PRIVATE_KEYS=") {
+                            return Ok(line.split('=').nth(1).unwrap_or("").to_string());
+                        }
+                    }
+                }
+                Err(std::env::VarError::NotPresent)
+            })
+            .map_err(|_| {
+                eyre::eyre!(
+                    "🔐 Private key configuration required!\n\
+                \n\
+                🧪 For TESTING/DEVELOPMENT:\n\
+                   • Set SIGNER_PRIVATE_KEYS in .env file\n\
+                   • Or use: source ./scripts/load_dev_env.sh\n\
+                \n\
+                🏭 For PRODUCTION:\n\
+                   • Set SIGNER_PRIVATE_KEYS environment variable\n\
+                   • Future: Hardware wallet API support planned\n\
+                \n\
+                ⚠️  NEVER use test keys in production!"
+                )
+            })?;
 
         let mut args = vec![
             "--network".to_string(),

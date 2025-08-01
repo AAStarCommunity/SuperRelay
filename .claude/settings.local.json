@@ -19,7 +19,15 @@
       "Bash(cargo test:*)",
       "Bash(cargo run:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(./scripts/security_check.sh:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(grep:*)",
+      "Bash(mv:*)",
+      "Bash(./scripts/format.sh:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(git push:*)",
+      "Bash(cargo clippy:*)"
     ],
     "deny": []
   }

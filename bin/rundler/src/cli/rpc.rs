@@ -153,6 +153,7 @@ impl RpcArgs {
             entry_point_v0_6_enabled: !common.disable_entry_point_v0_6,
             entry_point_v0_7_enabled: !common.disable_entry_point_v0_7,
             corsdomain: self.corsdomain.clone(),
+            rate_limit_config: None, // Rate limiting disabled by default in rundler
             chain_spec,
         })
     }
