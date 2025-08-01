@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./scripts/setup_dev_env.sh:*)",
+      "Bash(chmod:*)",
+      "Bash(ls:*)",
+      "Bash(./scripts/start_anvil.sh:*)",
+      "Bash(./scripts/deploy_entrypoint.sh:*)",
+      "Bash(cargo build:*)",
+      "Bash(./scripts/test_simple.sh:*)",
+      "Bash(timeout:*)",
+      "Bash(node superPaymasterDemo.js)",
+      "Bash(node:*)",
+      "Bash(find:*)",
+      "Bash(kill:*)",
+      "Bash(./scripts/restart_super_relay.sh:*)",
+      "Bash(cat:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo run:*)"
+    ],
+    "deny": []
+  }
+}
