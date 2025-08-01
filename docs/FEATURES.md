@@ -61,4 +61,4 @@ This document outlines the core features of the `super-relay` service, derived f
     -   Integrate `utoipa` and `utoipa-swagger-ui` into the `paymaster-relay` crate.
     -   Annotate API-related data structures and create a "dummy" path function for documentation generation.
     -   Create a new async function to serve the Swagger UI using `axum`.
-    -   Launch this function as a separate `tokio::task` from the main `rundler` startup logic. 
+    -   Launch this function as a separate `tokio::task` from the main `rundler` startup logic.

@@ -15,6 +15,7 @@ use alloy_primitives::{ruint::FromUintError, Address, Bytes, FixedBytes, B256, U
 use alloy_sol_types::{sol, SolValue};
 use rundler_contracts::v0_7::PackedUserOperation;
 use rundler_utils::random::{random_bytes, random_bytes_array};
+use serde::{Deserialize, Serialize};
 
 use super::{UserOperation as UserOperationTrait, UserOperationId, UserOperationVariant};
 use crate::{
@@ -42,7 +43,7 @@ const ABI_ENCODED_USER_OPERATION_FIXED_LEN: usize = 416;
 /// User Operation for Entry Point v0.7
 ///
 /// Offchain version, must be packed before sending onchain
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[non_exhaustive] // Prevent instantiation except with UserOperationBuilder
 pub struct UserOperation {
     /*

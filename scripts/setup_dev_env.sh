@@ -62,7 +62,7 @@ else
     curl -L https://foundry.paradigm.xyz | bash
     source ~/.bashrc 2>/dev/null || source ~/.zshrc 2>/dev/null || true
     ~/.foundry/bin/foundryup
-    
+
     # Add to PATH if not already there
     if ! echo $PATH | grep -q ~/.foundry/bin; then
         echo 'export PATH="$HOME/.foundry/bin:$PATH"' >> ~/.bashrc
@@ -237,4 +237,4 @@ echo "  Configuration: ./config/"
 echo ""
 echo "❓ Need Help?"
 echo "  Check ./docs/Deploy.md for detailed deployment instructions"
-echo "  Run './scripts/test_integration.sh' for a complete system test" 
+echo "  Run './scripts/test_integration.sh' for a complete system test"

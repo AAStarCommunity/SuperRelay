@@ -80,7 +80,7 @@ See [chain spec](./architecture/chain_spec.md) for a detailed description of cha
 - `--unsafe`: Flag for unsafe bundling mode. When set Rundler will skip checking simulation rules (and any `debug_traceCall`). (default: `false`).
   - env: *UNSAFE*
 - `--mempool_config_path`: Path to the mempool configuration file. (example: `mempool-config.json`, `s3://my-bucket/mempool-config.json`). (default: `None`)
-  - This path can either be a local file path or an S3 url. If using an S3 url, Make sure your machine has access to this file. 
+  - This path can either be a local file path or an S3 url. If using an S3 url, Make sure your machine has access to this file.
   - env: *MEMPOOL_CONFIG_PATH*
   - See [here](./architecture/pool.md#alternative-mempools-in-preview) for details.
 - `--entry_point_builders_path`: Path to the entry point builders configuration file (example: `builders.json`, `s3://my-bucket/builders.json`). (default: `None`)
@@ -154,10 +154,10 @@ List of command line options for configuring the RPC API.
   - env: *RPC_CORSDOMAIN*
 - `--rpc.pool_url`:	Pool URL for RPC (default: `http://localhost:50051`)
   - env: *RPC_POOL_URL*
-  - *Only required when running in distributed mode* 
+  - *Only required when running in distributed mode*
 - `--rpc.builder_url`:	Builder URL for RPC (default: `http://localhost:50052`)
   - env: *RPC_BUILDER_URL*
-  - *Only required when running in distributed mode* 
+  - *Only required when running in distributed mode*
 - `--rpc.permissions_enabled`: True if user operation permissions are enabled on the RPC API (default: `false`)
   - env: *RPC_PERMISSIONS_ENABLED
   - **NOTE: Do not enable this on a public API - for internal, trusted connections only.**
@@ -168,10 +168,10 @@ List of command line options for configuring the Pool.
 
 - `--pool.port`: Port to listen on for gRPC requests (default: `50051`)
   - env: *POOL_PORT*
-  - *Only required when running in distributed mode* 
+  - *Only required when running in distributed mode*
 - `--pool.host`: Host to listen on for gRPC requests (default: `127.0.0.1`)
   - env: *POOL_HOST*
-  - *Only required when running in distributed mode* 
+  - *Only required when running in distributed mode*
 - `--pool.max_size_in_bytes`: Maximum size in bytes for the pool (default: `500000000`, `0.5 GB`)
   - env: *POOL_MAX_SIZE_IN_BYTES*
 - `--pool.same_sender_mempool_count`: Maximum number of user operations for an unstaked sender (default: `4`)
@@ -180,11 +180,11 @@ List of command line options for configuring the Pool.
   - env: *POOL_MIN_REPLACEMENT_FEE_INCREASE_PERCENTAGE*
 - `--pool.blocklist_path`: Path to a blocklist file (e.g `blocklist.json`, `s3://my-bucket/blocklist.json`)
   - env: *POOL_BLOCKLIST_PATH*
-  - This path can either be a local file path or an S3 url. If using an S3 url, Make sure your machine has access to this file. 
+  - This path can either be a local file path or an S3 url. If using an S3 url, Make sure your machine has access to this file.
   - See [here](./architecture/pool.md#allowlistblocklist) for details.
 - `--pool.allowlist_path`: Path to an allowlist file (e.g `allowlist.json`, `s3://my-bucket/allowlist.json`)
   - env: *POOL_ALLOWLIST_PATH*
-  - This path can either be a local file path or an S3 url. If using an S3 url, Make sure your machine has access to this file. 
+  - This path can either be a local file path or an S3 url. If using an S3 url, Make sure your machine has access to this file.
   - See [here](./architecture/pool.md#allowlistblocklist) for details.
 - `--pool.chain_poll_interval_millis`: Interval at which the pool polls an Eth node for new blocks (default: `100`)
   - env: *POOL_CHAIN_POLL_INTERVAL_MILLIS*
@@ -207,10 +207,10 @@ List of command line options for configuring the Builder.
 
 - `--builder.port`: Port to listen on for gRPC requests (default: `50052`)
   - env: *BUILDER_PORT*
-  - *Only required when running in distributed mode* 
+  - *Only required when running in distributed mode*
 - `--builder.host`: Host to listen on for gRPC requests (default: `127.0.0.1`)
   - env: *BUILDER_HOST*
-  - *Only required when running in distributed mode* 
+  - *Only required when running in distributed mode*
 - `--builder.max_bundle_size`: Maximum number of ops to include in one bundle (default: `128`)
   - env: *BUILDER_MAX_BUNDLE_SIZE*
 - `--builder.max_blocks_to_wait_for_mine`: After submitting a bundle transaction, the maximum number of blocks to wait for that transaction to mine before trying to resend with higher gas fees (default: `2`)
@@ -243,7 +243,7 @@ List of command line options for configuring the Builder.
   - env: *SIGNER_PRIVATE_KEYS*
 - `--signer.mnemonic`: Mnemonic to use for signing transactions
   - env: *SIGNER_MNEMONIC*
-- `--signer.aws_kms_key_ids`: AWS KMS key IDs to use for signing transactions, separated by `,`. 
+- `--signer.aws_kms_key_ids`: AWS KMS key IDs to use for signing transactions, separated by `,`.
   - env: *SIGNER_AWS_KMS_KEY_IDS*
   - To enable signer locking see `SIGNER_ENABLE_KMS_LOCKING`.
 - `--signer.aws_kms_grouped_keys`: AWS KMS key ids grouped to keys in `aws_kms_key_ids` Separated by `,`. Groups are made based on the number of signers required. There must be enough signers to make a full group for every entry in `aws_kms_key_ids`.
@@ -252,10 +252,10 @@ List of command line options for configuring the Builder.
   - env: *SIGNER_ENABLE_KMS_LOCKING*
 - `--signer.redis_uri`: Redis URI to use for KMS leasing (default: `""`)
   - env: *SIGNER_REDIS_URI*
-  -*Only required when SIGNER_ENABLE_KMS_LOCKING is set* 
+  -*Only required when SIGNER_ENABLE_KMS_LOCKING is set*
 - `--signer.redis_lock_ttl_millis`: Redis lock TTL in milliseconds (default: `60000`)
   - env: *SIGNER_REDIS_LOCK_TTL_MILLIS*
-  - *Only required when SIGNER_ENABLE_KMS_LOCKING is set* 
+  - *Only required when SIGNER_ENABLE_KMS_LOCKING is set*
 - `--signer.enable_kms_funding`: Whether to enable kms funding from `aws_kms_key_ids` to the key ids in `aws_kms_key_groups`. (default: `false`)
   - env: *SIGNER_ENABLE_KMS_FUNDING*
 - `--signer.fund_below`: If KMS funding is enabled, this is the signer balance value below which to trigger a funding event
@@ -273,7 +273,7 @@ List of command line options for configuring the Builder.
 
 ### Signing schemes
 
-Rundler supports multiple ways to sign bundle transactions. In configuration precedence order: 
+Rundler supports multiple ways to sign bundle transactions. In configuration precedence order:
 
 1. KMS locked master key with funded sub-keys: `--signer.enable_kms_funding`
 2. Private keys: `--signer.private_keys`

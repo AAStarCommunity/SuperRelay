@@ -12,8 +12,9 @@ path = "src/main.rs"
 [dependencies]
 clap = { workspace = true }
 eyre = { workspace = true }
+rundler-paymaster-relay = { path = "../../crates/paymaster-relay" }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true } 
+serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 toml = { workspace = true }
 tracing = { workspace = true }

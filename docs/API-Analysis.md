@@ -44,19 +44,19 @@ graph TB
     subgraph "SuperPaymaster Application"
         RPC["RPC Server<br/>Port 3000"]
         Swagger["Swagger UI Server<br/>Port 9000"]
-        
+
         subgraph "API Documentation"
             Schema["OpenAPI Schema"]
             Docs["API Documentation"]
             Examples["Code Examples"]
         end
     end
-    
+
     subgraph "External Access"
         Client["Client Applications"]
         Developer["Developers"]
     end
-    
+
     Client --> RPC
     Developer --> Swagger
     Swagger --> Schema
@@ -107,11 +107,11 @@ pub struct JsonUserOperation {
     /// The account making the UserOperation
     #[schema(example = "0x1234567890123456789012345678901234567890")]
     pub sender: String,
-    
+
     /// Anti-replay parameter
-    #[schema(example = "0x1")]  
+    #[schema(example = "0x1")]
     pub nonce: String,
-    
+
     // ... other fields with documentation
 }
 ```
@@ -127,10 +127,10 @@ pub async fn serve_swagger_ui(port: u16) -> Result<(), Box<dyn std::error::Error
             .url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/health", get(health_check))
         .route("/", get(redirect_to_swagger));
-    
+
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
     println!("📚 Swagger UI available at: http://localhost:{}/swagger-ui", port);
-    
+
     axum::serve(listener, app).await?;
     Ok(())
 }
@@ -161,19 +161,19 @@ pub struct PaymasterOpts {
     /// Enable paymaster relay service
     #[clap(long, default_value = "false")]
     pub enabled: bool,
-    
+
     /// Paymaster private key for signing
     #[clap(long, env = "PAYMASTER_PRIVATE_KEY")]
     pub private_key: Option<String>,
-    
+
     /// Path to paymaster policies configuration
     #[clap(long, default_value = "config/paymaster-policies.toml")]
     pub policy_file: String,
-    
+
     /// Enable Swagger UI documentation server
     #[clap(long, default_value = "true")]
     pub enable_docs: bool,
-    
+
     /// Port for Swagger UI server
     #[clap(long, default_value = "9000")]
     pub docs_port: u16,
@@ -191,14 +191,14 @@ info:
   version: 0.1.0
   description: |
     ERC-4337 Paymaster Relay Service API
-    
+
     SuperPaymaster provides gas sponsorship for UserOperations through
     a configurable policy engine and secure signing mechanism.
 
 servers:
   - url: http://localhost:3000
     description: Local development server
-  - url: https://api.superpaymaster.io  
+  - url: https://api.superpaymaster.io
     description: Production server
 
 paths:
@@ -208,7 +208,7 @@ paths:
       description: |
         Validates, signs, and submits a UserOperation with paymaster sponsorship.
         The operation will be processed according to configured policies.
-      
+
       requestBody:
         required: true
         content:
@@ -224,7 +224,7 @@ paths:
                     nonce: "0x1"
                     callData: "0x"
                   entryPoint: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
-                  
+
       responses:
         '200':
           description: UserOperation successfully sponsored and submitted
@@ -248,26 +248,26 @@ paths:
 pub struct SponsorRequest {
     /// The UserOperation to sponsor
     pub user_op: JsonUserOperation,
-    
-    /// EntryPoint contract address  
+
+    /// EntryPoint contract address
     #[schema(example = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")]
     pub entry_point: String,
-    
+
     /// Optional policy ID for custom sponsorship rules
     #[schema(example = "premium_policy")]
     pub policy_id: Option<String>,
 }
 
-#[derive(ToSchema, Serialize)]  
+#[derive(ToSchema, Serialize)]
 pub struct SponsorResponse {
     /// Hash of the sponsored UserOperation
     #[schema(example = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")]
     pub user_op_hash: String,
-    
+
     /// Status of the sponsorship
     #[schema(example = "sponsored")]
     pub status: String,
-    
+
     /// Gas estimation for the operation
     pub gas_estimate: GasEstimate,
 }
@@ -276,10 +276,10 @@ pub struct SponsorResponse {
 pub struct GasEstimate {
     /// Verification gas limit
     pub verification_gas_limit: String,
-    
-    /// Call gas limit  
+
+    /// Call gas limit
     pub call_gas_limit: String,
-    
+
     /// Pre-verification gas
     pub pre_verification_gas: String,
 }
@@ -374,16 +374,16 @@ pub struct HealthResponse {
     /// Service status
     #[schema(example = "healthy")]
     pub status: String,
-    
+
     /// Version information
     pub version: String,
-    
+
     /// Service uptime in seconds
     pub uptime: u64,
-    
+
     /// API statistics
     pub metrics: ApiMetrics,
-    
+
     /// Configuration status
     pub config_status: ConfigStatus,
 }
@@ -426,4 +426,4 @@ pub struct HealthResponse {
 - [ ] 多浏览器兼容性
 - [ ] SEO友好的文档结构
 
-这个API分析为SuperPaymaster的开发者体验提供了清晰的改进路径，Swagger UI的集成将显著提升项目的专业性和易用性。 
+这个API分析为SuperPaymaster的开发者体验提供了清晰的改进路径，Swagger UI的集成将显著提升项目的专业性和易用性。

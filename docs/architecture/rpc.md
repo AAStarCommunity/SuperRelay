@@ -51,7 +51,7 @@ This method is used by the ERC-4337 `bundler-spec-tests` but is not (yet) part o
 
 This method gets the stake status of a certain address with a particular entry point contract.
 
-##### Parameters 
+##### Parameters
 
 - Address to get stake status for
 - Entry point address
@@ -62,7 +62,7 @@ This method gets the stake status of a certain address with a particular entry p
   "jsonrpc": "2.0",
   "id": 1,
   "method": "debug_bundler_getStakeStatus",
-  "params": ["0x...", "0x..."] // address, entry point address 
+  "params": ["0x...", "0x..."] // address, entry point address
 }
 
 # Response
@@ -88,7 +88,7 @@ This method is used by the ERC-4337 `bundler-spec-tests` but is not (yet) part o
 
 This method triggers a the mempool to drop all pending user operations, but keeps the rest of its state. In contrast to `debug_bundler_clearState` which drops all state.
 
-##### Parameters 
+##### Parameters
 
 - Entry point address
 
@@ -98,7 +98,7 @@ This method triggers a the mempool to drop all pending user operations, but keep
   "jsonrpc": "2.0",
   "id": 1,
   "method": "debug_bundler_clearMempool",
-  "params": ["0x...."] // entry point address 
+  "params": ["0x...."] // entry point address
 }
 
 # Response
@@ -113,7 +113,7 @@ This method triggers a the mempool to drop all pending user operations, but keep
 
 Dump the paymaster balances from the paymaster tracker in the mempool for a given entry point.
 
-##### Parameters 
+##### Parameters
 
 - Entry point address
 
@@ -123,7 +123,7 @@ Dump the paymaster balances from the paymaster tracker in the mempool for a give
   "jsonrpc": "2.0",
   "id": 1,
   "method": "debug_bundler_dumpPaymasterBalances",
-  "params": ["0x...."] // entry point address 
+  "params": ["0x...."] // entry point address
 }
 
 # Response
@@ -157,7 +157,7 @@ Rundler specific methods that are not specified by the ERC-4337 spec. This names
 
 This method returns the minimum `maxPriorityFeePerGas` that the bundler will accept at the current block height. This is based on the fees of the network as well as the priority fee mode configuration of the bundle builder.
 
-Users of this method should typically increase their priority fee values by a buffer value in order to handle price fluctuations. 
+Users of this method should typically increase their priority fee values by a buffer value in order to handle price fluctuations.
 
 ```
 # Request
@@ -331,7 +331,7 @@ Administration methods specific to Rundler. This namespace should not be open to
 
 Clears the state of various Rundler components associated with an entry point address.
 
-##### Parameters 
+##### Parameters
 
 - Entry point address
 - Admin clear state object
@@ -343,7 +343,7 @@ Clears the state of various Rundler components associated with an entry point ad
   "id": 1,
   "method": "admin_clearState",
   "params": [
-    "0x....", // entry point address 
+    "0x....", // entry point address
     {
       clearMempool: bool,   // optional, clears the UOs from the pool
       clearPaymaster: bool, // optional, clears the paymaster balances
@@ -364,7 +364,7 @@ Clears the state of various Rundler components associated with an entry point ad
 
 Turns various mempool features on/off.
 
-##### Parameters 
+##### Parameters
 
 - Entry point address
 - Admin set tracking object
@@ -376,7 +376,7 @@ Turns various mempool features on/off.
   "id": 1,
   "method": "admin_clearState",
   "params": [
-    "0x....", // entry point address 
+    "0x....", // entry point address
     {
       paymasterTracking: bool,  // required, enables paymaster balance tracking/enforcement
       reputationTracking: bool, // required, enables reputation tracking/enforcement
@@ -405,7 +405,7 @@ Currently, it simply queries each the `Pool` and the `Builder` servers to check 
 | Status | Code | Message |
 | ------ | :-----------: | ---- |
 | Healthy | 200 | `ok` |
-| Unhealthy | 500 | JSON-RPC formatted error message | 
+| Unhealthy | 500 | JSON-RPC formatted error message |
 
 ## User Operation Permissions
 
@@ -425,7 +425,7 @@ When enabled, the `eth_sendUserOperation` request schema becomes:
     {
       ... // user operation fields
     }
-    "0x....", // entry point address 
+    "0x....", // entry point address
     {
       trusted: bool,                      // optional, true if the UO should be trusted and simulation should be skipped.
       maxAllowedInPoolForSender: uint64,  // optional, the maximum number of UOs allowed in the mempool for this sender
@@ -522,7 +522,7 @@ We split this into two cases for estimation: no paymaster, and paymaster.
 
 ##### No Paymaster Case
 
-When no paymaster is used, verification gas is always estimated using **zero fees**. The cost of a native transfer is added to the result of the binary search to account for the transfer of funds from the account to the entry point. 
+When no paymaster is used, verification gas is always estimated using **zero fees**. The cost of a native transfer is added to the result of the binary search to account for the transfer of funds from the account to the entry point.
 
 **Note:** This may overestimate the verification gas by the cost of a native transfer in the case where the account has enough deposited on the entry point to cover the full prefund cost. This will not impact the onchain cost of the operation.
 

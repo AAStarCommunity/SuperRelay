@@ -2,7 +2,7 @@
 
 **Knowledge source for all things Rundler.**
 
-[CLI](./cli.md): Commands and configuration for the Rundler binary. 
+[CLI](./cli.md): Commands and configuration for the Rundler binary.
 
 [Developing](./developing.md): Instructions on how to develop in the Rundler repo.
 

@@ -1,6 +1,6 @@
 # Builder Task
 
-The builder task is responsible for creating bundle transactions, signing them, submitting them, and tracking their status. 
+The builder task is responsible for creating bundle transactions, signing them, submitting them, and tracking their status.
 
 ## Bundle Sender
 
@@ -91,7 +91,7 @@ In the pending state the builder is waiting for a bundle transaction to be mined
 
 **`Cancelling`**
 
-In the cancelling state the builder creates a cancellation operation. The shape of this operation depends on the type of transaction sender being used. If a "hard" cancellation operation is submitted the sender will submit a cancellation transaction and transition to the cancel pending state. If a "soft" cancellation operation is submitted it will transition back to the building state immediately. 
+In the cancelling state the builder creates a cancellation operation. The shape of this operation depends on the type of transaction sender being used. If a "hard" cancellation operation is submitted the sender will submit a cancellation transaction and transition to the cancel pending state. If a "soft" cancellation operation is submitted it will transition back to the building state immediately.
 
 **`CancelPending`**
 

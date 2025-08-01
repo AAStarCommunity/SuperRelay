@@ -55,9 +55,9 @@ jobs:
       - name: Build and push image
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
-            sudo -E env "PATH=$PATH" make GIT_TAG="${{ github.event.inputs.version }}" docker-build 
+            sudo -E env "PATH=$PATH" make GIT_TAG="${{ github.event.inputs.version }}" docker-build
           elif [[ "${{ github.ref_name }}" =~ ^v(\d+)\.(\d+)\.(\d+)$ ]]; then
             sudo -E env "PATH=$PATH" make docker-build-latest
-          else 
-            sudo -E env "PATH=$PATH" make GIT_TAG="${{ github.ref_name }}" docker-build 
+          else
+            sudo -E env "PATH=$PATH" make GIT_TAG="${{ github.ref_name }}" docker-build
           fi

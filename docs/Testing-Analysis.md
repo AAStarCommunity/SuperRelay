@@ -12,17 +12,17 @@ graph TB
         Unit["Unit Tests<br/>单元测试"]
         Static["Static Analysis<br/>静态分析"]
     end
-    
+
     subgraph "测试环境"
         Local["Local Development"]
         Testnet["Anvil Testnet"]
         Chain["Live Chain Testing"]
     end
-    
+
     Unit --> Integration
     Integration --> E2E
     E2E --> Chain
-    
+
     Local --> Unit
     Testnet --> Integration
     Chain --> E2E
@@ -37,7 +37,7 @@ graph TB
 $ cargo test --package paymaster-relay
 running 3 tests
 test paymaster_relay::tests::test_policy_engine ... ok
-test paymaster_relay::tests::test_signer_manager ... ok  
+test paymaster_relay::tests::test_signer_manager ... ok
 test paymaster_relay::tests::test_service_integration ... ok
 
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
@@ -52,16 +52,16 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_policy_engine() {
         // 1. 配置加载测试
         let policy_config = PolicyConfig::from_file("config/paymaster-policies.toml").unwrap();
-        
+
         // 2. 策略验证测试
         let user_op = create_test_user_operation();
         let result = policy_engine.check_policy(&user_op);
-        
+
         // 3. 边界条件测试
         assert!(result.is_ok());
     }
@@ -70,7 +70,7 @@ mod tests {
 
 **测试覆盖的策略类型**:
 - ✅ AllowedSenders策略验证
-- ✅ DeniedSenders策略验证  
+- ✅ DeniedSenders策略验证
 - ✅ AllowedTargets策略验证
 - ✅ MaxGasLimit策略验证
 - ✅ TimeBasedPolicy策略验证
@@ -85,14 +85,14 @@ mod tests {
 async fn test_signer_manager() {
     // 1. 私钥加载测试
     let signer = SignerManager::from_private_key(&private_key).unwrap();
-    
+
     // 2. 签名生成测试
     let user_op_hash = H256::from([1u8; 32]);
     let signature = signer.sign_hash(user_op_hash).await.unwrap();
-    
+
     // 3. 签名验证测试
     assert_eq!(signature.len(), 65); // 标准ECDSA签名长度
-    
+
     // 4. 地址恢复测试
     let recovered = signature.recover(user_op_hash).unwrap();
     assert_eq!(recovered, signer.address());
@@ -103,15 +103,15 @@ async fn test_signer_manager() {
 
 **端到端流程验证**:
 ```rust
-#[tokio::test] 
+#[tokio::test]
 async fn test_service_integration() {
     // 1. 服务初始化
     let service = PaymasterRelayService::new(config).await.unwrap();
-    
+
     // 2. UserOperation处理流程
     let user_op = create_valid_user_operation();
     let result = service.sponsor_user_operation(user_op, entry_point).await;
-    
+
     // 3. 结果验证
     assert!(result.is_ok());
     assert_eq!(result.unwrap().len(), 66); // UserOpHash长度
@@ -157,7 +157,7 @@ test_standard_rpc() {
     response=$(curl -s -X POST http://localhost:3000 \
         -H "Content-Type: application/json" \
         -d '{"method":"eth_supportedEntryPoints","params":[],"id":1,"jsonrpc":"2.0"}')
-    
+
     if echo $response | grep -q "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"; then
         echo "✅ Standard RPC: PASSED"
     else
@@ -172,7 +172,7 @@ test_paymaster_api() {
     response=$(curl -s -X POST http://localhost:3000 \
         -H "Content-Type: application/json" \
         -d '{"method":"pm_sponsorUserOperation","params":[{"sender":"0x1234567890123456789012345678901234567890","nonce":"0x1","callData":"0x"},"0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"],"id":1,"jsonrpc":"2.0"}')
-    
+
     if echo $response | grep -q -E '"error".*"code"'; then
         echo "✅ Paymaster API: ACCESSIBLE (expected error for test data)"
     else
@@ -184,9 +184,9 @@ test_paymaster_api() {
 # 执行所有测试
 run_all_tests() {
     test_health_check || exit 1
-    test_standard_rpc || exit 1  
+    test_standard_rpc || exit 1
     test_paymaster_api || exit 1
-    
+
     echo "🎉 All integration tests passed!"
 }
 
@@ -199,7 +199,7 @@ run_all_tests
 Testing health check...
 ✅ Health check: PASSED
 Testing standard RPC...
-✅ Standard RPC: PASSED  
+✅ Standard RPC: PASSED
 Testing paymaster API availability...
 ✅ Paymaster API: ACCESSIBLE (expected error for test data)
 🎉 All integration tests passed!
@@ -238,7 +238,7 @@ export PAYMASTER_PRIVATE_KEY="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a84
 
 🧪 E2E Test Scenarios:
 ├── Valid UserOperation processing: ✅ PASSED
-├── Invalid EntryPoint rejection: ✅ PASSED  
+├── Invalid EntryPoint rejection: ✅ PASSED
 ├── Policy violation handling: ✅ PASSED
 ├── Signature verification: ✅ PASSED
 └── Error propagation: ✅ PASSED
@@ -264,7 +264,7 @@ const testScenarios = [
         }
     },
     {
-        name: "UserOperation v0.7 format support", 
+        name: "UserOperation v0.7 format support",
         test: async () => {
             const userOp = createUserOperationV07();
             const result = await sponsorUserOperation(userOp);
@@ -302,10 +302,10 @@ const testScenarios = [
             // 测试hex和decimal格式的互换性
             const userOpHex = createUserOperationWithHexNumbers();
             const userOpDecimal = createUserOperationWithDecimalNumbers();
-            
+
             const result1 = await sponsorUserOperation(userOpHex);
             const result2 = await sponsorUserOperation(userOpDecimal);
-            
+
             return result1.includes('0x') && result2.includes('0x');
         }
     }
@@ -331,14 +331,14 @@ Test Execution:
    Input: Standard UserOperation with valid sender
    Expected: UserOpHash returned (66 chars)
    Result: ✅ PASSED - Hash: 0xabcd...1234 (66 chars)
-   
+
 2. UserOperation v0.7 format support:
    Input: UserOperation in v0.7 format
    Expected: Successful processing
    Result: ✅ PASSED - Hash: 0xefgh...5678
 
 3. Unauthorized sender rejection:
-   Input: UserOperation from non-whitelisted sender  
+   Input: UserOperation from non-whitelisted sender
    Expected: Policy violation error
    Result: ✅ PASSED - Error: "Policy violation: Sender not in allowed list"
 
@@ -355,7 +355,7 @@ Test Execution:
 Summary:
 ========
 Tests Completed: 5/5
-Fully Passed: 4/5  
+Fully Passed: 4/5
 Expected Behaviors: 1/5
 Success Rate: 80% (4/5 core functionality)
 
@@ -374,12 +374,12 @@ $ scripts/fund_paymaster.sh status
 ==========================================
 📊 Account Balances:
 ├── Paymaster Account: 10050.0 ETH ✅
-├── EntryPoint Deposit: 2.0 ETH ✅  
+├── EntryPoint Deposit: 2.0 ETH ✅
 └── Health Status: 🟢 HEALTHY - all balances sufficient
 
 📈 Funding History:
 ├── Initial Setup: 10000.0 ETH
-├── EntryPoint Deposit: 2.0 ETH  
+├── EntryPoint Deposit: 2.0 ETH
 ├── Reserve Buffer: 48.0 ETH
 └── Last Updated: 2025-01-26 10:30:15 UTC
 
@@ -403,7 +403,7 @@ $ scripts/test_performance.sh
 
 🏃‍♂️ Response Time Tests:
 ├── Health Check: ~200ms ✅ (Target: <500ms)
-├── UserOp Validation: ~45ms ✅ (Target: <100ms)  
+├── UserOp Validation: ~45ms ✅ (Target: <100ms)
 ├── Signature Generation: ~85ms ✅ (Target: <200ms)
 ├── Policy Check: ~15ms ✅ (Target: <50ms)
 └── End-to-End Processing: ~380ms ✅ (Target: <1000ms)
@@ -448,7 +448,7 @@ $ scripts/test_performance.sh
 - 添加内存泄漏检测
 - 性能回归测试自动化
 
-# 2. 错误场景测试  
+# 2. 错误场景测试
 - 网络中断场景测试
 - 数据库连接失败测试
 - 配置文件损坏测试
@@ -492,37 +492,37 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
-        
+
       - name: Run unit tests
         run: cargo test --package paymaster-relay
-        
+
       - name: Generate coverage report
         run: cargo tarpaulin --out xml
-        
+
   integration-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Start Anvil
         run: anvil &
-        
+
       - name: Deploy EntryPoint
         run: ./scripts/deploy_entrypoint.sh
-        
+
       - name: Run integration tests
         run: ./scripts/test_integration.sh
-        
+
   e2e-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Setup test environment
         run: ./scripts/setup_test_env.sh
-        
+
       - name: Run E2E tests
         run: ./scripts/test_e2e.sh
-        
+
       - name: Run demo tests
         run: ./scripts/run_demo.sh --automated
 ```
@@ -572,4 +572,4 @@ SuperPaymaster项目在测试方面表现良好，核心功能测试覆盖充分
 2. **中期目标**: 建立完整的CI/CD测试流水线
 3. **长期愿景**: 达到企业级测试成熟度标准
 
-SuperPaymaster的测试体系已经为项目的稳定发展奠定了良好基础，建议按照上述改进计划逐步完善测试覆盖和质量。 
+SuperPaymaster的测试体系已经为项目的稳定发展奠定了良好基础，建议按照上述改进计划逐步完善测试覆盖和质量。

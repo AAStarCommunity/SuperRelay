@@ -20,3 +20,6 @@
 # Release artifacts
 dist/
 demo/node_modules/
+
+# Development processes
+.anvil.pid

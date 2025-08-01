@@ -46,6 +46,24 @@ pub struct RpcArgs {
     )]
     host: String,
 
+    /// Port for Swagger UI and dashboard
+    #[arg(
+        long = "rpc.swagger_ui_port",
+        name = "rpc.swagger_ui_port",
+        env = "SWAGGER_UI_PORT",
+        default_value = "9000"
+    )]
+    pub swagger_ui_port: u16,
+
+    /// Host for Swagger UI and dashboard
+    #[arg(
+        long = "rpc.swagger_ui_host",
+        name = "rpc.swagger_ui_host",
+        env = "SWAGGER_UI_HOST",
+        default_value = "0.0.0.0"
+    )]
+    pub swagger_ui_host: String,
+
     /// Which APIs to expose over the RPC interface
     #[arg(
         long = "rpc.api",

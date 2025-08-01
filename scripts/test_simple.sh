@@ -101,4 +101,4 @@ echo "🎯 核心功能: API已注册并可以处理UserOperation请求"
 
 echo ""
 echo "🎉 SuperPaymaster核心功能验证完成!"
-echo "✅ 系统可以正确处理UserOperation并通过所有验证层级" 
+echo "✅ 系统可以正确处理UserOperation并通过所有验证层级"

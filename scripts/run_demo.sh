@@ -29,7 +29,7 @@ command_exists() {
 # Check prerequisites
 check_prerequisites() {
     echo -e "\n${CYAN}🔍 Checking prerequisites...${NC}"
-    
+
     # Check Node.js
     if command_exists node; then
         local node_version=$(node --version)
@@ -38,7 +38,7 @@ check_prerequisites() {
         echo -e "${RED}❌ Node.js not found. Please install Node.js 16+${NC}"
         exit 1
     fi
-    
+
     # Check npm
     if command_exists npm; then
         local npm_version=$(npm --version)
@@ -47,7 +47,7 @@ check_prerequisites() {
         echo -e "${RED}❌ npm not found. Please install npm${NC}"
         exit 1
     fi
-    
+
     # Check if SuperRelay is running
     if curl -s http://localhost:3000/health >/dev/null 2>&1; then
         echo -e "${GREEN}✅ SuperRelay service is running${NC}"
@@ -62,7 +62,7 @@ check_prerequisites() {
             exit 1
         fi
     fi
-    
+
     # Check if Anvil is running
     if curl -s http://localhost:8545 >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Anvil test network is running${NC}"
@@ -76,13 +76,13 @@ check_prerequisites() {
 # Setup demo environment
 setup_demo() {
     echo -e "\n${CYAN}🔧 Setting up demo environment...${NC}"
-    
+
     # Create demo directory if it doesn't exist
     if [ ! -d "$DEMO_DIR" ]; then
         mkdir -p "$DEMO_DIR"
         echo -e "${GREEN}✅ Created demo directory${NC}"
     fi
-    
+
     # Install dependencies if package.json exists
     if [ -f "$DEMO_DIR/package.json" ]; then
         echo -e "${CYAN}📦 Installing demo dependencies...${NC}"
@@ -91,7 +91,7 @@ setup_demo() {
         cd ..
         echo -e "${GREEN}✅ Dependencies installed${NC}"
     fi
-    
+
     # Check if demo script exists
     if [ ! -f "$DEMO_DIR/$DEMO_SCRIPT" ]; then
         echo -e "${RED}❌ Demo script not found: $DEMO_DIR/$DEMO_SCRIPT${NC}"
@@ -102,7 +102,7 @@ setup_demo() {
 # Run funding to ensure accounts are ready
 ensure_funding() {
     echo -e "\n${CYAN}💰 Ensuring accounts are funded...${NC}"
-    
+
     if [ -f "scripts/fund_paymaster.sh" ]; then
         ./scripts/fund_paymaster.sh auto-rebalance
         echo -e "${GREEN}✅ Account funding completed${NC}"
@@ -115,9 +115,9 @@ ensure_funding() {
 run_demo() {
     echo -e "\n${MAGENTA}🎬 Starting SuperPaymaster Demo...${NC}"
     echo -e "${MAGENTA}===================================${NC}"
-    
+
     cd "$DEMO_DIR"
-    
+
     # Run the demo with proper error handling
     if node "$DEMO_SCRIPT"; then
         echo -e "\n${GREEN}🎉 Demo completed successfully!${NC}"
@@ -132,7 +132,7 @@ run_demo() {
 show_demo_info() {
     echo -e "\n${BLUE}📚 SuperPaymaster Demo Information${NC}"
     echo -e "${BLUE}===================================${NC}"
-    
+
     echo -e "\n${CYAN}🎯 What this demo demonstrates:${NC}"
     echo "   • ERC-4337 UserOperation sponsorship"
     echo "   • Gas fee abstraction for users"
@@ -140,7 +140,7 @@ show_demo_info() {
     echo "   • Multiple EntryPoint version support (v0.6 & v0.7)"
     echo "   • JSON-RPC API integration"
     echo "   • Error handling and validation"
-    
+
     echo -e "\n${CYAN}🧪 Test scenarios included:${NC}"
     echo "   1. Valid UserOperation sponsorship"
     echo "   2. UserOperation v0.7 format support"
@@ -148,13 +148,13 @@ show_demo_info() {
     echo "   4. Invalid EntryPoint rejection"
     echo "   5. Number format flexibility"
     echo "   6. API feature demonstration"
-    
+
     echo -e "\n${CYAN}🔧 System requirements:${NC}"
     echo "   • Node.js 16+ with npm"
     echo "   • Anvil test network running"
     echo "   • SuperRelay service running"
     echo "   • EntryPoint contract deployed"
-    
+
     echo -e "\n${CYAN}📁 Demo files:${NC}"
     echo "   • demo/superPaymasterDemo.js - Main demo script"
     echo "   • demo/package.json - Dependencies"
@@ -165,7 +165,7 @@ show_demo_info() {
 interactive_mode() {
     echo -e "\n${CYAN}🎮 Interactive Demo Mode${NC}"
     echo -e "${CYAN}========================${NC}"
-    
+
     while true; do
         echo -e "\n${YELLOW}What would you like to do?${NC}"
         echo "1. Run full demo"
@@ -174,9 +174,9 @@ interactive_mode() {
         echo "4. Fund accounts"
         echo "5. Run tests only"
         echo "6. Exit"
-        
+
         read -p "Enter your choice (1-6): " choice
-        
+
         case $choice in
             1)
                 run_demo
@@ -210,21 +210,21 @@ interactive_mode() {
 quick_demo() {
     echo -e "\n${MAGENTA}⚡ Quick Demo Mode${NC}"
     echo -e "${MAGENTA}=================${NC}"
-    
+
     # Run essential checks
     if ! command_exists node; then
         echo -e "${RED}❌ Node.js required but not found${NC}"
         exit 1
     fi
-    
+
     # Quick setup
     setup_demo
-    
+
     # Quick funding check
     if [ -f "scripts/fund_paymaster.sh" ]; then
         ./scripts/fund_paymaster.sh status
     fi
-    
+
     # Run demo
     run_demo
 }
@@ -252,7 +252,7 @@ usage() {
 # Main function
 main() {
     local command="${1:-run}"
-    
+
     case "$command" in
         "run")
             check_prerequisites
@@ -289,4 +289,4 @@ main() {
 }
 
 # Run main function
-main "$@" 
+main "$@"

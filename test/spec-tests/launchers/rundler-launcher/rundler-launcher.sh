@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 # Launcher script for the rundler.
 
 export TAG=latest

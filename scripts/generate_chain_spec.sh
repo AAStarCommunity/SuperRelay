@@ -33,4 +33,4 @@ min_max_priority_fee_per_gas = 1000000
 EOF
 
 echo "✅ Chain spec generated: bin/rundler/chain_specs/local_dev.toml"
-echo "🔧 EntryPoint address: $ENTRYPOINT_ADDRESS" 
+echo "🔧 EntryPoint address: $ENTRYPOINT_ADDRESS"

@@ -37,7 +37,7 @@ See the version of the spec associated with the entry point version for the expe
 
 ## Internals
 
-To support multiple entry point versions in the same codebase, Rundler's components are entry point version aware. 
+To support multiple entry point versions in the same codebase, Rundler's components are entry point version aware.
 
 ### Types
 

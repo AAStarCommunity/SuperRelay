@@ -10,13 +10,13 @@ SuperPaymaster采用模块化架构设计，作为Rundler ERC-4337 bundler的扩
 graph TB
     subgraph "Rundler原有架构"
         RPC["RPC Task"]
-        Pool["Pool Task"] 
+        Pool["Pool Task"]
         Builder["Builder Task"]
         EthAPI["EthApi"]
         AdminAPI["AdminApi"]
         DebugAPI["DebugApi"]
     end
-    
+
     subgraph "SuperPaymaster新增模块"
         PaymasterAPI["PaymasterRelayApi"]
         PaymasterService["PaymasterRelayService"]
@@ -24,23 +24,23 @@ graph TB
         PolicyEngine["PolicyEngine"]
         SecurityModule["SecurityModule (未来扩展)"]
     end
-    
+
     subgraph "数据流层"
         MemPool["Memory Pool"]
         ChainData["Chain Data"]
         UserOp["UserOperation"]
     end
-    
+
     RPC --> PaymasterAPI
     PaymasterAPI --> PaymasterService
     PaymasterService --> SignerManager
     PaymasterService --> PolicyEngine
     PaymasterService --> Pool
     PaymasterService --> SecurityModule
-    
+
     Pool --> MemPool
     Builder --> ChainData
-    
+
     PaymasterService -.->|"Future Integration"| SecurityModule
 ```
 
@@ -52,34 +52,34 @@ graph LR
         CLI["CLI Interface"]
         RPC["RPC Server"]
     end
-    
+
     subgraph "Service Layer - 同等级别模块"
         PM["PaymasterRelay Module"]
         PL["Pool Module"]
         BD["Builder Module"]
         SC["Security Module (Future)"]
     end
-    
+
     subgraph "Infrastructure Layer"
         Chain["Blockchain Interface"]
         Storage["Configuration Storage"]
     end
-    
+
     CLI --> PM
     CLI --> PL
     CLI --> BD
     CLI --> SC
-    
+
     RPC --> PM
     RPC --> PL
     RPC --> BD
     RPC --> SC
-    
+
     PM --> Chain
     PL --> Chain
     BD --> Chain
     SC --> Chain
-    
+
     PM --> Storage
     SC --> Storage
 ```
@@ -125,16 +125,16 @@ impl PaymasterRelayService {
     ) -> Result<B256, PaymasterError> {
         // 1. 策略验证（独立处理）
         self.policy_engine.check_policy(&user_op)?;
-        
+
         // 2. 签名生成（独立处理）
         let signature = self.signer_manager.sign_hash(user_op_hash.into()).await?;
-        
+
         // 3. 构造sponsored UserOperation（独立处理）
         let sponsored_user_op = construct_paymaster_data(user_op, signature);
-        
+
         // 4. 提交到原有Pool系统（复用原有接口）
         self.pool.add_op(sponsored_user_op, UserOperationPermissions::default()).await?;
-        
+
         Ok(user_op_hash)
     }
 }
@@ -149,7 +149,7 @@ graph TB
     subgraph "Security Module Architecture"
         SecAPI["SecurityApi (RPC Interface)"]
         SecCore["SecurityCore (Business Logic)"]
-        
+
         subgraph "Security Components"
             RiskEngine["Risk Assessment Engine"]
             ThreatDetection["Threat Detection"]
@@ -158,19 +158,19 @@ graph TB
             IPWhitelist["IP Whitelist"]
             GeoBlocking["Geographic Blocking"]
         end
-        
+
         subgraph "Security Storage"
             RiskDB["Risk Database"]
             ThreatDB["Threat Intelligence"]
             AuditLog["Audit Logs"]
         end
     end
-    
+
     SecAPI --> SecCore
     SecCore --> RiskEngine
     SecCore --> ThreatDetection
     SecCore --> AMLScreening
-    
+
     RiskEngine --> RiskDB
     ThreatDetection --> ThreatDB
     SecCore --> AuditLog
@@ -189,15 +189,15 @@ impl PaymasterRelayService {
         if let Some(ref security_module) = self.security_module {
             security_module.pre_validation_check(&user_op).await?;
         }
-        
+
         // 2. 正常的Paymaster流程
         let result = self.sponsor_user_operation(user_op, entry_point).await?;
-        
+
         // 3. 安全后处理
         if let Some(ref security_module) = self.security_module {
             security_module.post_transaction_audit(&result).await?;
         }
-        
+
         Ok(result)
     }
 }
@@ -215,12 +215,12 @@ pub struct JsonUserOperation {
     pub sender: String,
     pub nonce: String,
     // ... 其他字段
-    
+
     // v0.6特有字段
     pub init_code: Option<String>,
     pub paymaster_and_data: Option<String>,
-    
-    // v0.7特有字段  
+
+    // v0.7特有字段
     pub factory: Option<String>,
     pub paymaster: Option<String>,
 }
@@ -236,7 +236,7 @@ impl TryInto<UserOperationVariant> for JsonUserOperation {
 ```
 config/
 ├── development.toml          # 开发环境配置
-├── production.toml           # 生产环境配置  
+├── production.toml           # 生产环境配置
 ├── paymaster-policies.toml   # 策略配置
 ├── paymaster-policies-prod.toml # 生产策略
 └── security-config.toml      # 安全配置（未来）
@@ -309,7 +309,7 @@ pub struct MultiChainPaymasterService {
 
 **内存占用**：
 - PaymasterRelay模块：~2MB
-- 配置缓存：~1MB  
+- 配置缓存：~1MB
 - 总增量：~3MB (相对于Rundler基础内存)
 
 **处理性能**：
@@ -325,7 +325,7 @@ pub struct MultiChainPaymasterService {
    - 当前：本地私钥存储
    - 缓解：规划ARM OP-TEE KMS集成
 
-2. **策略复杂性风险**  
+2. **策略复杂性风险**
    - 当前：TOML配置，运行时解析
    - 缓解：配置验证，热重载支持
 
@@ -338,7 +338,7 @@ pub struct MultiChainPaymasterService {
 ```mermaid
 graph LR
     V1["v0.1.x<br/>基础PaymasterRelay"] --> V2["v0.2.x<br/>安全模块集成"]
-    V2 --> V3["v0.3.x<br/>多链支持"] 
+    V2 --> V3["v0.3.x<br/>多链支持"]
     V3 --> V4["v0.4.x<br/>KMS集成"]
     V4 --> V5["v0.5.x<br/>分布式架构"]
 ```
@@ -366,4 +366,4 @@ graph LR
 
 ## 8. 结论
 
-SuperPaymaster的架构设计成功实现了与Rundler的无缝集成，同时保持了高度的模块化和可扩展性。通过同等级别的模块设计，为未来的安全模块和其他扩展留下了充足的架构空间。整体设计符合现代分布式系统的最佳实践，具备良好的性能和可维护性。 
+SuperPaymaster的架构设计成功实现了与Rundler的无缝集成，同时保持了高度的模块化和可扩展性。通过同等级别的模块设计，为未来的安全模块和其他扩展留下了充足的架构空间。整体设计符合现代分布式系统的最佳实践，具备良好的性能和可维护性。

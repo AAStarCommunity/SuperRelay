@@ -238,4 +238,4 @@ aml_risk_threshold = 70
 # Data retention
 retain_transaction_data_days = 90
 retain_user_data_days = 30
-enable_data_encryption = true 
+enable_data_encryption = true

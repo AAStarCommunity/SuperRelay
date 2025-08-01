@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Check for xml output file 
+# Check for xml output file
 if [ -f "$1" ]; then
     echo "$1 exists."
-else 
+else
     echo "$1 does not exist."
     exit 1
 fi

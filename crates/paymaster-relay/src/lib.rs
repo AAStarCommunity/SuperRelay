@@ -1,8 +1,10 @@
+pub mod api_docs;
 pub mod api_schemas;
 pub mod error;
 pub mod metrics;
 pub mod policy;
 pub mod rpc;
+pub mod schemas;
 pub mod service;
 pub mod signer;
 pub mod swagger;

@@ -11,7 +11,7 @@
 // You should have received a copy of the GNU General Public License along with Rundler.
 // If not, see https://www.gnu.org/licenses/.
 
-use std::{net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use anyhow::Context;
 use futures_util::FutureExt;
@@ -20,7 +20,9 @@ use jsonrpsee::{
     server::{middleware::http::ProxyGetRequestLayer, RpcServiceBuilder, ServerBuilder},
     RpcModule,
 };
-use rundler_paymaster_relay::PaymasterRelayApiServer;
+use rundler_paymaster_relay::{
+    PaymasterRelayApiServer, PaymasterRelayApiServerImpl, PaymasterRelayService,
+};
 use rundler_provider::{FeeEstimator, Providers as ProvidersT};
 use rundler_sim::{EstimationSettings, GasEstimatorV0_6, GasEstimatorV0_7, PrecheckSettings};
 use rundler_task::{
@@ -83,7 +85,7 @@ pub struct RpcTask<Pool, Builder, Providers> {
     pool: Pool,
     builder: Builder,
     providers: Providers,
-    paymaster_service: Option<rundler_paymaster_relay::PaymasterRelayService>,
+    paymaster_service: Option<Arc<PaymasterRelayService>>,
 }
 
 impl<Pool, Builder, Providers> RpcTask<Pool, Builder, Providers> {
@@ -93,7 +95,7 @@ impl<Pool, Builder, Providers> RpcTask<Pool, Builder, Providers> {
         pool: Pool,
         builder: Builder,
         providers: Providers,
-        paymaster_service: Option<rundler_paymaster_relay::PaymasterRelayService>,
+        paymaster_service: Option<Arc<PaymasterRelayService>>,
     ) -> Self {
         Self {
             args,
@@ -254,27 +256,6 @@ where
             .boxed(),
         );
 
-        // Start Swagger UI server if paymaster service is available
-        if let Some(ref paymaster_service) = self.paymaster_service {
-            tracing::info!("Starting Swagger UI server on port 9000");
-            let swagger_addr: SocketAddr = "0.0.0.0:9000".parse().expect("Invalid swagger address");
-            let service_clone = paymaster_service.clone();
-            task_spawner.spawn_critical(
-                "swagger ui server",
-                async move {
-                    if let Err(e) = rundler_paymaster_relay::swagger::serve_swagger_ui(
-                        std::sync::Arc::new(service_clone),
-                        swagger_addr,
-                    )
-                    .await
-                    {
-                        tracing::error!("Swagger UI server error: {}", e);
-                    }
-                }
-                .boxed(),
-            );
-        }
-
         info!("Started RPC server");
 
         Ok(())
@@ -321,9 +302,9 @@ where
         }
 
         // Add paymaster relay API if service is available
-        if self.args.api_namespaces.contains(&ApiNamespace::Paymaster) {
-            if let Some(ref paymaster_service) = self.paymaster_service {
-                let paymaster_api = rundler_paymaster_relay::PaymasterRelayApiServerImpl {
+        if let Some(ref paymaster_service) = self.paymaster_service {
+            if self.args.api_namespaces.contains(&ApiNamespace::Paymaster) {
+                let paymaster_api = PaymasterRelayApiServerImpl {
                     service: paymaster_service.clone(),
                 };
                 module.merge(paymaster_api.into_rpc())?;

@@ -32,15 +32,15 @@ services:
 
 See [CLI docs](./cli.md) for more info on the environment variables.
 
-An example docker-compose configuration running Rundler in its distributed mode can be found [here](../test/spec-tests/remote/docker-compose.yml). 
+An example docker-compose configuration running Rundler in its distributed mode can be found [here](../test/spec-tests/remote/docker-compose.yml).
 
 ## Cross-Platform Docker Builds with Docker and cross-rs
 
 ### Prerequisites
 
-- [cross-rs](https://github.com/cross-rs/cross)  
-- [tonistiigi/binfmt](https://github.com/tonistiigi/binfmt)  
-- [docker-buildx](https://github.com/docker/buildx)  
+- [cross-rs](https://github.com/cross-rs/cross)
+- [tonistiigi/binfmt](https://github.com/tonistiigi/binfmt)
+- [docker-buildx](https://github.com/docker/buildx)
 
 ### Build Phase [Dockerfile.build](../Dockerfile.build)
 
@@ -67,7 +67,7 @@ jobs:
 
       - name: Build and push image
         run: |
-          cargo install cross --git https://github.com/cross-rs/cross 
+          cargo install cross --git https://github.com/cross-rs/cross
           sudo -E env "PATH=$PATH" make docker-build-latest
 ```
 
@@ -79,6 +79,6 @@ These command should only be used if you are trying to cross compile the applica
 ```
 docker run --privileged --rm tonistiigi/binfmt --install arm64,amd64
 docker buildx create --use --name cross-builder
-cargo install cross --git https://github.com/cross-rs/cross 
+cargo install cross --git https://github.com/cross-rs/cross
 sudo -E env "PATH=$PATH" make docker-build-latest
 ```
