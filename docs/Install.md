@@ -169,7 +169,7 @@ docker run --name super-relay-new [same-parameters-as-before]
 **Q: 编译失败 "error: failed to compile"**
 A: 确保Rust版本 >= 1.75，运行 `rustup update`
 
-**Q: 服务启动失败 "bind: address already in use"**  
+**Q: 服务启动失败 "bind: address already in use"**
 A: 检查端口占用 `lsof -i :3000`，或修改配置文件中的端口
 
 **Q: RPC调用失败 "network connection error"**

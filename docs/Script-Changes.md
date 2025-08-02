@@ -36,7 +36,7 @@ cargo run --bin rundler -- node --paymaster.enabled
 
 ### rundler vs SuperRelay 关系
 
-**之前的误解**: 
+**之前的误解**:
 认为 rundler 本身提供 paymaster 功能
 
 **正确理解**:
@@ -66,7 +66,7 @@ fi
 ```bash
 echo "💡 架构说明:"
 echo "  • SuperRelay = 企业级包装器"
-echo "  • rundler = 底层ERC-4337引擎" 
+echo "  • rundler = 底层ERC-4337引擎"
 echo "  • paymaster-relay = Gas赞助服务"
 ```
 

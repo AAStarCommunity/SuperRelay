@@ -8,7 +8,7 @@
 ```diff
 - demo/node_modules
 - demo/node_modules/
-+ # Node.js dependencies  
++ # Node.js dependencies
 + demo/node_modules/
 ```
 
@@ -19,7 +19,7 @@
 
 ### 2. format.sh 脚本性能优化
 
-**问题**: 
+**问题**:
 - `cargo clippy` 对每个 package 单独运行，导致重复编译
 - 大量的 build 操作，执行时间过长
 
@@ -78,7 +78,7 @@ cd demo && npm install @anthropic-ai/claude-code
    Formatting /Users/jason/Dev/aastar/super-relay/crates/paymaster-relay...
    Checking /Users/jason/Dev/aastar/super-relay/crates/paymaster-relay...
      Compiling rundler-contracts v0.9.0         # 重复编译
-     Compiling rundler-types v0.9.0            # 重复编译  
+     Compiling rundler-types v0.9.0            # 重复编译
    Formatting /Users/jason/Dev/aastar/super-relay/bin/super-relay...
    Checking /Users/jason/Dev/aastar/super-relay/bin/super-relay...
      Compiling rundler-contracts v0.9.0         # 又重复编译!

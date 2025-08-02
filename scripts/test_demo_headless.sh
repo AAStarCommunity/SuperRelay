@@ -28,9 +28,9 @@ FAILED=0
 run_test() {
     local test_name="$1"
     local test_command="$2"
-    
+
     echo -e "\n${BLUE}🧪 Testing: $test_name${NC}"
-    
+
     if eval "$test_command"; then
         echo -e "${GREEN}✅ PASSED: $test_name${NC}"
         ((PASSED++))
@@ -45,24 +45,24 @@ run_test() {
 # Check if Node.js demo dependencies are installed
 check_demo_dependencies() {
     echo -e "${BLUE}📦 Checking demo dependencies...${NC}"
-    
+
     if [ ! -d "$DEMO_DIR" ]; then
         echo -e "${RED}❌ Demo directory not found${NC}"
         return 1
     fi
-    
+
     cd "$DEMO_DIR"
-    
+
     if [ ! -f "package.json" ]; then
         echo -e "${RED}❌ package.json not found in demo directory${NC}"
         return 1
     fi
-    
+
     if [ ! -d "node_modules" ]; then
         echo -e "${YELLOW}📥 Installing demo dependencies...${NC}"
         npm install
     fi
-    
+
     echo -e "${GREEN}✅ Demo dependencies ready${NC}"
     cd ..
     return 0
@@ -71,26 +71,26 @@ check_demo_dependencies() {
 # Install Playwright for headless browser testing
 install_playwright() {
     echo -e "${BLUE}🎭 Setting up Playwright for headless browser testing...${NC}"
-    
+
     # Check if we need to install Playwright
     if ! npm list -g @playwright/test &>/dev/null; then
         echo -e "${YELLOW}📥 Installing Playwright globally...${NC}"
         npm install -g @playwright/test
     fi
-    
+
     # Install browser binaries
     if ! command -v playwright &>/dev/null; then
         echo -e "${YELLOW}📥 Installing Playwright browser binaries...${NC}"
         npx playwright install chromium
     fi
-    
+
     echo -e "${GREEN}✅ Playwright ready for headless testing${NC}"
 }
 
 # Create Playwright test configuration
 create_playwright_config() {
     echo -e "${BLUE}⚙️ Creating Playwright test configuration...${NC}"
-    
+
     cat > playwright.config.js << 'EOF'
 module.exports = {
   testDir: './tests',
@@ -109,7 +109,7 @@ module.exports = {
   projects: [
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...require('@playwright/test').devices['Desktop Chrome'],
         headless: true
       },
@@ -124,9 +124,9 @@ EOF
 # Create Playwright test for interactive demo
 create_demo_test() {
     echo -e "${BLUE}📝 Creating Playwright test for interactive demo...${NC}"
-    
+
     mkdir -p tests
-    
+
     cat > tests/demo-interactive.spec.js << 'EOF'
 const { test, expect } = require('@playwright/test');
 
@@ -138,7 +138,7 @@ test.describe('SuperRelay Interactive Demo', () => {
         console.log('Console error:', msg.text());
       }
     });
-    
+
     page.on('pageerror', error => {
       console.log('Page error:', error.message);
     });
@@ -146,20 +146,20 @@ test.describe('SuperRelay Interactive Demo', () => {
 
   test('should load interactive demo page', async ({ page }) => {
     await page.goto('/demo/interactive-demo.html');
-    
+
     // Check if page title is correct
     await expect(page).toHaveTitle(/SuperRelay.*Demo/i);
-    
+
     // Check if main elements are present
     await expect(page.locator('h1')).toContainText('SuperRelay Demo');
   });
 
   test('should check service connectivity', async ({ page }) => {
     await page.goto('/demo/interactive-demo.html');
-    
+
     // Wait for connectivity checks to complete
     await page.waitForTimeout(2000);
-    
+
     // Check if connection status indicators are present
     const statusIndicators = page.locator('[data-testid*="status"]');
     await expect(statusIndicators.first()).toBeVisible();
@@ -167,12 +167,12 @@ test.describe('SuperRelay Interactive Demo', () => {
 
   test('should create UserOperation form', async ({ page }) => {
     await page.goto('/demo/interactive-demo.html');
-    
+
     // Check if UserOperation form elements exist
     const senderInput = page.locator('input[name="sender"]');
     const nonceInput = page.locator('input[name="nonce"]');
     const callDataInput = page.locator('input[name="callData"]');
-    
+
     if (await senderInput.count() > 0) {
       await expect(senderInput).toBeVisible();
       await expect(nonceInput).toBeVisible();
@@ -182,19 +182,19 @@ test.describe('SuperRelay Interactive Demo', () => {
 
   test('should test API endpoint calls', async ({ page }) => {
     await page.goto('/demo/interactive-demo.html');
-    
+
     // Wait for page to load
     await page.waitForTimeout(1000);
-    
+
     // Look for test buttons or API call triggers
     const testButton = page.locator('button:has-text("Test")').first();
-    
+
     if (await testButton.count() > 0) {
       await testButton.click();
-      
+
       // Wait for API call to complete
       await page.waitForTimeout(3000);
-      
+
       // Check for result display
       const resultArea = page.locator('[data-testid="result"], .result, #result');
       if (await resultArea.count() > 0) {
@@ -205,28 +205,28 @@ test.describe('SuperRelay Interactive Demo', () => {
 
   test('should handle errors gracefully', async ({ page }) => {
     await page.goto('/demo/interactive-demo.html');
-    
+
     // Wait for page to load
     await page.waitForTimeout(1000);
-    
+
     // Test with invalid data if form exists
     const senderInput = page.locator('input[name="sender"]');
-    
+
     if (await senderInput.count() > 0) {
       await senderInput.fill('invalid-address');
-      
+
       const submitButton = page.locator('button[type="submit"], button:has-text("Submit")').first();
       if (await submitButton.count() > 0) {
         await submitButton.click();
-        
+
         // Check for error message
         await page.waitForTimeout(2000);
         const errorMessage = page.locator('.error, [data-testid="error"], .alert-error');
-        
+
         // Error handling should be present (either error message or form validation)
-        const hasError = (await errorMessage.count() > 0) || 
+        const hasError = (await errorMessage.count() > 0) ||
                         (await page.locator('input:invalid').count() > 0);
-        
+
         if (hasError) {
           console.log('✅ Error handling working correctly');
         }
@@ -242,12 +242,12 @@ EOF
 # Test Node.js demo functionality
 test_nodejs_demo() {
     echo -e "${BLUE}🚀 Testing Node.js demo functionality...${NC}"
-    
+
     cd "$DEMO_DIR"
-    
+
     # Test if demo script runs without crashing
     timeout 30s node superPaymasterDemo.js --help > demo_help.log 2>&1 || true
-    
+
     if grep -q "SuperPaymaster Demo Application" demo_help.log; then
         echo -e "${GREEN}✅ Node.js demo help command works${NC}"
     else
@@ -256,7 +256,7 @@ test_nodejs_demo() {
         cd ..
         return 1
     fi
-    
+
     # Clean up
     rm -f demo_help.log
     cd ..
@@ -266,7 +266,7 @@ test_nodejs_demo() {
 # Test services are running
 test_services_running() {
     echo -e "${BLUE}🔍 Checking if required services are running...${NC}"
-    
+
     # Check Anvil
     if curl -s -X POST -H "Content-Type: application/json" \
         --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
@@ -275,37 +275,37 @@ test_services_running() {
     else
         echo -e "${YELLOW}⚠️ Anvil not running - some tests may fail${NC}"
     fi
-    
+
     # Check SuperRelay
     if curl -s "$SUPERRELAY_URL/health" > /dev/null; then
         echo -e "${GREEN}✅ SuperRelay is running${NC}"
     else
         echo -e "${YELLOW}⚠️ SuperRelay not running - some tests may fail${NC}"
     fi
-    
+
     return 0
 }
 
 # Run Playwright tests
 run_playwright_tests() {
     echo -e "${BLUE}🎭 Running Playwright headless browser tests...${NC}"
-    
+
     # Create a simple HTTP server for the demo if needed
     if [ -f "$DEMO_DIR/$DEMO_HTML" ]; then
         echo -e "${BLUE}🌐 Starting demo web server...${NC}"
-        
+
         # Start a simple Python HTTP server in background
         cd "$DEMO_DIR"
         python3 -m http.server 8080 > /dev/null 2>&1 &
         local server_pid=$!
         cd ..
-        
+
         # Wait for server to start
         sleep 2
-        
+
         # Update Playwright config to use the demo server
         sed -i.bak "s|baseURL: 'http://localhost:3000'|baseURL: 'http://localhost:8080'|g" playwright.config.js
-        
+
         # Run Playwright tests
         if npx playwright test --reporter=line; then
             echo -e "${GREEN}✅ Playwright tests completed successfully${NC}"
@@ -314,11 +314,11 @@ run_playwright_tests() {
             echo -e "${RED}❌ Some Playwright tests failed${NC}"
             local result=1
         fi
-        
+
         # Cleanup
         kill $server_pid 2>/dev/null || true
         mv playwright.config.js.bak playwright.config.js 2>/dev/null || true
-        
+
         return $result
     else
         echo -e "${YELLOW}⚠️ Interactive demo HTML not found - skipping browser tests${NC}"
@@ -329,9 +329,9 @@ run_playwright_tests() {
 # Create comprehensive demo test report
 create_demo_test_report() {
     echo -e "${BLUE}📊 Creating demo test report...${NC}"
-    
+
     local report_file="demo_test_report_$(date +%Y%m%d_%H%M%S).md"
-    
+
     cat > "$report_file" << EOF
 # SuperRelay Demo Testing Report
 
@@ -372,11 +372,11 @@ EOF
     if [ -f "test-results/index.html" ]; then
         echo "- 📊 **Detailed Results**: Available in test-results/index.html" >> "$report_file"
     fi
-    
+
     if [ -f "playwright-report/index.html" ]; then
         echo "- 📊 **HTML Report**: Available in playwright-report/index.html" >> "$report_file"
     fi
-    
+
     cat >> "$report_file" << EOF
 
 ## Recommendations
@@ -415,18 +415,18 @@ display_summary() {
     echo -e "${GREEN}📊 Tests Passed: $PASSED${NC}"
     echo -e "${RED}❌ Tests Failed: $FAILED${NC}"
     echo -e "${BLUE}📊 Total Tests: $((PASSED + FAILED))${NC}"
-    
+
     if [ $FAILED -eq 0 ]; then
         echo -e "\n${GREEN}🎉 All demo tests passed!${NC}"
         echo -e "${GREEN}🚀 SuperRelay demo is fully functional!${NC}"
-        
+
         echo -e "\n${BLUE}🔗 Demo Access Points:${NC}"
         if [ -f "$DEMO_DIR/$DEMO_HTML" ]; then
             echo -e "  • Interactive Demo: http://localhost:8080/$DEMO_HTML"
         fi
         echo -e "  • Node.js Demo: cd demo && node superPaymasterDemo.js"
         echo -e "  • API Endpoint: $SUPERRELAY_URL"
-        
+
         return 0
     else
         echo -e "\n${YELLOW}⚠️ Some demo tests failed. Check the details above.${NC}"
@@ -437,23 +437,23 @@ display_summary() {
 # Main execution
 main() {
     echo -e "${BLUE}🎭 Starting SuperRelay demo testing...${NC}"
-    
+
     # Check prerequisites
     if ! command -v node &> /dev/null; then
         echo -e "${RED}❌ Node.js not found. Please install Node.js >= 16${NC}"
         exit 1
     fi
-    
+
     if ! command -v npm &> /dev/null; then
         echo -e "${RED}❌ NPM not found. Please install NPM${NC}"
         exit 1
     fi
-    
+
     # Run tests
     run_test "Demo Dependencies Check" "check_demo_dependencies"
     run_test "Services Running" "test_services_running"
     run_test "Node.js Demo Functionality" "test_nodejs_demo"
-    
+
     # Playwright tests (optional - requires additional setup)
     if command -v npx &> /dev/null; then
         echo -e "\n${BLUE}🎭 Setting up browser testing...${NC}"
@@ -464,10 +464,10 @@ main() {
     else
         echo -e "${YELLOW}⚠️ NPX not available - skipping browser tests${NC}"
     fi
-    
+
     # Generate report
     create_demo_test_report
-    
+
     # Display summary
     display_summary
 }

@@ -9,7 +9,7 @@
 ### 用户视角测试
 验证最终用户使用体验和功能可用性
 
-### 产品方案视角测试  
+### 产品方案视角测试
 验证业务流程和产品价值实现
 
 ### 系统视角测试
@@ -21,7 +21,7 @@
 
 ### TC001: Gas Sponsorship 基础流程
 
-**测试目标**: 验证基础gas赞助功能  
+**测试目标**: 验证基础gas赞助功能
 **测试级别**: 用户视角 + 产品方案视角
 
 **前置条件**:
@@ -60,7 +60,7 @@ curl -X POST http://localhost:3000 \
 
 ### TC002: Policy Engine 访问控制
 
-**测试目标**: 验证策略引擎正确过滤请求  
+**测试目标**: 验证策略引擎正确过滤请求
 **测试级别**: 产品方案视角 + 系统视角
 
 **前置条件**:
@@ -73,12 +73,12 @@ curl -X POST http://localhost:3000 \
 - 白名单地址请求sponsorship → 应该成功
 - 非白名单地址请求 → 应该被拒绝
 
-**2.2 Gas限制测试**  
+**2.2 Gas限制测试**
 - 正常gas限制请求 → 应该成功
 - 超出gas限制请求 → 应该被拒绝
 
 **2.3 速率限制测试**
-- 正常频率请求 → 应该成功  
+- 正常频率请求 → 应该成功
 - 高频攻击请求 → 应该被限制
 
 **验证方法**:
@@ -97,7 +97,7 @@ vim config/paymaster-policies.toml
 
 ### TC003: Multi-Version EntryPoint 兼容性
 
-**测试目标**: 验证v0.6和v0.7 EntryPoint支持  
+**测试目标**: 验证v0.6和v0.7 EntryPoint支持
 **测试级别**: 系统视角
 
 **测试场景**:
@@ -110,7 +110,7 @@ vim config/paymaster-policies.toml
 # 运行v0.6兼容性测试
 ./test/spec-tests/local/run-spec-tests-v0_6.sh
 
-# 运行v0.7兼容性测试  
+# 运行v0.7兼容性测试
 ./test/spec-tests/local/run-spec-tests-v0_7.sh
 
 # 运行并发测试
@@ -121,7 +121,7 @@ vim config/paymaster-policies.toml
 
 ### TC004: API 完整性和文档一致性
 
-**测试目标**: 验证API功能和Swagger文档一致性  
+**测试目标**: 验证API功能和Swagger文档一致性
 **测试级别**: 用户视角 + 系统视角
 
 **测试内容**:
@@ -151,7 +151,7 @@ curl http://localhost:9000/swagger-ui/ | grep -i "SuperRelay"
 
 ### TC005: 性能和压力测试
 
-**测试目标**: 验证系统性能指标  
+**测试目标**: 验证系统性能指标
 **测试级别**: 系统视角
 
 **性能要求**:
@@ -170,7 +170,7 @@ time curl -X POST http://localhost:3000 \
   -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
 ```
 
-**5.2 并发压力测试**  
+**5.2 并发压力测试**
 ```bash
 # 使用ab进行压力测试
 ab -n 1000 -c 50 -T 'application/json' \
@@ -191,7 +191,7 @@ ab -n 1000 -c 50 -T 'application/json' \
 
 ### TC006: 安全性测试
 
-**测试目标**: 验证系统安全性  
+**测试目标**: 验证系统安全性
 **测试级别**: 系统视角 + 产品方案视角
 
 **安全测试内容**:
@@ -210,7 +210,7 @@ grep -r "private" logs/ | grep -v "INFO\|DEBUG"
 - 超长输入数据 → 应该被正确处理
 - 无效签名数据 → 应该被检测
 
-**6.3 DDoS防护测试**  
+**6.3 DDoS防护测试**
 ```bash
 # 高频请求攻击测试
 ./scripts/test_ddos_protection.sh
@@ -223,7 +223,7 @@ curl -X POST http://localhost:3000 -d '...' # 重复执行
 
 ### TC007: 容错和恢复测试
 
-**测试目标**: 验证系统容错能力  
+**测试目标**: 验证系统容错能力
 **测试级别**: 系统视角
 
 **故障场景**:
@@ -260,7 +260,7 @@ make test-all
 
 # 分类测试执行
 make test-unit          # 单元测试
-make test-integration   # 集成测试  
+make test-integration   # 集成测试
 make test-spec          # 规范测试
 make test-performance   # 性能测试
 make test-security      # 安全测试
@@ -305,7 +305,7 @@ make test-security      # 安全测试
 
 执行结果:
 - 总用例数: XX
-- 通过用例: XX  
+- 通过用例: XX
 - 失败用例: XX
 - 跳过用例: XX
 

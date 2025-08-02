@@ -105,6 +105,7 @@ rundler-sim = { path = "crates/sim" }
 rundler-task = { path = "crates/task" }
 rundler-types = { path = "crates/types" }
 rundler-utils = { path = "crates/utils" }
+regex = "1.10"
 secrecy = "0.10.3"
 serde = "1.0.210"
 serde_json = "1.0.128"

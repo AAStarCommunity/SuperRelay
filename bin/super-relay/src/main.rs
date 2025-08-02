@@ -127,11 +127,14 @@ impl Cli {
             } => {
                 println!("🚀 Starting SuperRelay Node...\n");
 
-                // Parse TOML configuration
+                // Parse TOML configuration with environment variable expansion
                 let config_content = fs::read_to_string(config)
                     .map_err(|e| eyre::eyre!("Failed to read config file '{}': {}", config, e))?;
 
-                let super_config: SuperRelayConfig = toml::from_str(&config_content)
+                // Expand environment variables in config content
+                let expanded_content = expand_env_vars(&config_content);
+
+                let super_config: SuperRelayConfig = toml::from_str(&expanded_content)
                     .map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
 
                 // Convert config to rundler arguments, avoiding duplicates
@@ -148,12 +151,19 @@ impl Cli {
                     }
                 }
 
-                let mut cmd = Command::new("cargo");
-                cmd.args(["run", "--bin", "rundler", "--", "node"]);
+                // Use the built rundler binary directly instead of cargo run
+                let rundler_path = std::env::current_dir()?
+                    .join("target")
+                    .join("release")
+                    .join("rundler");
+
+                let mut cmd = Command::new(&rundler_path);
+                cmd.arg("node");
                 cmd.args(&rundler_args_final);
 
                 println!(
-                    "🔧 Executing: cargo run --bin rundler -- node {}",
+                    "🔧 Executing: {} node {}",
+                    rundler_path.display(),
                     rundler_args_final.join(" ")
                 );
 
@@ -163,8 +173,13 @@ impl Cli {
                 }
             }
             Commands::Pool { rundler_args } => {
-                let mut cmd = Command::new("cargo");
-                cmd.args(["run", "--bin", "rundler", "--", "pool"]);
+                let rundler_path = std::env::current_dir()?
+                    .join("target")
+                    .join("release")
+                    .join("rundler");
+
+                let mut cmd = Command::new(&rundler_path);
+                cmd.arg("pool");
                 cmd.args(&rundler_args);
 
                 let status = cmd.status()?;
@@ -173,8 +188,13 @@ impl Cli {
                 }
             }
             Commands::Builder { rundler_args } => {
-                let mut cmd = Command::new("cargo");
-                cmd.args(["run", "--bin", "rundler", "--", "builder"]);
+                let rundler_path = std::env::current_dir()?
+                    .join("target")
+                    .join("release")
+                    .join("rundler");
+
+                let mut cmd = Command::new(&rundler_path);
+                cmd.arg("builder");
                 cmd.args(&rundler_args);
 
                 let status = cmd.status()?;
@@ -183,8 +203,13 @@ impl Cli {
                 }
             }
             Commands::Admin { rundler_args } => {
-                let mut cmd = Command::new("cargo");
-                cmd.args(["run", "--bin", "rundler", "--", "admin"]);
+                let rundler_path = std::env::current_dir()?
+                    .join("target")
+                    .join("release")
+                    .join("rundler");
+
+                let mut cmd = Command::new(&rundler_path);
+                cmd.arg("admin");
                 cmd.args(&rundler_args);
 
                 let status = cmd.status()?;
@@ -204,7 +229,7 @@ impl Cli {
     }
 
     fn config_to_rundler_args(&self, config: &SuperRelayConfig) -> Result<Vec<String>> {
-        // 从环境变量或配置文件读取网络和节点设置，支持本地开发
+        // Read network and node settings from environment variables or config file, supporting local development
         let network = std::env::var("NETWORK")
             .or_else(|_| std::env::var("CHAIN_NETWORK"))
             .unwrap_or_else(|_| "dev".to_string());
@@ -213,10 +238,10 @@ impl Cli {
             .or_else(|_| std::env::var("NODE_HTTP"))
             .unwrap_or_else(|_| "http://localhost:8545".to_string());
 
-        // 智能私钥管理：优先使用环境变量，测试阶段支持.env文件
+        // Smart private key management: prioritize environment variables, support .env files for testing
         let signer_keys = std::env::var("SIGNER_PRIVATE_KEYS")
             .or_else(|_| {
-                // 测试/开发阶段：尝试从.env文件加载
+                // Testing/development phase: try loading from .env file
                 if let Ok(env_content) = std::fs::read_to_string(".env") {
                     for line in env_content.lines() {
                         if line.starts_with("SIGNER_PRIVATE_KEYS=") {
@@ -286,18 +311,8 @@ impl Cli {
 
                 if let Some(ref private_key) = config.paymaster_relay.private_key {
                     args.push("--paymaster.private_key".to_string());
-                    // 解析环境变量占位符
-                    let resolved_key =
-                        if private_key.starts_with("${") && private_key.ends_with("}") {
-                            let env_var = &private_key[2..private_key.len() - 1];
-                            std::env::var(env_var).unwrap_or_else(|_| {
-                                eprintln!("⚠️  环境变量 {} 未设置，使用配置文件中的值", env_var);
-                                private_key.clone()
-                            })
-                        } else {
-                            private_key.clone()
-                        };
-                    args.push(resolved_key);
+                    // Environment variables in config file have been expanded through expand_env_vars
+                    args.push(private_key.clone());
                 }
 
                 if let Some(ref policy_file) = config.paymaster_relay.policy_file {
@@ -400,6 +415,30 @@ impl Cli {
             Err(e) => Err(eyre::eyre!("Connection failed: {}", e)),
         }
     }
+}
+
+/// Expand environment variables in the form ${VAR_NAME} in the given string
+fn expand_env_vars(content: &str) -> String {
+    let mut result = content.to_string();
+
+    // Find all ${VAR_NAME} patterns and replace them
+    let re = regex::Regex::new(r"\$\{([^}]+)\}").unwrap();
+
+    for captures in re.captures_iter(content) {
+        let full_match = captures.get(0).unwrap().as_str();
+        let var_name = captures.get(1).unwrap().as_str();
+
+        if let Ok(var_value) = std::env::var(var_name) {
+            result = result.replace(full_match, &var_value);
+        } else {
+            eprintln!(
+                "⚠️  Environment variable {} not set, keeping original value",
+                var_name
+            );
+        }
+    }
+
+    result
 }
 
 #[tokio::main]

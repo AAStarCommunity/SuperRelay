@@ -9,7 +9,7 @@ SuperRelay是一个企业级的ERC-4337账户抽象解决方案，采用**分层
 │     SuperRelay Wrapper      │  ← 企业级包装器 (我们的增强层)
 ├─────────────────────────────┤
 │      PaymasterRelay         │  ← Gas赞助服务
-├─────────────────────────────┤  
+├─────────────────────────────┤
 │         Rundler             │  ← 底层ERC-4337引擎
 ├─────────────────────────────┤
 │      Ethereum Network       │  ← 区块链层
@@ -20,14 +20,14 @@ SuperRelay是一个企业级的ERC-4337账户抽象解决方案，采用**分层
 
 ### 1. **SuperRelay包装器** (`super-relay` 命令)
 - **作用**: 企业级配置管理和服务编排
-- **功能**: 
+- **功能**:
   - 统一配置管理 (TOML配置文件)
   - 环境变量智能解析
   - 私钥安全管理
   - 服务健康监控
   - 生产环境适配
 
-### 2. **Rundler引擎** (`rundler` 命令)  
+### 2. **Rundler引擎** (`rundler` 命令)
 - **作用**: 底层ERC-4337实现
 - **功能**:
   - UserOperation处理
@@ -172,7 +172,7 @@ rundler/
 **SuperRelay的价值**:
 - **不是重新发明轮子**，而是在rundler基础上添加企业级功能
 - **配置管理**: 统一的TOML配置 vs 命令行参数
-- **安全性**: 环境变量注入 vs 命令行暴露私钥  
+- **安全性**: 环境变量注入 vs 命令行暴露私钥
 - **监控**: 健康检查、指标收集、告警
 - **策略**: 复杂的Gas赞助策略引擎
 - **部署**: 生产环境就绪的配置和脚本
@@ -186,7 +186,7 @@ Client → SuperRelay → Rundler → Ethereum
 
 ### 集群架构 (未来)
 ```
-          ┌─ SuperRelay Node 1 ─┐  
+          ┌─ SuperRelay Node 1 ─┐
 Client →  ├─ SuperRelay Node 2 ─┤ → Ethereum
           └─ SuperRelay Node 3 ─┘
 ```
@@ -195,7 +195,7 @@ Client →  ├─ SuperRelay Node 2 ─┤ → Ethereum
 ```
 Client → Load Balancer → SuperRelay Cluster
                       ├─ Paymaster Service
-                      ├─ Policy Engine  
+                      ├─ Policy Engine
                       ├─ Monitoring Service
                       └─ Analytics Service
 ```

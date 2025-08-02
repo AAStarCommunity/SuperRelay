@@ -32,5 +32,5 @@ fi
 echo ""
 echo "🎯 安装完成提示:"
 echo "  • 全局使用: claude-code"
-echo "  • 临时使用: npx @anthropic-ai/claude-code"  
+echo "  • 临时使用: npx @anthropic-ai/claude-code"
 echo "  • demo 目录: cd demo && npx claude-code"

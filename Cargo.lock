@@ -7569,6 +7569,7 @@ version = "0.1.4"
 dependencies = [
  "clap",
  "eyre",
+ "regex",
  "rundler-paymaster-relay",
  "serde",
  "serde_json",

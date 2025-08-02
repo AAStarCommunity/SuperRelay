@@ -1,8 +1,8 @@
 # 🏛️ SuperRelay 架构与安全评估报告
 
-**评估人：架构大师 & 加密专家**  
-**评估日期：2025年1月**  
-**项目版本：v0.1.4**  
+**评估人：架构大师 & 加密专家**
+**评估日期：2025年1月**
+**项目版本：v0.1.4**
 **评估范围：完整系统架构、安全分析、TEE集成规划**
 
 ---
@@ -13,7 +13,7 @@ SuperRelay展现了**企业级Account Abstraction服务**的优秀架构基础�
 
 **整体架构评分：8.2/10**
 - 架构设计：8.5/10
-- 性能表现：7.8/10  
+- 性能表现：7.8/10
 - 扩展能力：7.5/10
 - 代码质量：8.8/10
 - 安全等级：6.5/10 ⚠️
@@ -36,7 +36,7 @@ Application Layer
 ├── bin/super-relay/     → 企业级配置包装器
 └── bin/rundler/         → 核心bundler CLI
 
-Service Layer  
+Service Layer
 ├── crates/rpc/          → JSON-RPC API (4,858 LOC)
 ├── crates/paymaster-relay/ → Paymaster赞助服务 (1,699 LOC)
 └── crates/builder/      → Bundle创建与提交 (10,474 LOC)
@@ -68,7 +68,7 @@ graph TB
     F --> G[Bundle Builder]
     G --> H[Transaction Sender]
     H --> I[Blockchain]
-    
+
     style C fill:#e1f5fe
     style E fill:#fff3e0
     style F fill:#f3e5f5
@@ -140,7 +140,7 @@ pub async fn validate_policy_async(&self, op: &UserOperation) -> Result<()> {
     if let Some(result) = cached_result {
         return result;
     }
-    
+
     // 异步策略评估
     let result = self.policy_engine.evaluate_async(op).await?;
     self.policy_cache.insert(op.sender, result.clone()).await;
@@ -211,10 +211,10 @@ impl DistributedMempool {
     pub async fn add_operation(&self, op: UserOperation) -> Result<()> {
         // 一致性哈希分片
         let shard = self.get_shard(&op.sender);
-        
+
         // 多副本存储
         self.replication.replicate(shard, &op).await?;
-        
+
         // 共识确认
         self.consensus.propose_operation(op).await
     }
@@ -267,7 +267,7 @@ pub struct ShardedSignerManager {
 
 # 位置：
 - demo/superPaymasterDemo.js
-- scripts/fund_paymaster.sh  
+- scripts/fund_paymaster.sh
 - bin/super-relay/src/main.rs
 ```
 
@@ -288,7 +288,7 @@ pub struct ShardedSignerManager {
 
 #### 高危安全区域
 - **SignerManager私钥管理**：内存暴露风险
-- **Bundle模拟执行**：重入攻击风险  
+- **Bundle模拟执行**：重入攻击风险
 - **Mempool操作**：声誉系统操控风险
 - **策略文件处理**：路径遍历攻击
 
@@ -314,7 +314,7 @@ pub fn load_private_key() -> Result<SecretKey> {
 }
 
 // 2. 实现全面速率限制
-#[derive(Clone)]  
+#[derive(Clone)]
 pub struct RateLimiter {
     limiter: Arc<RwLock<HashMap<IpAddr, TokenBucket>>>,
 }
@@ -371,19 +371,19 @@ pub struct SecurePrivateKey {
 pub trait TEESigner: Send + Sync {
     /// 在可信执行环境内进行签名操作
     async fn sign_in_enclave(&self, hash: B256) -> Result<Signature>;
-    
+
     /// 获取enclave远程证明报告
     async fn attest_enclave(&self) -> Result<AttestationReport>;
-    
+
     /// 密封密钥到持久化存储
     async fn seal_key(&self, key: &SecretKey) -> Result<SealedKey>;
-    
+
     /// 从密封存储解封密钥
     async fn unseal_key(&self, sealed: &SealedKey) -> Result<SecretKey>;
-    
+
     /// 验证远程证明报告
     async fn verify_attestation(&self, report: &AttestationReport) -> Result<bool>;
-    
+
     /// 获取enclave度量信息
     async fn get_enclave_metrics(&self) -> Result<EnclaveMetrics>;
 }
@@ -418,16 +418,16 @@ impl SGXSigner {
     pub async fn new(config: SGXConfig) -> Result<Self> {
         // 1. 初始化enclave
         let enclave_id = Self::init_enclave(&config.enclave_path).await?;
-        
+
         // 2. 验证enclave完整性
         Self::verify_enclave_integrity(enclave_id).await?;
-        
+
         // 3. 建立安全通道
         let secure_channel = Self::establish_secure_channel(enclave_id).await?;
-        
+
         // 4. 加载或生成密钥
         let sealed_keys = Self::load_sealed_keys(&config.key_storage_path).await?;
-        
+
         Ok(Self {
             enclave_id,
             sealed_keys: Arc::new(RwLock::new(sealed_keys)),
@@ -436,17 +436,17 @@ impl SGXSigner {
             metrics: SGXMetrics::new(),
         })
     }
-    
+
     async fn generate_key_in_enclave(&self, address: Address) -> Result<SealedKey> {
         // enclave内密钥生成和密封
         let key_request = KeyGenerationRequest::new(address);
         let sealed_key = unsafe {
             sgx_generate_and_seal_key(self.enclave_id, &key_request)?
         };
-        
+
         // 保存到持久化存储
         self.save_sealed_key(address, &sealed_key).await?;
-        
+
         Ok(sealed_key)
     }
 }
@@ -456,25 +456,25 @@ impl TEESigner for SGXSigner {
     async fn sign_in_enclave(&self, hash: B256) -> Result<Signature> {
         self.metrics.increment_sign_requests();
         let start = Instant::now();
-        
+
         // 在enclave内执行签名
         let signature = unsafe {
             sgx_sign_hash(self.enclave_id, hash.as_bytes())?
         };
-        
+
         self.metrics.record_sign_duration(start.elapsed());
         Ok(signature)
     }
-    
+
     async fn attest_enclave(&self) -> Result<AttestationReport> {
         // 生成quote
         let quote = unsafe {
             sgx_create_quote(self.enclave_id)?
         };
-        
+
         // 向Intel IAS服务验证
         let ias_report = self.ias_client.verify_quote(&quote).await?;
-        
+
         Ok(AttestationReport {
             quote,
             ias_report,
@@ -496,7 +496,7 @@ impl SignerManager {
     ) -> Result<Self> {
         let tee_signer = match tee_config.tee_type {
             TEEType::IntelSGX { .. } => {
-                Box::new(SGXSigner::new(tee_config.sgx_config).await?) 
+                Box::new(SGXSigner::new(tee_config.sgx_config).await?)
                     as Box<dyn TEESigner>
             },
             TEEType::ArmTrustZone { .. } => {
@@ -505,11 +505,11 @@ impl SignerManager {
             },
             _ => return Err(eyre!("Unsupported TEE type")),
         };
-        
+
         // 验证TEE证明
         let attestation = tee_signer.attest_enclave().await?;
         attestation_service.verify(&attestation).await?;
-        
+
         Ok(Self {
             tee_signer: Some(tee_signer),
             attestation_service,
@@ -544,12 +544,12 @@ pub struct ConfidentialPolicyEngine {
 impl ConfidentialPolicyEngine {
     /// 在TEE内执行策略评估，保护敏感决策逻辑
     pub async fn evaluate_in_enclave(
-        &self, 
+        &self,
         user_op: &UserOperation
     ) -> Result<PolicyDecision> {
         // 1. 加密用户操作数据
         let encrypted_op = self.encrypt_for_enclave(user_op).await?;
-        
+
         // 2. 在enclave内执行策略评估
         let decision = unsafe {
             tee_evaluate_policy(
@@ -558,13 +558,13 @@ impl ConfidentialPolicyEngine {
                 &self.encrypted_policies
             )?
         };
-        
+
         // 3. 记录审计日志（加密）
         self.log_policy_decision(&decision).await?;
-        
+
         Ok(decision)
     }
-    
+
     /// 多方计算策略评估
     pub async fn mpc_policy_evaluation(
         &self,
@@ -613,7 +613,7 @@ impl EnterpriseTEEManager {
         // 3. 安全销毁旧密钥材料
         // 4. 更新所有相关配置
     }
-    
+
     /// 合规性报告生成
     pub async fn generate_compliance_report(
         &self,
@@ -637,17 +637,17 @@ impl TEESignerFactory {
         // SGX enclave初始化
         let enclave_path = config.enclave_path.clone();
         let enclave_id = Self::load_enclave(&enclave_path).await?;
-        
+
         // 远程证明验证
         let attestation = Self::perform_remote_attestation(enclave_id).await?;
         Self::verify_attestation(&attestation).await?;
-        
+
         // 密钥密封/解封
         let sealed_keys = Self::load_or_generate_keys(enclave_id, &config).await?;
-        
+
         Ok(Box::new(SGXSigner::new(enclave_id, sealed_keys, config)?))
     }
-    
+
     pub async fn create_trustzone_signer(config: TZConfig) -> Result<Box<dyn TEESigner>> {
         // ARM TrustZone实现
     }
@@ -667,40 +667,40 @@ impl PaymasterRelayService {
         let policy_result = self.confidential_policy_engine
             .evaluate_in_enclave(&user_op)
             .await?;
-            
+
         if !policy_result.approved {
             return Err(PaymasterError::PolicyRejected(policy_result.reason));
         }
-        
+
         // 2. 在TEE内生成paymaster签名
-        let user_op_hash = user_op.hash();  
+        let user_op_hash = user_op.hash();
         let signature = self.tee_signer
             .sign_in_enclave(user_op_hash)
             .await?;
-            
+
         // 3. 构建sponsored UserOperation
         let sponsored_op = self.build_sponsored_operation(
-            user_op, 
+            user_op,
             signature,
             policy_result.paymaster_data
         ).await?;
-            
+
         // 4. 提交到pool
         let op_hash = self.pool.add_op(
             sponsored_op.into(),
             Origin::Local,
         ).await?;
-        
+
         // 5. 记录审计日志
         self.audit_logger.log_sponsorship(
             &user_op_hash,
             &op_hash,
             &policy_result
         ).await?;
-        
+
         Ok(op_hash)
     }
-    
+
     /// 生成零知识隐私证明
     pub async fn generate_privacy_proof(
         &self,
@@ -732,7 +732,7 @@ impl PaymasterRelayService {
 - **不可变数据结构**适当使用
 
 #### 3. 开发实践规范
-- **持续集成**使用GitHub Actions  
+- **持续集成**使用GitHub Actions
 - **代码格式化**使用rustfmt
 - **代码检查**使用clippy
 - **文档要求**强制执行
@@ -758,7 +758,7 @@ impl PaymasterRelayService {
 // 将bundle_proposer.rs拆分为：
 pub mod bundle_proposer {
     pub mod validator;      // 验证逻辑
-    pub mod builder;        // 构建逻辑  
+    pub mod builder;        // 构建逻辑
     pub mod optimizer;      // 优化逻辑
     pub mod submitter;      // 提交逻辑
 }
@@ -784,7 +784,7 @@ impl PolicyDSL {
     pub fn parse(policy_text: &str) -> Result<Policy> {
         // 解析如下DSL:
         // ALLOW sender IN whitelist
-        // AND gas_limit < 1000000  
+        // AND gas_limit < 1000000
         // AND NOT sender IN blacklist
     }
 }
@@ -809,7 +809,7 @@ impl PolicyDSL {
 
 **优势领域：**
 - 现代化Rust架构实践
-- 清晰的模块化设计  
+- 清晰的模块化设计
 - 完善的类型系统和错误处理
 - 良好的测试覆盖率
 
@@ -836,7 +836,7 @@ impl PolicyDSL {
 ./scripts/security_hotfix.sh
 ```
 
-### 🔧 高优先级（1个月内）  
+### 🔧 高优先级（1个月内）
 #### TEE基础架构
 - [ ] **设计TEE接口规范** - 定义核心抽象
 - [ ] **实现SGX原型** - 基础enclave集成
@@ -865,7 +865,7 @@ impl PolicyDSL {
 ### 🌟 长期规划（6-12个月）
 #### 高级安全功能
 - [ ] **零知识证明集成** - 隐私保护交易
-- [ ] **多方计算** - 分布式决策机制  
+- [ ] **多方计算** - 分布式决策机制
 - [ ] **量子抗性加密** - 未来安全保障
 - [ ] **形式化验证** - 数学证明安全性
 
@@ -891,7 +891,7 @@ SuperRelay体现了**世界级企业Account Abstraction服务**的架构基础�
 - **扩展性设计**：服务分离和接口抽象为水平扩展奠定基础
 - **企业级特性**：监控、日志、配置管理等企业功能完备
 
-#### 关键风险  
+#### 关键风险
 - **安全漏洞严重**：硬编码密钥等问题需立即修复
 - **性能瓶颈明显**：同步操作限制整体吞吐量
 - **单点故障风险**：中心化组件影响可用性
@@ -917,10 +917,10 @@ SuperRelay的架构为TEE集成提供了**优秀的扩展点**：
 
 **整体推荐等级：⭐⭐⭐⭐☆ (4.1/5)**
 
-**技术成熟度：** 8.5/10 - 架构成熟，技术选型正确  
-**安全状态：** 🚨 6.5/10 - 需立即修复关键漏洞  
-**商业价值：** 9.0/10 - 具备成为行业领导者的潜力  
-**TEE准备度：** ✅ 8.0/10 - 架构就绪，可立即开始集成  
+**技术成熟度：** 8.5/10 - 架构成熟，技术选型正确
+**安全状态：** 🚨 6.5/10 - 需立即修复关键漏洞
+**商业价值：** 9.0/10 - 具备成为行业领导者的潜力
+**TEE准备度：** ✅ 8.0/10 - 架构就绪，可立即开始集成
 
 ### 🎖️ 战略建议
 
@@ -933,8 +933,8 @@ SuperRelay具备成为**企业级AA服务领导者**的全部技术基础，关�
 
 ---
 
-**报告完成日期：** 2025年1月  
-**下次评估建议：** 3个月后进行TEE集成进度评估  
+**报告完成日期：** 2025年1月
+**下次评估建议：** 3个月后进行TEE集成进度评估
 **紧急联系：** 如需安全漏洞修复支持，请立即联系架构团队
 
 ---
@@ -943,7 +943,7 @@ SuperRelay具备成为**企业级AA服务领导者**的全部技术基础，关�
 
 ### A. 安全检查清单
 - [ ] 移除硬编码私钥
-- [ ] 实现API限速  
+- [ ] 实现API限速
 - [ ] 加强输入验证
 - [ ] 内存安全检查
 - [ ] 审计日志完善
@@ -951,7 +951,7 @@ SuperRelay具备成为**企业级AA服务领导者**的全部技术基础，关�
 
 ### B. TEE集成检查清单
 - [ ] SGX SDK环境搭建
-- [ ] 远程证明服务配置  
+- [ ] 远程证明服务配置
 - [ ] 密钥管理策略设计
 - [ ] 性能基准测试
 - [ ] 安全审计评估

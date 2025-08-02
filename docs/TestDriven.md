@@ -23,11 +23,11 @@ graph TD
     A --> C[EntryPoint v0.7 Contract]
     A --> D[Paymaster Contract]
     A --> E[SimpleAccount Factory]
-    
+
     B --> F[SuperRelay Service]
     C --> F
     D --> F
-    
+
     F --> G[Test Client JS]
     F --> H[API Validation]
     F --> I[Transaction Verification]
@@ -134,7 +134,7 @@ cat .paymaster_address
 
 ### 第四步：创建测试账户
 ```bash
-# 脚本：scripts/setup_test_accounts.sh  
+# 脚本：scripts/setup_test_accounts.sh
 # 功能：为v0.6和v0.7分别创建测试账户
 
 ./scripts/setup_test_accounts.sh
@@ -154,14 +154,14 @@ cat .test_accounts.json
     },
     "smart_wallet": {
       "factory": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-      "account_address": "0x...", 
+      "account_address": "0x...",
       "init_code": "0x..."
     }
   },
   "v0_7": {
     "entrypoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
     "account_owner": {
-      "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", 
+      "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       "private_key": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2"
     },
     "smart_wallet": {
@@ -273,7 +273,7 @@ const userOp_v06 = {
 ```javascript
 const userOp_v07 = {
     sender: "0x...",
-    nonce: "0x0", 
+    nonce: "0x0",
     factory: "0x...",         // v0.7新增
     factoryData: "0x...",     // v0.7新增
     callData: "0x...",
@@ -347,7 +347,7 @@ const userOp_v07 = {
 check_transaction_success() {
     local tx_hash=$1
     local receipt=$(cast receipt $tx_hash --rpc-url http://localhost:8545)
-    
+
     if echo "$receipt" | jq -r '.status' | grep -q "0x1"; then
         echo "✅ Transaction successful: $tx_hash"
         return 0
@@ -364,11 +364,11 @@ check_transaction_success() {
 verify_gas_sponsorship() {
     local user_address=$1
     local tx_hash=$2
-    
+
     # 获取交易前后用户余额
     local balance_before=$(get_balance_at_block $user_address $((block_number - 1)))
     local balance_after=$(get_balance_at_block $user_address $block_number)
-    
+
     if [ "$balance_before" = "$balance_after" ]; then
         echo "✅ Gas sponsored successfully - user balance unchanged"
         return 0
@@ -385,12 +385,12 @@ verify_gas_sponsorship() {
 verify_entrypoint_events() {
     local tx_hash=$1
     local entrypoint_address=$2
-    
+
     # 检查UserOperationEvent
     local events=$(cast logs --from-block latest --to-block latest \
                    --address $entrypoint_address \
                    --signature "UserOperationEvent(bytes32,address,address,uint256,bool,uint256,uint256)")
-    
+
     if [ -n "$events" ]; then
         echo "✅ UserOperationEvent emitted correctly"
         return 0
@@ -407,13 +407,13 @@ verify_entrypoint_events() {
 verify_paymaster_payment() {
     local paymaster_address=$1
     local entrypoint_address=$2
-    
+
     # 检查EntryPoint中的Paymaster存款变化
     local deposit_before=$3
     local deposit_after=$(cast call $entrypoint_address \
                          "balanceOf(address)" $paymaster_address \
                          --rpc-url http://localhost:8545)
-    
+
     if [ "$deposit_after" -lt "$deposit_before" ]; then
         echo "✅ Paymaster deposit reduced correctly"
         echo "   Before: $deposit_before"
@@ -556,7 +556,7 @@ export NETWORK=anvil
 export RPC_URL=http://localhost:8545
 export CHAIN_ID=31337
 
-# Sepolia测试网  
+# Sepolia测试网
 export NETWORK=sepolia
 export RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 export CHAIN_ID=11155111
@@ -564,7 +564,7 @@ export CHAIN_ID=11155111
 
 ### 测试数据和配置
 - **`test/fixtures/`** - 测试用的固定数据
-- **`test/configs/`** - 各种测试环境配置  
+- **`test/configs/`** - 各种测试环境配置
 - **`test/contracts/`** - 测试专用合约
 - **`test/utils/`** - 测试工具函数
 
@@ -598,7 +598,7 @@ curl -X POST -H "Content-Type: application/json" \
   http://localhost:8545
 # 期望结果: {"jsonrpc":"2.0","id":1,"result":"0x7a69"}
 
-# 启动SuperRelay (终端2)  
+# 启动SuperRelay (终端2)
 RUST_LOG=info ./target/release/super-relay \
   --host 0.0.0.0 --port 3000 \
   --rpc-url http://localhost:8545 --chain-id 31337
@@ -644,7 +644,7 @@ curl -X POST http://localhost:3000 \
         "initCode":"0x",
         "callData":"0x",
         "callGasLimit":"0x9c40",
-        "verificationGasLimit":"0x249f0", 
+        "verificationGasLimit":"0x249f0",
         "preVerificationGas":"0x5208",
         "maxFeePerGas":"0x2540be400",
         "maxPriorityFeePerGas":"0x3b9aca00",
@@ -665,7 +665,7 @@ curl -X POST http://localhost:3000 \
 # 期望结果: 所有测试通过，显示 "✅ All UserOperation tests passed!"
 
 # 运行端到端测试
-./scripts/test_e2e.sh  
+./scripts/test_e2e.sh
 # 期望结果: 显示测试摘要，Passed > 0, Failed = 0
 
 # 运行完整测试流水线
@@ -694,7 +694,7 @@ cd .. && ./scripts/test_demo_headless.sh
 - [x] Rust项目无错误编译
 - [x] 所有依赖包成功安装
 
-#### ✅ 服务指标  
+#### ✅ 服务指标
 - [x] Anvil正常启动，Chain ID = 31337
 - [x] SuperRelay健康检查返回 "ok"
 - [x] 端口3000和8545正常监听

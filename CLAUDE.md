@@ -46,15 +46,8 @@ make lint
 
 ### Running the Application
 ```bash
-# Start full SuperPaymaster service (requires environment setup)
-cargo run --bin rundler -- node \
-  --paymaster.enabled \
-  --paymaster.private_key=$PAYMASTER_PRIVATE_KEY \
-  --paymaster.policy_file=config/paymaster-policies.toml \
-  --node_http=$NODE_HTTP \
-  --unsafe \
-  --network=dev \
-  --rpc.api=eth,debug,admin,rundler,paymaster
+# Start SuperRelay service (recommended - handles process cleanup automatically)
+./scripts/start_superrelay.sh
 
 # Run SuperRelay binary directly
 cargo run --bin super-relay
@@ -65,6 +58,39 @@ cargo run --bin super-relay
 # Run demonstration
 ./scripts/run_demo.sh
 ```
+
+### Process Management and Cleanup
+
+**IMPORTANT**: SuperRelay uses multiple services on different ports and must properly handle process cleanup to prevent port occupation errors.
+
+#### Automated Process Cleanup
+The startup script `./scripts/start_superrelay.sh` automatically handles process cleanup:
+- Kills existing processes on ports 8545 (Anvil), 3000 (SuperRelay RPC), 9000 (Swagger UI), 8080 (Metrics)
+- Terminates any lingering rundler or super-relay processes
+- Provides clean shutdown via SIGTERM trap
+
+#### Manual Process Cleanup (when needed)
+```bash
+# Kill processes by port
+lsof -ti:8545 | xargs kill -9   # Anvil
+lsof -ti:3000 | xargs kill -9   # SuperRelay RPC
+lsof -ti:9000 | xargs kill -9   # Swagger UI
+lsof -ti:8080 | xargs kill -9   # Metrics
+
+# Kill by process name
+pkill -f "rundler"
+pkill -f "super-relay"
+pkill -f "anvil"
+
+# Check for remaining processes
+ps aux | grep -E "(rundler|super-relay|anvil)"
+```
+
+#### Development Best Practices
+1. **Always use the startup script**: `./scripts/start_superrelay.sh` handles all process lifecycle management
+2. **Clean shutdown**: Use Ctrl+C to trigger cleanup trap function
+3. **Port conflict resolution**: The script automatically resolves port conflicts before starting
+4. **Environment isolation**: Each startup creates a clean environment state
 
 ### Development Environment Setup
 ```bash

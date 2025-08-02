@@ -72,7 +72,7 @@ fi
 **测试覆盖**:
 - ✅ 服务可用性检查
 - ✅ v0.6 UserOperation 构造
-- ✅ v0.7 UserOperation 构造  
+- ✅ v0.7 UserOperation 构造
 - ✅ Paymaster 赞助功能
 - ✅ 哈希计算
 - ✅ 签名生成
@@ -89,11 +89,11 @@ fi
 
 🚀 Starting SuperRelay Node...
 
-🔧 Executing: cargo run --bin rundler -- node --network dev --node_http http://localhost:8545 
---signer.private_keys 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80,0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2 
---rpc.host 0.0.0.0 --rpc.port 3000 --pool.same_sender_mempool_count 1 
---max_verification_gas 10000000 --paymaster.enabled 
---paymaster.private_key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 
+🔧 Executing: cargo run --bin rundler -- node --network dev --node_http http://localhost:8545
+--signer.private_keys 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80,0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2
+--rpc.host 0.0.0.0 --rpc.port 3000 --pool.same_sender_mempool_count 1
+--max_verification_gas 10000000 --paymaster.enabled
+--paymaster.private_key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 --paymaster.policy_file config/paymaster-policies.toml --rpc.api eth,rundler,paymaster
 ```
 
@@ -111,7 +111,7 @@ fi
 SuperRelay 包装器 (企业级功能)
     ↓ 集成
 PaymasterRelayService (Gas 赞助服务)
-    ↓ 协作  
+    ↓ 协作
 Rundler 引擎 (ERC-4337 Bundler)
     ↓ 连接
 以太坊网络 (EntryPoint 合约)

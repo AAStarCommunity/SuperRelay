@@ -6,7 +6,7 @@
 
 ### 问题1: 脚本缺少private key配置
 
-**❌ 原因**: 
+**❌ 原因**:
 - 启动脚本没有正确设置 `PAYMASTER_PRIVATE_KEY` 环境变量
 - rundler需要paymaster私钥才能启用paymaster功能
 
@@ -30,7 +30,7 @@ SuperRelay采用**分层架构**：
 SuperRelay包装器 (企业级功能)
     ↓
 rundler引擎 (ERC-4337核心)
-    ↓  
+    ↓
 以太坊网络
 ```
 
@@ -39,7 +39,7 @@ rundler引擎 (ERC-4337核心)
 # ❌ 错误方式 (直接调用rundler)
 cargo run --bin rundler -- node --paymaster.enabled
 
-# ✅ 正确方式 (使用SuperRelay包装器)  
+# ✅ 正确方式 (使用SuperRelay包装器)
 ./target/release/super-relay node --config config/config.toml
 ```
 
@@ -57,7 +57,7 @@ rundler **内置了paymaster功能**：
 ```
 rundler/
 ├── crates/pool/          # 内存池管理
-├── crates/builder/       # Bundle构建  
+├── crates/builder/       # Bundle构建
 ├── crates/rpc/          # JSON-RPC API
 └── crates/paymaster/    # 内置Paymaster支持 ←← 这里！
 ```
@@ -71,7 +71,7 @@ rundler/
 ### 1. 开发环境启动
 
 **快速启动**:
-```bash  
+```bash
 # 使用新的正确启动脚本
 ./scripts/start_superrelay.sh
 ```
@@ -129,7 +129,7 @@ sudo journalctl -u super-relay -f   # 查看日志
 Description=SuperRelay - Enterprise Account Abstraction Service
 After=network.target
 
-[Service] 
+[Service]
 Type=simple
 User=super-relay
 WorkingDirectory=/opt/super-relay
@@ -185,7 +185,7 @@ enabled = true
 private_key = "${PAYMASTER_PRIVATE_KEY}"
 policy_file = "config/paymaster-policies.toml"
 
-[rate_limiting] 
+[rate_limiting]
 enabled = true
 requests_per_second = 100
 ```
@@ -198,7 +198,7 @@ private_key = "${PAYMASTER_PRIVATE_KEY}"
 policy_file = "config/production-policies.toml"
 
 [rate_limiting]
-enabled = true  
+enabled = true
 requests_per_second = 50  # 更严格
 burst_capacity = 100
 
@@ -242,7 +242,7 @@ curl -X POST http://localhost:3000 \
 ```
 
 ### 功能测试
-```bash  
+```bash
 # 运行完整测试套件
 ./scripts/test_full_pipeline.sh
 

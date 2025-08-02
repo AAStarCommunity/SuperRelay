@@ -1,21 +1,25 @@
 #!/bin/bash
-# SuperRelay正确启动脚本
-# 使用super-relay包装器而非直接调用rundler
+# SuperRelay startup script
+# Use super-relay wrapper instead of calling rundler directly
 
 set -e
 trap "cleanup" EXIT
 
-echo "🚀 SuperRelay 企业级账户抽象服务启动"
+echo "🚀 SuperRelay Enterprise Account Abstraction Service Starting"
 echo "======================================"
 
-# 加载开发环境配置
-if [ -f ".env.dev" ]; then
-    echo "📁 加载开发环境配置: .env.dev"
+# Load development environment configuration (try multiple config files)
+if [ -f ".env" ]; then
+    echo "📁 Loading environment config: .env"
+    source .env
+    echo "✅ Environment configuration loaded"
+elif [ -f ".env.dev" ]; then
+    echo "📁 Loading development environment config: .env.dev"
     source .env.dev
-    echo "✅ 环境配置已加载"
+    echo "✅ Environment configuration loaded"
 else
-    echo "⚠️ 未找到.env.dev文件，使用默认配置"
-    # 设置默认值
+    echo "⚠️ No .env or .env.dev file found, using default configuration"
+    # Set default values
     export SIGNER_PRIVATE_KEYS="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80,0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2"
     export PAYMASTER_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
     export RPC_URL="http://localhost:8545"
@@ -23,116 +27,163 @@ else
     export CHAIN_ID="31337"
 fi
 
-# 文件路径
+# File paths
 ANVIL_PID_FILE="scripts/.anvil.pid"
 SUPERRELAY_PID_FILE="scripts/.superrelay.pid"
 ENTRYPOINT_ADDRESS_FILE=".entrypoint_address"
 
-# 创建scripts目录
+# Create scripts directory
 mkdir -p scripts
 
-# 清理函数
+# Cleanup function
 cleanup() {
-    echo -e "\n🧹 正在清理资源..."
+    echo -e "\n🧹 Cleaning up resources..."
     if [ -f "$ANVIL_PID_FILE" ]; then
-        echo "❌ 正在停止 Anvil..."
+        echo "❌ Stopping Anvil..."
         kill $(cat $ANVIL_PID_FILE) 2>/dev/null || true
         rm -f $ANVIL_PID_FILE
     fi
     if [ -f "$SUPERRELAY_PID_FILE" ]; then
-        echo "❌ 正在停止 SuperRelay..."
+        echo "❌ Stopping SuperRelay..."
         kill $(cat $SUPERRELAY_PID_FILE) 2>/dev/null || true
         rm -f $SUPERRELAY_PID_FILE
     fi
-    echo "✅ 清理完成"
+    echo "✅ Cleanup complete"
 }
 
-# 检查工具是否安装
+# Kill existing processes function
+kill_existing_processes() {
+    echo "🔄 Checking for existing processes..."
+
+    # Kill processes using port 8545 (Anvil)
+    if lsof -ti:8545 >/dev/null 2>&1; then
+        echo "🛑 Killing existing processes on port 8545 (Anvil)..."
+        lsof -ti:8545 | xargs kill -9 2>/dev/null || true
+        sleep 1
+    fi
+
+    # Kill processes using port 3000 (SuperRelay RPC)
+    if lsof -ti:3000 >/dev/null 2>&1; then
+        echo "🛑 Killing existing processes on port 3000 (SuperRelay RPC)..."
+        lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+        sleep 1
+    fi
+
+    # Kill processes using port 9000 (Swagger UI)
+    if lsof -ti:9000 >/dev/null 2>&1; then
+        echo "🛑 Killing existing processes on port 9000 (Swagger UI)..."
+        lsof -ti:9000 | xargs kill -9 2>/dev/null || true
+        sleep 1
+    fi
+
+    # Kill processes using port 8080 (Metrics)
+    if lsof -ti:8080 >/dev/null 2>&1; then
+        echo "🛑 Killing existing processes on port 8080 (Metrics)..."
+        lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+        sleep 1
+    fi
+
+    # Kill any rundler or super-relay processes
+    pkill -f "rundler" 2>/dev/null || true
+    pkill -f "super-relay" 2>/dev/null || true
+
+    echo "✅ Process cleanup complete"
+}
+
+# Check if tools are installed
 check_tool() {
     if ! command -v $1 &> /dev/null; then
-        echo -e "❌ 错误: $1 未安装. 请先安装."
+        echo -e "❌ Error: $1 not installed. Please install it first."
         exit 1
     fi
 }
 
-# 显示配置信息
+# Display configuration information
 show_config() {
     echo ""
-    echo "📋 当前配置:"
-    echo "  🌐 网络: $NETWORK"
+    echo "📋 Current configuration:"
+    echo "  🌐 Network: $NETWORK"
     echo "  📡 RPC: $RPC_URL"
     echo "  🆔 Chain ID: $CHAIN_ID"
-    echo "  🔑 Paymaster私钥: ${PAYMASTER_PRIVATE_KEY:0:10}..."
-    echo "  🔗 Signer私钥数量: $(echo $SIGNER_PRIVATE_KEYS | tr ',' '\n' | wc -l)"
+    echo "  🔑 Paymaster private key: ${PAYMASTER_PRIVATE_KEY:0:10}..."
+    echo "  🔗 Signer private keys count: $(echo $SIGNER_PRIVATE_KEYS | tr ',' '\n' | wc -l)"
     echo ""
-    
-    # 验证关键环境变量
+
+    # Validate critical environment variables
     if [ -z "$SIGNER_PRIVATE_KEYS" ]; then
-        echo "❌ 错误: SIGNER_PRIVATE_KEYS 环境变量未设置"
-        echo "💡 请确保 .env.dev 文件存在或手动设置环境变量"
+        echo "❌ Error: SIGNER_PRIVATE_KEYS environment variable not set"
+        echo "💡 Please ensure .env.dev file exists or manually set environment variables"
         exit 1
     fi
-    
+
     if [ -z "$PAYMASTER_PRIVATE_KEY" ]; then
-        echo "❌ 错误: PAYMASTER_PRIVATE_KEY 环境变量未设置"
-        echo "💡 请确保 .env.dev 文件存在或手动设置环境变量"
+        echo "❌ Error: PAYMASTER_PRIVATE_KEY environment variable not set"
+        echo "💡 Please ensure .env.dev file exists or manually set environment variables"
         exit 1
     fi
 }
 
-# 主要逻辑
-echo "🔍 检查必需工具..."
+# Main logic
+echo "🔍 Checking required tools..."
 check_tool "anvil"
 check_tool "cargo"
 
-# 验证和显示配置
+# Kill existing processes to prevent port conflicts
+kill_existing_processes
+
+# Validate and display configuration
 show_config
 
-# 1. 启动 Anvil (如果需要)
+# 1. Start Anvil (if needed)
 if [ "$NETWORK" = "dev" ] && [ "$RPC_URL" = "http://localhost:8545" ]; then
     if [ -f "$ANVIL_PID_FILE" ]; then
-        echo "ℹ️  Anvil 似乎已在运行 (PID: $(cat $ANVIL_PID_FILE)). 跳过启动."
+        echo "ℹ️  Anvil seems to be already running (PID: $(cat $ANVIL_PID_FILE)). Skipping startup."
     else
-        echo "🔥 启动本地Anvil区块链..."
+        echo "🔥 Starting local Anvil blockchain..."
         anvil --host 0.0.0.0 --port 8545 --chain-id $CHAIN_ID > anvil.log 2>&1 &
         echo $! > $ANVIL_PID_FILE
-        sleep 3 # 等待 Anvil 完全启动
-        echo "✅ Anvil 已启动 (PID: $(cat $ANVIL_PID_FILE))"
-        
-        # 验证Anvil是否正常工作
+        sleep 3 # Wait for Anvil to fully start
+        echo "✅ Anvil started (PID: $(cat $ANVIL_PID_FILE))"
+
+        # Verify Anvil is working properly
         if curl -s -X POST -H "Content-Type: application/json" \
             --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
             $RPC_URL > /dev/null; then
-            echo "✅ Anvil 连接验证成功"
+            echo "✅ Anvil connection verification successful"
         else
-            echo "❌ Anvil 连接失败"
+            echo "❌ Anvil connection failed"
             exit 1
         fi
     fi
 else
-    echo "🌐 使用外部网络: $RPC_URL"
+    echo "🌐 Using external network: $RPC_URL"
 fi
 
-# 2. 构建SuperRelay
-echo "🔨 构建SuperRelay..."
-cargo build --package super-relay --release
+# 2. Build SuperRelay and rundler
+echo "🔨 Building SuperRelay and rundler..."
+cargo build --package super-relay --package rundler --release
 
-# 3. 启动 SuperRelay (使用super-relay包装器)
+# 3. Start SuperRelay (using super-relay wrapper)
 echo ""
-echo "🚀 启动SuperRelay企业级服务..."
+echo "🚀 Starting SuperRelay enterprise service..."
 echo "------------------------------------"
-echo "💡 架构说明:"
-echo "  • SuperRelay = 企业级包装器"
-echo "  • rundler = 底层ERC-4337引擎"
-echo "  • paymaster-relay = Gas赞助服务"
-echo "  • 配置文件: config/config.toml"
+echo "💡 Architecture description:"
+echo "  • SuperRelay = Enterprise wrapper"
+echo "  • rundler = Underlying ERC-4337 engine"
+echo "  • paymaster-relay = Gas sponsorship service"
+echo "  • Configuration file: config/config.toml"
 echo "------------------------------------"
 echo ""
 
-# 显示启动命令
-echo "🔧 执行命令:"
+# Display startup command
+echo "🔧 Executing command:"
 echo "  ./target/release/super-relay node --config config/config.toml"
 echo ""
 
-# 前台启动SuperRelay服务
-./target/release/super-relay node --config config/config.toml
+# Start SuperRelay service in foreground (ensure environment variables are passed)
+env PAYMASTER_PRIVATE_KEY="$PAYMASTER_PRIVATE_KEY" \
+    SIGNER_PRIVATE_KEYS="$SIGNER_PRIVATE_KEYS" \
+    RPC_URL="$RPC_URL" \
+    NETWORK="$NETWORK" \
+    CHAIN_ID="$CHAIN_ID" \
+    ./target/release/super-relay node --config config/config.toml

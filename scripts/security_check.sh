@@ -24,7 +24,7 @@ report_issue() {
     local severity=$1
     local message=$2
     local recommendation=$3
-    
+
     case $severity in
         "CRITICAL")
             echo -e "${RED}🚨 CRITICAL: $message${NC}"

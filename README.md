@@ -98,7 +98,7 @@ git clone https://github.com/AAStarCommunity/SuperRelay.git && cd SuperRelay
 curl http://localhost:9000/health
 ```
 
-🎉 **SuperRelay 启动成功！** 
+🎉 **SuperRelay 启动成功！**
 - 🌐 Swagger UI: http://localhost:9000/swagger-ui/
 - 📊 API 端点: http://localhost:3000
 - 📈 监控面板: http://localhost:8080/metrics
@@ -301,7 +301,7 @@ graph TB
 // 使用 SuperRelay Paymaster API
 const superRelay = {
   baseURL: 'http://localhost:3000',
-  
+
   async sponsorUserOperation(userOp, entryPoint) {
     const response = await fetch(this.baseURL, {
       method: 'POST',
@@ -315,7 +315,7 @@ const superRelay = {
     });
     return response.json();
   },
-  
+
   async healthCheck() {
     const response = await fetch('http://localhost:9000/health');
     return response.text();

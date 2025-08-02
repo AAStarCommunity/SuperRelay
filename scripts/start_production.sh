@@ -20,13 +20,13 @@ mkdir -p "$LOG_DIR"
 check_required_env() {
     local required_vars=(
         "SIGNER_PRIVATE_KEYS"
-        "PAYMASTER_PRIVATE_KEY" 
+        "PAYMASTER_PRIVATE_KEY"
         "RPC_URL"
         "NETWORK"
     )
-    
+
     echo "🔍 检查必需的环境变量..."
-    
+
     for var in "${required_vars[@]}"; do
         if [ -z "${!var}" ]; then
             echo "❌ 错误: 环境变量 $var 未设置"
@@ -51,7 +51,7 @@ check_required_env() {
 # 检查配置文件
 check_config() {
     echo "📁 检查配置文件: $PRODUCTION_CONFIG"
-    
+
     if [ ! -f "$PRODUCTION_CONFIG" ]; then
         echo "❌ 生产配置文件不存在: $PRODUCTION_CONFIG"
         echo ""
@@ -60,14 +60,14 @@ check_config() {
         echo "   编辑生产环境特定设置"
         exit 1
     fi
-    
+
     echo "✅ 配置文件存在"
 }
 
 # 验证网络连接
 check_network() {
     echo "🌐 验证网络连接: $RPC_URL"
-    
+
     if curl -s -f -X POST -H "Content-Type: application/json" \
         --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
         "$RPC_URL" > /dev/null; then
@@ -86,15 +86,15 @@ start_service() {
     echo "🌐 网络: $NETWORK"
     echo "📡 RPC: $RPC_URL"
     echo ""
-    
+
     # 后台启动服务并记录PID
     nohup ./target/release/super-relay node \
         --config "$PRODUCTION_CONFIG" \
         > "$LOG_DIR/super-relay.log" 2>&1 &
-    
+
     local pid=$!
     echo $pid > "$PID_FILE"
-    
+
     echo "✅ SuperRelay已启动 (PID: $pid)"
     echo "📋 日志跟踪: tail -f $LOG_DIR/super-relay.log"
     echo "🛑 停止服务: kill $pid 或 ./scripts/stop_production.sh"
@@ -103,9 +103,9 @@ start_service() {
 # 生成systemd服务文件
 generate_systemd_service() {
     local service_file="/etc/systemd/system/$SERVICE_NAME.service"
-    
+
     echo "📄 生成systemd服务文件: $service_file"
-    
+
     cat > "/tmp/$SERVICE_NAME.service" << EOF
 [Unit]
 Description=SuperRelay - Enterprise Account Abstraction Service
@@ -154,9 +154,9 @@ EOF
 # 生成环境变量模板
 generate_env_template() {
     local env_file=".env.production.template"
-    
+
     echo "📝 生成生产环境变量模板: $env_file"
-    
+
     cat > "$env_file" << 'EOF'
 # SuperRelay生产环境配置
 # 复制到.env.production并填写实际值
