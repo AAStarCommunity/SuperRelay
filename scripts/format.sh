@@ -29,25 +29,15 @@ else
     echo "   Excluding paths matching: $SUBMODULE_PATHS_PATTERN"
 fi
 
-# --- Rust Formatting (Submodule Aware) ---
-echo "🔧 Formatting Rust code for workspace members..."
-# Use cargo metadata and jq to get a clean list of manifest paths for all packages.
-# This is the most reliable way to identify and iterate over them.
-for manifest_path in $(cargo metadata --no-deps --format-version=1 | jq -r '.packages[].manifest_path'); do
-    pkg_path=$(dirname "$manifest_path")
+# --- Rust Formatting (Optimized) ---
+echo "🔧 Formatting Rust code for entire workspace..."
+# Format the entire workspace at once - much faster than per-package
+cargo +nightly fmt --all
 
-    # Check if the package path is inside a submodule path
-    if [ ! -z "$SUBMODULE_PATHS_PATTERN" ] && echo "$pkg_path" | grep -qE "^($SUBMODULE_PATHS_PATTERN)"; then
-        echo "   Skipping submodule member: $pkg_path"
-        continue
-    fi
-
-    echo "   Formatting $pkg_path..."
-    cargo +nightly fmt --manifest-path "$manifest_path"
-
-    echo "   Checking $pkg_path..."
-    cargo clippy --manifest-path "$manifest_path" -- -D warnings
-done
+echo "🔍 Running workspace-level checks..."
+# Run clippy once for the entire workspace instead of per-package
+# This avoids redundant compilation and dependency resolution
+cargo clippy --workspace --all-targets -- -D warnings
 
 
 # --- Dependency and Protobuf Formatting ---

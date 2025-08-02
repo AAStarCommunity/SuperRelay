@@ -96,7 +96,7 @@ This is a Rust workspace with multiple crates organized under `/crates/` and bin
 **Key Crates**:
 - `crates/paymaster-relay/` - **Core PaymasterRelay service** with API, policy engine, and signer management
 - `crates/rpc/` - JSON-RPC server implementation with ERC-4337 APIs
-- `crates/pool/` - UserOperation mempool management  
+- `crates/pool/` - UserOperation mempool management
 - `crates/builder/` - Bundle creation and transaction building
 - `crates/sim/` - UserOperation simulation and validation
 - `crates/provider/` - Ethereum provider abstractions and integrations
@@ -273,15 +273,15 @@ git commit  # 禁止使用 --no-verify
 pub async fn safe_rpc_method(&self, input: Input) -> Result<Output, ErrorObjectOwned> {
     // 1. Input validation first
     self.validator.validate_input(&input)?;
-    
-    // 2. Rate limiting check  
+
+    // 2. Rate limiting check
     if !self.rate_limiter.check_rate_limit(client_ip) {
         return Err(rate_limit_error());
     }
-    
+
     // 3. Business logic
     let result = self.process(input).await?;
-    
+
     Ok(result)
 }
 

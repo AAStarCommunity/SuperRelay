@@ -286,7 +286,18 @@ impl Cli {
 
                 if let Some(ref private_key) = config.paymaster_relay.private_key {
                     args.push("--paymaster.private_key".to_string());
-                    args.push(private_key.clone());
+                    // 解析环境变量占位符
+                    let resolved_key =
+                        if private_key.starts_with("${") && private_key.ends_with("}") {
+                            let env_var = &private_key[2..private_key.len() - 1];
+                            std::env::var(env_var).unwrap_or_else(|_| {
+                                eprintln!("⚠️  环境变量 {} 未设置，使用配置文件中的值", env_var);
+                                private_key.clone()
+                            })
+                        } else {
+                            private_key.clone()
+                        };
+                    args.push(resolved_key);
                 }
 
                 if let Some(ref policy_file) = config.paymaster_relay.policy_file {

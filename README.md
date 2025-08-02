@@ -2,6 +2,25 @@
 
 AAStar 的 SuperPaymaster 包括了 SuperRelay 和 SuperPaymaster 合约。SuperRelay 是一个基于 Rundler (Alchemy 的 ERC-4337 bundler) 集成 Paymaster Relay 服务的开源项目，目标是为 ERC-4337 生态提供 gas 赞助 + 安全过滤 + 链上提交功能。
 
+## 🏗️ 架构关系说明
+
+**重要概念澄清**:
+- **rundler 是 4337 的 bundler**，支持处理 paymaster 交易但不提供 paymaster 功能
+- **正因如此才需要开发 SuperRelay**，提供完整的 gas 赞助服务
+- **两个 crates 确实做到了隔离和分工**：rundler (bundler) + paymaster-relay (gas 赞助)
+- **SuperRelay 是企业级包装器**，整合了 rundler + paymaster-relay + 配置管理 + 监控
+
+**分层架构设计**:
+```
+SuperRelay 包装器 (企业级功能)
+    ↓ 集成
+PaymasterRelayService (Gas 赞助服务)
+    ↓ 协作
+Rundler 引擎 (ERC-4337 Bundler)
+    ↓ 连接
+以太坊网络 (EntryPoint 合约)
+```
+
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-green)]()

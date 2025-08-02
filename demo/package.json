@@ -19,8 +19,8 @@
   "author": "SuperPaymaster Team",
   "license": "MIT",
   "dependencies": {
-    "ethers": "^6.0.0",
-    "axios": "^1.0.0"
+    "axios": "^1.0.0",
+    "ethers": "^6.0.0"
   },
   "engines": {
     "node": ">=16.0.0"
@@ -32,5 +32,9 @@
   "bugs": {
     "url": "https://github.com/AAStarCommunity/SuperRelay/issues"
   },
-  "homepage": "https://github.com/AAStarCommunity/SuperRelay#readme"
-} 
+  "homepage": "https://github.com/AAStarCommunity/SuperRelay#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "@types/node": "^24.1.0"
+  }
+}

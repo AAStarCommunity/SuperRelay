@@ -27,7 +27,16 @@
       "Bash(./scripts/format.sh:*)",
       "Bash(cargo fmt:*)",
       "Bash(git push:*)",
-      "Bash(cargo clippy:*)"
+      "Bash(cargo clippy:*)",
+      "Bash(./scripts/setup_test_accounts.sh:*)",
+      "Bash(./scripts/test_userop_construction.sh:*)",
+      "Bash(./scripts/start_superrelay.sh:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(source:*)",
+      "Bash(cp:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }
