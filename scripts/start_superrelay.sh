@@ -188,7 +188,7 @@ if [ "$STARTUP_MODE" = "legacy" ] || [ "$STARTUP_MODE" = "node" ]; then
     echo "🔧 Starting in Legacy Mode (for compatibility):"
     echo "  ./target/release/super-relay node --config config/config.toml"
     echo ""
-    
+
     # Start legacy mode
     env PAYMASTER_PRIVATE_KEY="$PAYMASTER_PRIVATE_KEY" \
         SIGNER_PRIVATE_KEYS="$SIGNER_PRIVATE_KEYS" \
@@ -200,7 +200,7 @@ else
     echo "🌐 Starting in Gateway Mode (recommended):"
     echo "  ./target/release/super-relay gateway --config config/config.toml --host 127.0.0.1 --port 3000 --enable-paymaster"
     echo ""
-    
+
     # Start gateway mode
     env PAYMASTER_PRIVATE_KEY="$PAYMASTER_PRIVATE_KEY" \
         SIGNER_PRIVATE_KEYS="$SIGNER_PRIVATE_KEYS" \

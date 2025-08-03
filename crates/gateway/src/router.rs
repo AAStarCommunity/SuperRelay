@@ -90,8 +90,23 @@ impl GatewayRouter {
         );
 
         // Convert parameters to appropriate types and call paymaster service
-        // TODO: Implement actual conversion and service call
-        // For now, return a mock response
+        // TODO: Implement actual conversion from JSON to UserOperationVariant
+        // For now, return a mock response that follows the correct sponsor pattern
+
+        debug!(
+            "Received sponsorship request for entry point: {:?}",
+            _entry_point
+        );
+        debug!("UserOperation params: {:?}", _user_operation);
+
+        // In real implementation, this would:
+        // 1. Parse params into UserOperationVariant and Address
+        // 2. Call paymaster_service.sponsor_user_operation(user_op, entry_point)
+        // 3. Return the PaymasterSponsorResult as JSON
+        debug!(
+            "Using paymaster service for sponsorship: {:p}",
+            paymaster_service.as_ref()
+        );
 
         Ok(serde_json::json!({
             "paymasterAndData": "0x1234567890abcdef",

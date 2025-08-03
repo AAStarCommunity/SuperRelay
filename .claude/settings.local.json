@@ -39,7 +39,9 @@
       "Bash(git rm:*)",
       "Bash(./target/release/super-relay node:*)",
       "Bash(echo:*)",
-      "Bash(pgrep:*)"
+      "Bash(pgrep:*)",
+      "Bash(git tag:*)",
+      "Bash(./format.sh)"
     ],
     "deny": []
   }

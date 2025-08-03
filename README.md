@@ -8,7 +8,7 @@ AAStar's SuperPaymaster includes SuperRelay and SuperPaymaster contracts. SuperR
 
 **Architecture Advantages**:
 - **Single Binary Deployment**: Unified binary deployment, simplified operations
-- **Zero-Invasion Design**: Zero modifications to upstream rundler project, ensuring update capability  
+- **Zero-Invasion Design**: Zero modifications to upstream rundler project, ensuring update capability
 - **Internal Routing**: Access rundler components through internal method calls, avoiding RPC overhead
 - **Enterprise Features**: Authentication, rate limiting, policy execution unified at gateway layer
 
@@ -20,30 +20,33 @@ SuperRelay Gateway achieves zero-invasion rundler compatibility through intellig
 graph TD
     A[Client JSON-RPC Request] --> B[SuperRelay Gateway :3000]
     B --> C{Request Routing Analysis}
-    
+
     C -->|pm_* methods| D[Enterprise Middleware Layer]
     C -->|eth_* methods| H[Rundler Routing]
     C -->|rundler_* methods| H
     C -->|debug_* methods| H
-    
+
     D --> E[Authentication & Authorization Check]
     E --> F[Rate Limiting Check]
     F --> G[Policy Engine Validation]
     G --> I[PaymasterService Internal Call]
-    
+
     H --> J[Rundler Component Internal Call]
     J --> K[EthApi/RundlerApi/DebugApi]
-    
+
     I --> L[Gas Sponsorship Processing]
     L --> M[Signature Generation]
-    M --> N[UserOperation Construction]
-    
-    N --> O[Direct Submission to Rundler Memory Pool]
-    K --> O
-    O --> P[Unified Monitoring & Metrics Collection]
-    P --> Q[JSON-RPC Response]
+    M --> N[Return Paymaster Data to Client]
+
+    H --> J[Rundler Component Internal Call]
+    J --> K[EthApi Validation & Simulation]
+    K --> O[Submit to Rundler Memory Pool]
+
+    N --> P[JSON-RPC Response with Paymaster Data]
+    O --> Q[JSON-RPC Response with Transaction Hash]
+    P --> A
     Q --> A
-    
+
     style B fill:#e1f5fe
     style D fill:#f3e5f5
     style I fill:#e8f5e8
@@ -51,7 +54,7 @@ graph TD
     style P fill:#fce4ec
 ```
 
-**Key Architecture Clarification**: After paymaster processing completes, the system makes **direct internal calls** to rundler's memory pool via `LocalPoolHandle.add_op()`, not RPC calls. This ensures maximum performance and maintains transaction atomicity.
+**Key Architecture Clarification**: The paymaster service generates sponsorship data (`paymasterAndData`) and returns it to the client. The client then constructs the complete UserOperation and submits it via `eth_sendUserOperation` → EthApi → validation & simulation → memory pool. This follows the standard ERC-4337 flow while providing gas sponsorship.
 
 ## 🏗️ Zero-Invasion Architecture Design
 
@@ -60,7 +63,7 @@ graph TD
 ```
 SuperRelay API Gateway (Port 3000)
     ├── 🔐 Authentication & Authorization Module (JWT/API Key)
-    ├── 🚦 Rate Limiting Module (Memory/Redis)  
+    ├── 🚦 Rate Limiting Module (Memory/Redis)
     ├── 📋 Policy Execution Module (TOML Configuration)
     └── 🎯 Smart Router
         ├── PaymasterService → Internal Method Calls → Gas Sponsorship Logic
@@ -68,7 +71,7 @@ SuperRelay API Gateway (Port 3000)
         ├── RundlerApi → Internal Method Calls → Rundler-specific Methods
         ├── DebugApi → Internal Method Calls → Debug Interfaces
         └── 📊 Monitoring System → Reuse Existing Rundler Metrics
-            ↓ 
+            ↓
         🌐 Ethereum Network (EntryPoint Contract)
 ```
 
@@ -165,11 +168,11 @@ curl http://localhost:3000/metrics
 
 ## 🎯 Core Features
 
-✅ **Zero-Invasion Architecture** - Rundler core code completely unchanged  
-✅ **Single Binary Deployment** - Simplified operations, reduced complexity  
-✅ **Internal Routing** - High-performance internal method calls  
-✅ **Enterprise Features** - Authentication, rate limiting, policies, monitoring  
-✅ **Independent Web UI** - Frontend/backend separation, technology stack freedom  
+✅ **Zero-Invasion Architecture** - Rundler core code completely unchanged
+✅ **Single Binary Deployment** - Simplified operations, reduced complexity
+✅ **Internal Routing** - High-performance internal method calls
+✅ **Enterprise Features** - Authentication, rate limiting, policies, monitoring
+✅ **Independent Web UI** - Frontend/backend separation, technology stack freedom
 ✅ **Complete ERC-4337 Support** - v0.6/v0.7 format compatibility
 
 ## 📚 Documentation Navigation

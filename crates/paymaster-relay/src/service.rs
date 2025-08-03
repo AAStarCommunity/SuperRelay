@@ -3,23 +3,33 @@
 
 use std::{sync::Arc, time::Instant};
 
-use alloy_primitives::B256;
 use ethers::types::Address;
 use rundler_pool::LocalPoolHandle;
-use rundler_types::{
-    chain::ChainSpec, pool::Pool, v0_6, v0_7, UserOperation, UserOperationPermissions,
-    UserOperationVariant,
-};
+use rundler_types::{UserOperation, UserOperationVariant};
 
 use crate::{
     error::PaymasterError, metrics::PaymasterMetrics, policy::PolicyEngine, signer::SignerManager,
 };
 
+/// Result of paymaster sponsorship operation
+#[derive(Debug, Clone)]
+pub struct PaymasterSponsorResult {
+    /// Paymaster and data to include in UserOperation
+    pub paymaster_and_data: Vec<u8>,
+    /// Verification gas limit for paymaster
+    pub verification_gas_limit: Option<u64>,
+    /// Post-operation gas limit for paymaster  
+    pub post_op_gas_limit: Option<u64>,
+    /// Modified gas limits (if any)
+    pub pre_verification_gas: Option<u64>,
+    pub verification_gas_limit_uo: Option<u64>,
+    pub call_gas_limit: Option<u64>,
+}
+
 #[derive(Clone, Debug)]
 pub struct PaymasterRelayService {
     signer_manager: SignerManager,
     policy_engine: PolicyEngine,
-    pool: Arc<LocalPoolHandle>,
     metrics: PaymasterMetrics,
 }
 
@@ -27,12 +37,11 @@ impl PaymasterRelayService {
     pub fn new(
         signer_manager: SignerManager,
         policy_engine: PolicyEngine,
-        pool: Arc<LocalPoolHandle>,
+        _pool: Arc<LocalPoolHandle>,
     ) -> Self {
         Self {
             signer_manager,
             policy_engine,
-            pool,
             metrics: PaymasterMetrics::new(),
         }
     }
@@ -45,15 +54,15 @@ impl PaymasterRelayService {
     pub async fn sponsor_user_operation(
         &self,
         user_op: UserOperationVariant,
-        _entry_point: Address, // Note: entry_point is part of UserOperationVariant now
-    ) -> Result<B256, PaymasterError> {
+        entry_point: Address,
+    ) -> Result<PaymasterSponsorResult, PaymasterError> {
         let start_time = Instant::now();
 
         // Update active connections count
         self.metrics.update_active_connections(1); // Simplified - would track actual count
 
         let result = self
-            .sponsor_user_operation_internal(user_op, _entry_point)
+            .sponsor_user_operation_internal(user_op, entry_point)
             .await;
         let duration = start_time.elapsed();
 
@@ -82,7 +91,7 @@ impl PaymasterRelayService {
         &self,
         user_op: UserOperationVariant,
         _entry_point: Address,
-    ) -> Result<B256, PaymasterError> {
+    ) -> Result<PaymasterSponsorResult, PaymasterError> {
         // 1. Check policy
         let policy_start = Instant::now();
         let policy_result = self.policy_engine.check_policy(&user_op);
@@ -114,57 +123,39 @@ impl PaymasterRelayService {
             }
         };
 
-        // 3. Construct paymasterAndData and create the new sponsored UserOperation
+        // 3. Generate paymaster and data for the client to use
         let paymaster_address = self.signer_manager.address();
-        let chain_spec = ChainSpec::default(); // Use default chain spec for now
-        let sponsored_user_op = match user_op {
-            UserOperationVariant::V0_6(op) => {
+
+        match user_op {
+            UserOperationVariant::V0_6(_op) => {
+                // For v0.6, combine paymaster address and signature into paymasterAndData
                 let paymaster_and_data =
                     [paymaster_address.as_bytes(), &signature.to_vec()].concat();
-                let sponsored_op = v0_6::UserOperationBuilder::from_uo(op, &chain_spec)
-                    .paymaster_and_data(alloy_primitives::Bytes::from(paymaster_and_data))
-                    .build();
-                UserOperationVariant::V0_6(sponsored_op)
+
+                Ok(PaymasterSponsorResult {
+                    paymaster_and_data,
+                    verification_gas_limit: None,
+                    post_op_gas_limit: None,
+                    pre_verification_gas: None,
+                    verification_gas_limit_uo: None,
+                    call_gas_limit: None,
+                })
             }
-            UserOperationVariant::V0_7(op) => {
-                // For v0.7, paymaster, paymaster_verification_gas_limit, paymaster_post_op_gas_limit, and paymaster_data are separate fields.
-                // Here we are creating a simple sponsoring paymaster.
-                // A more advanced implementation would get gas limits from a simulation.
-                // For now, we'll use some reasonable defaults, assuming the paymaster contract
-                // will be able to handle it.
+            UserOperationVariant::V0_7(_op) => {
+                // For v0.7, return separate paymaster fields
                 let paymaster_verification_gas_limit = 100_000;
                 let paymaster_post_op_gas_limit = 20_000;
-                let sponsored_op = v0_7::UserOperationBuilder::from_uo(op, &chain_spec)
-                    .paymaster(
-                        alloy_primitives::Address::from(paymaster_address.as_fixed_bytes()),
-                        paymaster_verification_gas_limit,
-                        paymaster_post_op_gas_limit,
-                        alloy_primitives::Bytes::from(signature.to_vec()),
-                    )
-                    .build();
-                UserOperationVariant::V0_7(sponsored_op)
-            }
-        };
 
-        // 4. Add to mempool
-        let pool_result = self
-            .pool
-            .add_op(sponsored_user_op, UserOperationPermissions::default())
-            .await;
-
-        // Record pool interaction
-        self.metrics.record_pool_submission(pool_result.is_ok());
-
-        // Convert PoolError to PaymasterError
-        match pool_result {
-            Ok(_) => {}
-            Err(pool_error) => {
-                return Err(PaymasterError::PoolError(pool_error));
+                Ok(PaymasterSponsorResult {
+                    paymaster_and_data: signature.to_vec(),
+                    verification_gas_limit: Some(paymaster_verification_gas_limit),
+                    post_op_gas_limit: Some(paymaster_post_op_gas_limit),
+                    pre_verification_gas: None,
+                    verification_gas_limit_uo: None,
+                    call_gas_limit: None,
+                })
             }
         }
-
-        // Return the user operation hash directly
-        Ok(user_op_hash)
     }
 
     /// Categorize errors for metrics

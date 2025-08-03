@@ -13,17 +13,17 @@ path = "src/main.rs"
 clap = { workspace = true }
 eyre = { workspace = true }
 regex = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
-toml = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 # Rundler components
 rundler-paymaster-relay = { path = "../../crates/paymaster-relay" }
 rundler-rpc = { path = "../../crates/rpc" }
 rundler-types = { path = "../../crates/types" }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 
 # Gateway
 super-relay-gateway = { path = "../../crates/gateway" }
+tokio = { workspace = true, features = ["full"] }
+toml = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }

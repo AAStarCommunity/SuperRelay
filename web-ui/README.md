@@ -34,7 +34,7 @@ Access at: http://localhost:9000/swagger-ui/
 ### Future Components
 
 - Admin Dashboard
-- Monitoring UI  
+- Monitoring UI
 - Policy Configuration UI
 - Analytics Dashboard
 

@@ -12,6 +12,7 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.0", features = ["derive"] }
 ethers = { workspace = true }
 eyre = { workspace = true }
+hex = "0.4"
 jsonrpsee = { workspace = true, features = ["full"] }
 metrics = "0.23"
 metrics-exporter-prometheus = { version = "0.16", default-features = false, features = ["http-listener"] }

@@ -466,9 +466,9 @@ rundler/
 - **优势**：完全隔离，零侵入，更新安全
 - **劣势**：进程间 RPC 开销，配置协调复杂
 
-#### 选择 B：Gateway Pattern  
+#### 选择 B：Gateway Pattern
 ```
-用户 → SuperRelay(API网关) 
+用户 → SuperRelay(API网关)
        ├── rundler服务
        ├── 监控服务
        └── 企业策略
@@ -493,7 +493,7 @@ SuperRelay进程 → rundler进程(含paymaster-relay)
 - **通信方式**：通过标准 RPC 接口交互，保持协议兼容
 
 **优势评估**：
-- ✅ **更新隔离**：rundler 更新只需验证 RPC 接口兼容性 
+- ✅ **更新隔离**：rundler 更新只需验证 RPC 接口兼容性
 - ✅ **职责分离**：bundler vs 企业功能边界清晰
 - ✅ **零侵入**：对 rundler 代码库无任何修改
 - ✅ **独立演进**：企业功能可独立迭代和部署

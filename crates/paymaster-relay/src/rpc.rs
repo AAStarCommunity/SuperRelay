@@ -279,7 +279,16 @@ impl PaymasterRelayApiServer for PaymasterRelayApiServerImpl {
             .sponsor_user_operation(user_op_variant, entry_point_addr)
             .await
         {
-            Ok(hash) => Ok(format!("0x{:x}", hash)),
+            Ok(sponsor_result) => {
+                // Return JSON response with paymaster data
+                let response = serde_json::json!({
+                    "paymasterAndData": format!("0x{}", hex::encode(&sponsor_result.paymaster_and_data)),
+                    "preVerificationGas": sponsor_result.pre_verification_gas.map(|g| format!("0x{:x}", g)),
+                    "verificationGasLimit": sponsor_result.verification_gas_limit_uo.map(|g| format!("0x{:x}", g)),
+                    "callGasLimit": sponsor_result.call_gas_limit.map(|g| format!("0x{:x}", g)),
+                });
+                Ok(response.to_string())
+            }
             Err(e) => Err(e.into()),
         }
     }

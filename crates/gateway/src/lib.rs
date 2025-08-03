@@ -9,9 +9,13 @@
 
 //! SuperRelay Gateway - API Gateway with enterprise features
 
+/// Error types and result helpers
 pub mod error;
+/// Main gateway implementation
 pub mod gateway;
+/// HTTP middleware for enterprise features
 pub mod middleware;
+/// Request routing logic
 pub mod router;
 
 pub use error::{GatewayError, GatewayResult};

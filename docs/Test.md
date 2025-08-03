@@ -89,7 +89,7 @@ ps aux | grep -E "(rundler|super-relay|anvil)"
 
 **Service URLs**:
 - **Prometheus Metrics**: http://localhost:8080/metrics - Raw metrics data
-- **Health Check**: http://localhost:9000/health - Service health status  
+- **Health Check**: http://localhost:9000/health - Service health status
 - **Swagger UI**: http://localhost:9000/swagger-ui/ - API documentation and testing
 
 ### Viewing Metrics
@@ -118,24 +118,24 @@ echo "=========================="
 while true; do
   if curl -s http://localhost:8080/metrics > /dev/null 2>&1; then
     echo -e "\n📊 $(date '+%H:%M:%S') - Metrics Update"
-    
+
     # Pool metrics
     echo "📦 Pool:"
     curl -s http://localhost:8080/metrics | grep "pool_" | head -3
-    
+
     # RPC metrics
     echo "🌐 RPC:"
     curl -s http://localhost:8080/metrics | grep "rpc_" | head -3
-    
+
     # Health status
     echo "🏥 Health:"
     curl -s http://localhost:9000/health 2>/dev/null || echo "Health endpoint not available"
-    
+
   else
     echo "❌ SuperRelay service not running"
     echo "Please start with: ./scripts/start_superrelay.sh"
   fi
-  
+
   sleep 5
 done
 EOF
@@ -375,7 +375,7 @@ pdm run pytest -rA --url http://localhost:3000 --entry-point 0x5FF137D4b0FDCD49D
   # 进入测试目录
   cd test/spec-tests/local
 
-  # 运行 v0.6 测试 
+  # 运行 v0.6 测试
   ./run-spec-tests-v0_6.sh
 
   # 运行 v0.7 测试
@@ -392,7 +392,7 @@ pdm run pytest -rA --url http://localhost:3000 --entry-point 0x5FF137D4b0FDCD49D
   cd test/spec-tests/v0_6/bundler-spec-tests
   pdm install && pdm run update-deps
 
-  # 安装 v0.7 测试依赖  
+  # 安装 v0.7 测试依赖
   cd ../../../v0_7/bundler-spec-tests
   pdm install && pdm run update-deps
 
@@ -462,7 +462,7 @@ pdm run pytest -rA --url http://localhost:3000 --entry-point 0x5FF137D4b0FDCD49D
   ./scripts/start_superrelay.sh
 
   # 2. 在另一个终端查看实时指标
-  watch -n 2 'curl -s http://localhost:8080/metrics | grep -E 
+  watch -n 2 'curl -s http://localhost:8080/metrics | grep -E
   "(pool_|builder_|rpc_)" | tail -10'
 
   # 3. 运行一些测试产生数据
@@ -514,7 +514,7 @@ pdm run pytest -rA --url http://localhost:3000 --entry-point 0x5FF137D4b0FDCD49D
   brew install watch
 
   # 然后就可以使用原来的命令
-  watch -n 2 'curl -s http://localhost:8080/metrics | grep -E 
+  watch -n 2 'curl -s http://localhost:8080/metrics | grep -E
   "(pool_|builder_|rpc_)" | tail -10'
 
   3. 更实用的监控脚本
@@ -534,13 +534,13 @@ pdm run pytest -rA --url http://localhost:3000 --entry-point 0x5FF137D4b0FDCD49D
       echo "📦 Pool:"
       curl -s http://localhost:8080/metrics | grep "pool_" | head -3
 
-      # RPC 指标  
+      # RPC 指标
       echo "🌐 RPC:"
       curl -s http://localhost:8080/metrics | grep "rpc_" | head -3
 
       # 健康状态
       echo "🏥 Health:"
-      curl -s http://localhost:9000/health 2>/dev/null || echo "Health endpoint not 
+      curl -s http://localhost:9000/health 2>/dev/null || echo "Health endpoint not
   available"
 
     else
@@ -572,7 +572,7 @@ pdm run pytest -rA --url http://localhost:3000 --entry-point 0x5FF137D4b0FDCD49D
   # 添加到你的 .zshrc 或 .bashrc
   alias check-superrelay='curl -s http://localhost:9000/health | jq . 2>/dev/null ||
    echo "SuperRelay not running"'
-  alias metrics-superrelay='curl -s http://localhost:8080/metrics | grep -E 
+  alias metrics-superrelay='curl -s http://localhost:8080/metrics | grep -E
   "(pool_|rpc_|builder_)" | head -10'
 
   # 使用

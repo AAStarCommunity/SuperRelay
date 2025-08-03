@@ -246,10 +246,13 @@ async fn sponsor_user_operation_endpoint(
         )
         .await
     {
-        Ok(paymaster_and_data) => {
+        Ok(sponsor_result) => {
             state.metrics.record_request(true, start_time.elapsed());
             Ok(Json(SponsorUserOperationResponse {
-                paymaster_and_data: format!("0x{:x}", paymaster_and_data),
+                paymaster_and_data: format!(
+                    "0x{}",
+                    hex::encode(&sponsor_result.paymaster_and_data)
+                ),
             }))
         }
         Err(e) => {

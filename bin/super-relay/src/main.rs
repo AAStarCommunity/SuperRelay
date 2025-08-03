@@ -310,7 +310,7 @@ impl Cli {
             .map_err(|e| eyre::eyre!("Failed to read config file '{}': {}", config_path, e))?;
 
         let expanded_content = expand_env_vars(&config_content);
-        let super_config: SuperRelayConfig = toml::from_str(&expanded_content)
+        let _super_config: SuperRelayConfig = toml::from_str(&expanded_content)
             .map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
 
         // Create gateway configuration
