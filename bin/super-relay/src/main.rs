@@ -1,11 +1,10 @@
 // SuperRelay - Enterprise API Gateway for Account Abstraction
 // API Gateway with enterprise features for rundler ERC-4337 bundler
 
-use std::{fs, sync::Arc};
+use std::{fs, process::Command};
 
 use clap::{Parser, Subcommand};
 use eyre::Result;
-use rundler_paymaster_relay::PaymasterRelayService;
 use serde::Deserialize;
 use super_relay_gateway::{GatewayConfig, PaymasterGateway};
 use tracing::{info, warn};
@@ -55,6 +54,24 @@ enum Commands {
         #[arg(long, default_value = "config/config.toml")]
         config: String,
 
+        /// Additional rundler arguments
+        #[arg(last = true)]
+        rundler_args: Vec<String>,
+    },
+    /// Run rundler pool service
+    Pool {
+        /// Additional rundler arguments
+        #[arg(last = true)]
+        rundler_args: Vec<String>,
+    },
+    /// Run rundler builder service
+    Builder {
+        /// Additional rundler arguments
+        #[arg(last = true)]
+        rundler_args: Vec<String>,
+    },
+    /// Run rundler admin service
+    Admin {
         /// Additional rundler arguments
         #[arg(last = true)]
         rundler_args: Vec<String>,
@@ -138,22 +155,22 @@ impl Cli {
 
         match self.command {
             Commands::Gateway {
-                config,
-                host,
+                ref config,
+                ref host,
                 port,
                 enable_paymaster,
-                paymaster_private_key,
-                paymaster_policy_file,
+                ref paymaster_private_key,
+                ref paymaster_policy_file,
             } => {
                 self.run_gateway(
-                    config,
-                    host,
+                    config.clone(),
+                    host.clone(),
                     port,
                     enable_paymaster,
-                    paymaster_private_key,
-                    paymaster_policy_file,
+                    paymaster_private_key.clone(),
+                    paymaster_policy_file.clone(),
                 )
-                .await
+                .await?
             }
             Commands::Node {
                 ref config,
@@ -168,11 +185,11 @@ impl Cli {
                 // Expand environment variables in config content
                 let expanded_content = expand_env_vars(&config_content);
 
-                let super_config: SuperRelayConfig = toml::from_str(&expanded_content)
+                let _super_config: SuperRelayConfig = toml::from_str(&expanded_content)
                     .map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
 
                 // Convert config to rundler arguments, avoiding duplicates
-                let config_args = self.config_to_rundler_args(&super_config)?;
+                let config_args = self.config_to_rundler_args(&_super_config)?;
                 let mut rundler_args_final = config_args;
 
                 // Only add additional args that don't conflict with config args
@@ -282,8 +299,8 @@ impl Cli {
         host: String,
         port: u16,
         enable_paymaster: bool,
-        paymaster_private_key: Option<String>,
-        paymaster_policy_file: Option<String>,
+        _paymaster_private_key: Option<String>,
+        _paymaster_policy_file: Option<String>,
     ) -> Result<()> {
         info!("🌐 Starting SuperRelay Gateway Mode");
         info!("📍 Gateway will bind to {}:{}", host, port);

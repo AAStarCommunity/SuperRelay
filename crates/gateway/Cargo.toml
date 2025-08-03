@@ -8,34 +8,20 @@ license = "GPL-3.0-or-later"
 [dependencies]
 # Core async runtime
 tokio = { version = "1", features = ["full"] }
-tower = { version = "0.4", features = ["full"] }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 
 # HTTP server and JSON-RPC
 axum = { version = "0.7", features = ["json", "tokio"] }
-jsonrpsee = { version = "0.21", features = ["server", "client", "macros"] }
-hyper = { version = "1.0" }
-
-# Serialization
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Error handling
 anyhow = "1.0"
-eyre = "0.6"
 thiserror = "1.0"
 
 # Logging and tracing
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# Utilities
-uuid = { version = "1.0", features = ["v4"] }
-chrono = { version = "0.4", features = ["serde"] }
 
 # Rundler dependencies
-rundler-types = { path = "../types" }
-rundler-rpc = { path = "../rpc" }
 rundler-paymaster-relay = { path = "../paymaster-relay" }
 
 [dev-dependencies]

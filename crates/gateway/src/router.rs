@@ -24,7 +24,7 @@ impl GatewayRouter {
     /// Route request to paymaster service
     pub async fn route_to_paymaster(
         &self,
-        _paymaster_service: &Arc<PaymasterRelayService>,
+        paymaster_service: &Arc<PaymasterRelayService>,
         request: &JsonRpcRequest,
     ) -> GatewayResult<Value> {
         debug!("Routing to paymaster: {}", request.method);
@@ -72,7 +72,7 @@ impl GatewayRouter {
     /// Handle pm_sponsorUserOperation method
     async fn handle_sponsor_user_operation(
         &self,
-        _paymaster_service: &Arc<PaymasterRelayService>,
+        paymaster_service: &Arc<PaymasterRelayService>,
         params: &[Value],
     ) -> GatewayResult<Value> {
         if params.len() != 2 {

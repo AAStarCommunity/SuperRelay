@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use axum::{
     extract::State,
@@ -8,10 +8,8 @@ use axum::{
     Router,
 };
 use rundler_paymaster_relay::PaymasterRelayService;
-use rundler_rpc::RpcTask;
 use serde_json::Value;
 use tokio::net::TcpListener;
-use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::{info, warn};
 
@@ -214,9 +212,9 @@ async fn handle_metrics() -> String {
 /// JSON-RPC request structure
 #[derive(Debug)]
 pub struct JsonRpcRequest {
-    id: Value,
-    method: String,
-    params: Vec<Value>,
+    pub id: Value,
+    pub method: String,
+    pub params: Vec<Value>,
 }
 
 /// Parse JSON-RPC request

@@ -47,7 +47,27 @@
 
 #### 项目新增文件统计
 **新增目录结构**:
-- `crates/gateway/` - 5个Rust文件 (网关核心模块)
+- `crates/gateway/` - 6个Rust文件 (网关核心模块)
+  - `Cargo.toml` - Gateway依赖配置，简化为核心依赖
+  - `src/lib.rs` - 模块导出定义
+  - `src/gateway.rs` - PaymasterGateway主服务实现
+  - `src/router.rs` - 智能路由器，处理请求分发
+  - `src/error.rs` - 错误处理和类型定义
+  - `src/middleware.rs` - 中间件框架（预留扩展）
+
+#### Repository配置更新
+- **更新repository URL**: 从`github.com/alchemyplatform/rundler`改为`github.com/AAStarCommunity/SuperRelay`
+- **保持license兼容性**: 继续使用LGPL-3.0许可证
+
+#### 编译测试结果
+- **Gateway编译**: ✅ 成功，仅有文档警告
+- **SuperRelay主程序**: ✅ 成功，支持gateway和node两种模式
+- **依赖清理**: 移除未使用的依赖，优化构建速度
+
+#### 架构图更新
+- **明确paymaster流程**: PaymasterService通过`LocalPoolHandle.add_op()`直接提交到rundler内存池
+- **内部调用路径**: 所有rundler API（eth_*, rundler_*, debug_*）通过gateway内部方法调用暴露
+- **监控继承**: Gateway复用rundler现有监控体系，无重复建设
 - `crates/paymaster-relay/` - 14个Rust文件 (PaymasterRelay服务)
 - `web-ui/` - 4个文件 (独立Web UI部署)
 

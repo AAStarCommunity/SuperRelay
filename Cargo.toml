@@ -27,7 +27,7 @@ version = "0.9.0"
 edition = "2021"
 rust-version = "1.87"
 license = "LGPL-3.0-only"
-repository = "https://github.com/alchemyplatform/rundler"
+repository = "https://github.com/AAStarCommunity/SuperRelay"
 
 [workspace.dependencies]
 
