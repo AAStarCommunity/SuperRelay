@@ -8,6 +8,7 @@ members = [
     "crates/bindings/fastlz/",
     "crates/builder/",
     "crates/contracts/",
+    "crates/gateway/",
     "crates/paymaster-relay/",
     "crates/pool/",
     "crates/provider/",
@@ -123,6 +124,7 @@ tonic-reflection = "0.12.3"
 tower = { version = "0.4.13", features = ["timeout"] }
 tower-http = { version = "0.6.2", features = ["cors"] }
 tracing = "0.1.40"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2.5.2"
 utoipa = "5.0"
 utoipa-swagger-ui = "8.0"

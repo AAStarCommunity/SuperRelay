@@ -5,7 +5,7 @@ if [ -f .env ]; then
     export $(cat .env | grep -v '^#' | xargs)
 fi
 
-echo "🚀 Starting SuperRelay Development Environment..."
+echo "🚀 Starting SuperRelay v0.1.5 Gateway Development Environment..."
 
 # Start Anvil
 echo "📡 Starting Anvil local testnet..."
@@ -20,29 +20,28 @@ if [ ! -f .entrypoint_address ]; then
     ./scripts/deploy_entrypoint.sh
 fi
 
-# Start SuperRelay
-echo "�� Starting SuperRelay service..."
-RUST_LOG=info cargo run --bin rundler -- node \
-  --network dev \
-  --node_http http://localhost:$\{ANVIL_PORT:-8545\} \
-  --rpc.host 0.0.0.0 \
-  --rpc.port ${RUNDLER_RPC_PORT:-3000} \
-  --metrics.port ${METRICS_PORT:-8081} \
-  --signer.private_keys ${SIGNER_PRIVATE_KEYS} \
-  --paymaster.enabled \
-  --paymaster.private_key ${PAYMASTER_PRIVATE_KEY} \
-  --paymaster.policy_file ${PAYMASTER_POLICY_FILE} \
-  --pool.same_sender_mempool_count 4 \
-  --max_verification_gas 10000000 \
-  --rpc.api eth,rundler,paymaster &
+# Start SuperRelay Gateway
+echo "🌐 Starting SuperRelay Gateway service..."
+RUST_LOG=info cargo run --bin super-relay -- gateway \
+  --config config/config.toml \
+  --host 0.0.0.0 \
+  --port ${RUNDLER_RPC_PORT:-3000} \
+  --enable-paymaster \
+  --paymaster-private-key ${PAYMASTER_PRIVATE_KEY} &
 RUNDLER_PID=$!
 
 echo ""
-echo "✅ SuperRelay Development Environment Started!"
+echo "✅ SuperRelay Gateway Development Environment Started!"
 echo "🌐 Services:"
 echo "  • Anvil RPC: http://localhost:${ANVIL_PORT:-8545}"
-echo "  • Rundler RPC: http://localhost:${RUNDLER_RPC_PORT:-3000}"
-echo "  • Metrics: http://localhost:${METRICS_PORT:-8081}/metrics"
+echo "  • Gateway API: http://localhost:${RUNDLER_RPC_PORT:-3000}"
+echo "  • Health Check: http://localhost:${RUNDLER_RPC_PORT:-3000}/health"
+echo "  • Metrics: http://localhost:${RUNDLER_RPC_PORT:-3000}/metrics"
+echo ""
+echo "🎯 Architecture:"
+echo "  • SuperRelay Gateway = Single binary with internal routing"
+echo "  • Paymaster Service = Integrated gas sponsorship"
+echo "  • Rundler Components = Internal method calls"
 echo ""
 echo "Press Ctrl+C to stop all services..."
 

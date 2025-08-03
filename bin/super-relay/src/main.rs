@@ -1,17 +1,20 @@
-// SuperRelay - Enterprise Account Abstraction Paymaster Solution
-// A wrapper around rundler with SuperPaymaster enhancements
+// SuperRelay - Enterprise API Gateway for Account Abstraction
+// API Gateway with enterprise features for rundler ERC-4337 bundler
 
-use std::{fs, process::Command};
+use std::{fs, sync::Arc};
 
 use clap::{Parser, Subcommand};
 use eyre::Result;
+use rundler_paymaster_relay::PaymasterRelayService;
 use serde::Deserialize;
+use super_relay_gateway::{GatewayConfig, PaymasterGateway};
+use tracing::{info, warn};
 
 #[derive(Parser)]
 #[command(
     name = "super-relay",
-    about = "SuperRelay - Enterprise Account Abstraction Solution",
-    version = "0.1.4"
+    about = "SuperRelay - Enterprise API Gateway for Account Abstraction",
+    version = "0.1.5"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -20,30 +23,38 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Run the full SuperRelay node (rundler + paymaster + monitoring)
+    /// Run the SuperRelay API Gateway (single binary mode)
+    Gateway {
+        /// Path to configuration file
+        #[arg(long, default_value = "config/config.toml")]
+        config: String,
+
+        /// Host to bind to
+        #[arg(long, default_value = "127.0.0.1")]
+        host: String,
+
+        /// Port to bind to
+        #[arg(long, default_value = "3000")]
+        port: u16,
+
+        /// Enable paymaster service
+        #[arg(long)]
+        enable_paymaster: bool,
+
+        /// Paymaster private key (or env var name)
+        #[arg(long)]
+        paymaster_private_key: Option<String>,
+
+        /// Paymaster policy file
+        #[arg(long)]
+        paymaster_policy_file: Option<String>,
+    },
+    /// Legacy: Run rundler node (compatibility mode)
     Node {
         /// Path to configuration file
         #[arg(long, default_value = "config/config.toml")]
         config: String,
 
-        /// Additional rundler arguments
-        #[arg(last = true)]
-        rundler_args: Vec<String>,
-    },
-    /// Run only the pool service
-    Pool {
-        /// Additional rundler arguments
-        #[arg(last = true)]
-        rundler_args: Vec<String>,
-    },
-    /// Run only the builder service
-    Builder {
-        /// Additional rundler arguments
-        #[arg(last = true)]
-        rundler_args: Vec<String>,
-    },
-    /// Run admin commands
-    Admin {
         /// Additional rundler arguments
         #[arg(last = true)]
         rundler_args: Vec<String>,
@@ -117,10 +128,33 @@ struct RateLimitingConfig {
 
 impl Cli {
     async fn run(self) -> Result<()> {
+        // Initialize tracing
+        tracing_subscriber::fmt()
+            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+            .init();
+
         // Show SuperRelay branding
         self.show_banner();
 
         match self.command {
+            Commands::Gateway {
+                config,
+                host,
+                port,
+                enable_paymaster,
+                paymaster_private_key,
+                paymaster_policy_file,
+            } => {
+                self.run_gateway(
+                    config,
+                    host,
+                    port,
+                    enable_paymaster,
+                    paymaster_private_key,
+                    paymaster_policy_file,
+                )
+                .await
+            }
             Commands::Node {
                 ref config,
                 ref rundler_args,
@@ -157,6 +191,14 @@ impl Cli {
                     .join("release")
                     .join("rundler");
 
+                // Check if rundler binary exists
+                if !rundler_path.exists() {
+                    eyre::bail!(
+                        "Rundler binary not found at {}. Please run: cargo build --package rundler --release", 
+                        rundler_path.display()
+                    );
+                }
+
                 let mut cmd = Command::new(&rundler_path);
                 cmd.arg("node");
                 cmd.args(&rundler_args_final);
@@ -167,9 +209,15 @@ impl Cli {
                     rundler_args_final.join(" ")
                 );
 
-                let status = cmd.status()?;
+                // Use spawn instead of status to get better error information
+                let mut child = cmd.spawn()?;
+                let status = child.wait()?;
+
                 if !status.success() {
-                    eyre::bail!("rundler node failed with exit code: {:?}", status.code());
+                    match status.code() {
+                        Some(code) => eyre::bail!("rundler node failed with exit code: {}", code),
+                        None => eyre::bail!("rundler node was terminated by signal (possibly killed by system or Ctrl+C)"),
+                    }
                 }
             }
             Commands::Pool { rundler_args } => {
@@ -224,6 +272,63 @@ impl Cli {
                 self.check_status().await?;
             }
         }
+
+        Ok(())
+    }
+
+    async fn run_gateway(
+        &self,
+        config_path: String,
+        host: String,
+        port: u16,
+        enable_paymaster: bool,
+        paymaster_private_key: Option<String>,
+        paymaster_policy_file: Option<String>,
+    ) -> Result<()> {
+        info!("🌐 Starting SuperRelay Gateway Mode");
+        info!("📍 Gateway will bind to {}:{}", host, port);
+
+        // Parse configuration file
+        let config_content = fs::read_to_string(&config_path)
+            .map_err(|e| eyre::eyre!("Failed to read config file '{}': {}", config_path, e))?;
+
+        let expanded_content = expand_env_vars(&config_content);
+        let super_config: SuperRelayConfig = toml::from_str(&expanded_content)
+            .map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
+
+        // Create gateway configuration
+        let gateway_config = GatewayConfig {
+            host,
+            port,
+            enable_logging: true,
+            enable_cors: true,
+            max_connections: 1000,
+            request_timeout: 30,
+        };
+
+        // Initialize paymaster service if enabled
+        let paymaster_service = if enable_paymaster {
+            info!("🔐 Initializing PaymasterRelay service");
+
+            // TODO: Initialize PaymasterRelayService with proper configuration
+            // This is a placeholder - actual implementation will depend on PaymasterRelayService constructor
+            warn!("PaymasterRelay service initialization not implemented yet");
+            None
+        } else {
+            info!("📴 PaymasterRelay service disabled");
+            None
+        };
+
+        // Create and start gateway
+        let gateway = PaymasterGateway::new(gateway_config, paymaster_service);
+
+        info!("✨ Gateway initialization complete");
+        info!("🚀 Starting SuperRelay Gateway server...");
+
+        gateway
+            .start()
+            .await
+            .map_err(|e| eyre::eyre!("Gateway failed: {}", e))?;
 
         Ok(())
     }
@@ -311,8 +416,21 @@ impl Cli {
 
                 if let Some(ref private_key) = config.paymaster_relay.private_key {
                     args.push("--paymaster.private_key".to_string());
-                    // Environment variables in config file have been expanded through expand_env_vars
-                    args.push(private_key.clone());
+                    // Handle both expanded and direct environment variable values
+                    if private_key.starts_with("${") && private_key.ends_with("}") {
+                        // If expansion failed, try direct environment variable lookup
+                        let var_name = &private_key[2..private_key.len() - 1];
+                        if let Ok(env_value) = std::env::var(var_name) {
+                            args.push(env_value);
+                        } else {
+                            eyre::bail!(
+                                "Environment variable {} not found for paymaster private key",
+                                var_name
+                            );
+                        }
+                    } else {
+                        args.push(private_key.clone());
+                    }
                 }
 
                 if let Some(ref policy_file) = config.paymaster_relay.policy_file {
@@ -330,24 +448,24 @@ impl Cli {
     }
 
     fn show_banner(&self) {
-        println!("🚀 SuperRelay v0.1.4 - Enterprise Account Abstraction Service");
-        println!("📊 Enhanced with PaymasterRelay, Monitoring & Swagger UI");
-        println!("🌐 Swagger UI: http://localhost:9000/swagger-ui/");
-        println!("📈 Monitoring: http://localhost:9000/health");
-        println!("🔧 Built on Rundler v0.9.0 with SuperPaymaster Extensions");
+        println!("🚀 SuperRelay v0.1.5 - Enterprise API Gateway for Account Abstraction");
+        println!("🌐 Single Binary Gateway Mode with Internal Routing");
+        println!("📊 Enterprise Features: Authentication, Rate Limiting, Monitoring");
+        println!("🔧 Built on Rundler v0.9.0 with Zero-Invasion Architecture");
         println!();
     }
 
     fn show_version(&self) {
-        println!("SuperRelay v0.1.4");
+        println!("SuperRelay v0.1.5 - Gateway Mode");
         println!("Built on Rundler v0.9.0");
         println!();
-        println!("🚀 Enterprise Account Abstraction Features:");
-        println!("  - ERC-4337 compliant bundler");
-        println!("  - Advanced paymaster policies");
+        println!("🌐 Enterprise API Gateway Features:");
+        println!("  - Single binary deployment");
+        println!("  - Internal method call routing");
+        println!("  - Zero-invasion rundler integration");
+        println!("  - Enterprise authentication & policies");
         println!("  - Real-time monitoring & metrics");
-        println!("  - Swagger UI documentation");
-        println!("  - Enterprise-grade policies");
+        println!("  - Swagger UI (separate deployment)");
     }
 
     async fn check_status(&self) -> Result<()> {

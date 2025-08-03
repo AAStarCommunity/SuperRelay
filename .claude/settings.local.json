@@ -36,7 +36,8 @@
       "Bash(source:*)",
       "Bash(cp:*)",
       "Bash(git check-ignore:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(./target/release/super-relay node:*)"
     ],
     "deny": []
   }

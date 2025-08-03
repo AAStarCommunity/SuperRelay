@@ -13,6 +13,14 @@ GIT_TAG ?= $(shell git describe --tags --abbrev=0)
 build: ## Build the project.
 	cargo build --all --all-features
 
+.PHONY: build-release
+build-release: ## Build the project in release mode (includes all binaries).
+	cargo build --all --all-features --release
+
+.PHONY: build-super-relay
+build-super-relay: ## Build super-relay and rundler binaries for production.
+	cargo build --package super-relay --package rundler --release
+
 .PHONY: clean
 clean: ## Clean the project.
 	cargo clean

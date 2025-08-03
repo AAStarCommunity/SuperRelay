@@ -1,0 +1,193 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SuperRelay API",
+    "description": "Enterprise API Gateway for ERC-4337 Account Abstraction",
+    "version": "0.1.5",
+    "contact": {
+      "name": "SuperRelay Team",
+      "url": "https://github.com/alchemyplatform/rundler"
+    },
+    "license": {
+      "name": "LGPL-3.0",
+      "url": "https://www.gnu.org/licenses/lgpl-3.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "SuperRelay Gateway (Development)"
+    }
+  ],
+  "paths": {
+    "/": {
+      "post": {
+        "summary": "JSON-RPC Endpoint",
+        "description": "Main JSON-RPC API endpoint for all ERC-4337 operations",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonRpcRequest"
+              },
+              "examples": {
+                "pm_sponsorUserOperation": {
+                  "summary": "Sponsor UserOperation",
+                  "value": {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "pm_sponsorUserOperation",
+                    "params": [
+                      {
+                        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+                        "nonce": "0x0",
+                        "initCode": "0x",
+                        "callData": "0x",
+                        "callGasLimit": "0x186A0",
+                        "verificationGasLimit": "0x186A0",
+                        "preVerificationGas": "0x5208",
+                        "maxFeePerGas": "0x3B9ACA00",
+                        "maxPriorityFeePerGas": "0x3B9ACA00",
+                        "paymasterAndData": "0x",
+                        "signature": "0x"
+                      },
+                      "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonRpcResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Check the health status of the SuperRelay Gateway",
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "gateway": {
+                      "type": "string",
+                      "example": "running"
+                    },
+                    "paymaster": {
+                      "type": "string",
+                      "example": "available"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Prometheus Metrics",
+        "description": "Get Prometheus-compatible metrics",
+        "responses": {
+          "200": {
+            "description": "Prometheus metrics",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "JsonRpcRequest": {
+        "type": "object",
+        "required": ["jsonrpc", "method", "id"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "example": "2.0"
+          },
+          "method": {
+            "type": "string",
+            "example": "pm_sponsorUserOperation"
+          },
+          "params": {
+            "type": "array",
+            "items": {}
+          },
+          "id": {
+            "oneOf": [
+              {"type": "string"},
+              {"type": "number"},
+              {"type": "null"}
+            ]
+          }
+        }
+      },
+      "JsonRpcResponse": {
+        "type": "object",
+        "required": ["jsonrpc", "id"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "example": "2.0"
+          },
+          "result": {},
+          "error": {
+            "$ref": "#/components/schemas/JsonRpcError"
+          },
+          "id": {
+            "oneOf": [
+              {"type": "string"},
+              {"type": "number"},
+              {"type": "null"}
+            ]
+          }
+        }
+      },
+      "JsonRpcError": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": -32601
+          },
+          "message": {
+            "type": "string",
+            "example": "Method not found"
+          },
+          "data": {}
+        }
+      }
+    }
+  }
+}

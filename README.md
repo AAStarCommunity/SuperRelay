@@ -1,24 +1,71 @@
-# SuperRelay v0.1.4 - 企业级账户抽象解决方案
+# SuperRelay v0.1.5 - 企业级 API 网关
 
-AAStar 的 SuperPaymaster 包括了 SuperRelay 和 SuperPaymaster 合约。SuperRelay 是一个基于 Rundler (Alchemy 的 ERC-4337 bundler) 集成 Paymaster Relay 服务的开源项目，目标是为 ERC-4337 生态提供 gas 赞助 + 安全过滤 + 链上提交功能。
+AAStar 的 SuperPaymaster 包括了 SuperRelay 和 SuperPaymaster 合约。SuperRelay 是一个基于 Rundler (Alchemy 的 ERC-4337 bundler) 的企业级 API 网关，通过零侵入架构为 ERC-4337 生态提供 gas 赞助 + 认证授权 + 企业策略 + 监控告警功能。
 
-## 🏗️ 架构关系说明
+## 🌐 全新网关架构 (v0.1.5)
 
-**重要概念澄清**:
-- **rundler 是 4337 的 bundler**，支持处理 paymaster 交易但不提供 paymaster 功能
-- **正因如此才需要开发 SuperRelay**，提供完整的 gas 赞助服务
-- **两个 crates 确实做到了隔离和分工**：rundler (bundler) + paymaster-relay (gas 赞助)
-- **SuperRelay 是企业级包装器**，整合了 rundler + paymaster-relay + 配置管理 + 监控
+**架构优势**:
+- **单进程部署**：单 binary 部署，简化运维复杂度
+- **零侵入设计**：对上游 rundler 项目零修改，确保更新能力
+- **内部路由**：通过内部方法调用访问 rundler 组件，避免 RPC 开销
+- **企业功能**：认证、速率限制、策略执行在网关层统一处理
 
-**分层架构设计**:
+## 🔄 API 请求流程图
+
+SuperRelay Gateway 通过智能路由实现零侵入的 rundler 兼容，以下是完整的请求处理流程：
+
+```mermaid
+graph TD
+    A[客户端 JSON-RPC 请求] --> B[SuperRelay Gateway :3000]
+    B --> C{请求路由分析}
+    
+    C -->|pm_* methods| D[企业中间件层]
+    C -->|eth_* methods| H[Rundler 路由]
+    C -->|rundler_* methods| H
+    C -->|debug_* methods| H
+    
+    D --> E[认证 & 授权检查]
+    E --> F[速率限制检查]
+    F --> G[策略引擎验证]
+    G --> I[PaymasterService 内部调用]
+    
+    H --> J[Rundler 组件内部调用]
+    J --> K[EthApi/RundlerApi/DebugApi]
+    
+    I --> L[Gas 赞助处理]
+    L --> M[签名生成]
+    M --> N[UserOperation 构造]
+    
+    N --> O[内部提交到 Rundler 内存池]
+    K --> O
+    O --> P[统一监控 & 指标收集]
+    P --> Q[JSON-RPC 响应]
+    Q --> A
+    
+    style B fill:#e1f5fe
+    style D fill:#f3e5f5
+    style I fill:#e8f5e8
+    style J fill:#fff3e0
+    style P fill:#fce4ec
 ```
-SuperRelay 包装器 (企业级功能)
-    ↓ 集成
-PaymasterRelayService (Gas 赞助服务)
-    ↓ 协作
-Rundler 引擎 (ERC-4337 Bundler)
-    ↓ 连接
-以太坊网络 (EntryPoint 合约)
+
+## 🏗️ 零侵入架构设计
+
+**核心原理**：通过外包装网关实现功能扩展，rundler 核心代码完全不变
+
+```
+SuperRelay API Gateway (端口 3000)
+    ├── 🔐 认证授权模块 (JWT/API Key)
+    ├── 🚦 速率限制模块 (内存/Redis)
+    ├── 📋 策略执行模块 (TOML 配置)
+    └── 🎯 智能路由器
+        ├── PaymasterService → 内部方法调用 → Gas 赞助逻辑
+        ├── EthApi → 内部方法调用 → 标准 ERC-4337 方法
+        ├── RundlerApi → 内部方法调用 → Rundler 特有方法
+        ├── DebugApi → 内部方法调用 → 调试接口
+        └── 📊 监控系统 → 复用 rundler 现有 metrics
+            ↓ 
+        🌐 以太坊网络 (EntryPoint 合约)
 ```
 
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
@@ -26,29 +73,101 @@ Rundler 引擎 (ERC-4337 Bundler)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-green)]()
 [![Swagger](https://img.shields.io/badge/API_Docs-Swagger_UI-brightgreen)](http://localhost:9000/swagger-ui/)
 
-🎉 **重大成就**: 企业级账户抽象平台现已稳定运行！支持 ERC-4337 v0.6/v0.7、完整的 Paymaster 服务、Swagger UI 文档和生产级监控。
-```
-sequenceDiagram
-    participant Client as 客户端
-    participant RPC as PaymasterRelayApi
-    participant Service as PaymasterRelayService
-    participant Policy as PolicyEngine
-    participant Signer as SignerManager
-    participant Pool as Rundler内存池
+## 🚀 快速开始
 
-    Client->>RPC: pm_sponsorUserOperation(userOp, entryPoint)
-    RPC->>Service: sponsor_user_operation()
-    Service->>Policy: check_policy(userOp)
-    Policy-->>Service: 验证通过
-    Service->>Signer: sign_hash(userOpHash)
-    Signer-->>Service: 返回签名
-    Service->>Service: 构造sponsored UserOp
-    Service->>Pool: add_op(sponsored_op)
-    Pool-->>Service: userOpHash
-    Service-->>RPC: userOpHash
-    RPC-->>Client: userOpHash
+### 1. 一键启动开发环境
 
+```bash
+# 克隆项目
+git clone https://github.com/alchemyplatform/rundler.git
+cd rundler
+
+# 启动完整开发环境 (推荐)
+./scripts/start_superrelay.sh
+
+# 或者使用快速启动
+./scripts/quick_start.sh
 ```
+
+### 2. 测试 API 功能
+
+```bash
+# 健康检查
+curl http://localhost:3000/health
+
+# 测试 PaymasterRelay API
+curl -X POST http://localhost:3000 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "pm_sponsorUserOperation",
+    "params": [
+      {
+        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "nonce": "0x0",
+        "callData": "0x",
+        "callGasLimit": "0x186A0",
+        "verificationGasLimit": "0x186A0",
+        "preVerificationGas": "0x5208",
+        "maxFeePerGas": "0x3B9ACA00",
+        "maxPriorityFeePerGas": "0x3B9ACA00"
+      },
+      "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+    ]
+  }'
+
+# 测试标准 ERC-4337 API
+curl -X POST http://localhost:3000 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "eth_supportedEntryPoints",
+    "params": []
+  }'
+```
+
+### 3. 启动 Web UI (可选)
+
+```bash
+# 启动 Swagger UI (独立部署)
+./scripts/start_web_ui.sh
+
+# 访问 API 文档
+open http://localhost:9000/swagger-ui/
+```
+
+### 4. 验证网关功能
+
+```bash
+# 检查网关状态
+curl http://localhost:3000/health | jq
+
+# 查看 Prometheus 指标
+curl http://localhost:3000/metrics
+
+# 运行完整测试套件
+./scripts/test_integration.sh
+```
+
+## 📊 服务端口说明
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| SuperRelay Gateway | 3000 | 主 API 网关服务 |
+| Swagger UI | 9000 | 独立 Web UI 文档 |
+| Anvil (开发) | 8545 | 本地测试链 |
+| Prometheus 指标 | 3000/metrics | 监控指标端点 |
+
+## 🎯 核心特性
+
+✅ **零侵入架构** - rundler 核心代码完全不变  
+✅ **单进程部署** - 简化运维，降低复杂度  
+✅ **内部路由** - 高性能内部方法调用  
+✅ **企业功能** - 认证、限流、策略、监控  
+✅ **独立 Web UI** - 前后端分离，技术栈自由  
+✅ **ERC-4337 完整支持** - v0.6/v0.7 格式兼容
 
 🚀 **基于 ERC-4337 标准的高性能 Paymaster 中继服务**
 
@@ -68,7 +187,7 @@ SuperPaymaster 是一个企业级的 Account Abstraction Paymaster 解决方案�
 ### 👩‍💻 **开发者**
 - **[技术架构分析](docs/Architecture-Analysis.md)** - 深入了解系统设计与 Rundler 集成
 - **[API 接口文档](docs/API-Analysis.md)** - 完整的 REST API 和 Swagger UI 说明
-- **[功能计划表](docs/PLAN.md)** - 开发路线图和功能分解
+- **[功能计划表](docs/Plan.md)** - 开发路线图和功能分解
 - **[测试指南](docs/Testing-Analysis.md)** - 单元测试、集成测试全覆盖
 
 ### 🏗️ **架构师**
@@ -84,8 +203,9 @@ SuperPaymaster 是一个企业级的 Account Abstraction Paymaster 解决方案�
 ### 🧪 **测试工程师**
 - **[测试总结](docs/Testing-Summary.md)** - 测试覆盖率和结果统计
 - **[用户场景测试](docs/UserCaseTest.md)** - 端到端用户场景验证
+- **[测试脚本](docs/Testing.md)** - 测试脚本汇总
 
-## ⚡ 30秒快速体验
+## ⚡ 30 秒快速体验
 
 ```bash
 # 1. 克隆项目
@@ -100,8 +220,8 @@ curl http://localhost:9000/health
 
 🎉 **SuperRelay 启动成功！**
 - 🌐 Swagger UI: http://localhost:9000/swagger-ui/
-- 📊 API 端点: http://localhost:3000
-- 📈 监控面板: http://localhost:8080/metrics
+- 📊 API 端点：http://localhost:3000
+- 📈 监控面板：http://localhost:8080/metrics
 
 ## 🚀 完整安装指南
 
@@ -253,7 +373,7 @@ curl -X POST http://localhost:3000 \
 - ⚡ **响应时间**: <200ms (API 调用)
 - 🎯 **成功率**: >99.9% (生产环境)
 - 📦 **内存使用**: <100MB (典型运行)
-- 🔄 **启动时间**: <30秒 (完整服务)
+- 🔄 **启动时间**: <30 秒 (完整服务)
 
 ## 🏗️ 架构概览
 
@@ -400,8 +520,7 @@ tail -f superrelay.log
 ## 🆘 支持与社区
 
 - **[GitHub Issues](https://github.com/AAStarCommunity/SuperRelay/issues)** - 问题报告和功能请求
-- **[Discord](https://discord.gg/aastarcommunity)** - 社区讨论和技术支持
-- **[文档网站](https://docs.aa-star.com/)** - 完整文档和教程
+- **[文档网站](https://docs.aastar.io/)** - 完整文档和教程
 
 ---
 

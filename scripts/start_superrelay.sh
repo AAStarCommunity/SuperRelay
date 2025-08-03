@@ -5,7 +5,8 @@
 set -e
 trap "cleanup" EXIT
 
-echo "🚀 SuperRelay Enterprise Account Abstraction Service Starting"
+echo "🚀 SuperRelay v0.1.5 - Enterprise API Gateway Starting"
+echo "🌐 Single Binary Gateway Mode with Internal Routing"
 echo "======================================"
 
 # Load development environment configuration (try multiple config files)
@@ -159,31 +160,57 @@ else
     echo "🌐 Using external network: $RPC_URL"
 fi
 
-# 2. Build SuperRelay and rundler
-echo "🔨 Building SuperRelay and rundler..."
-cargo build --package super-relay --package rundler --release
+# 2. Build SuperRelay and rundler (if not already built)
+if [ ! -f "./target/release/super-relay" ] || [ ! -f "./target/release/rundler" ]; then
+    echo "🔨 Building SuperRelay and rundler..."
+    cargo build --package super-relay --package rundler --release
+else
+    echo "✅ Binaries already built, skipping build step"
+fi
 
-# 3. Start SuperRelay (using super-relay wrapper)
+# 3. Start SuperRelay Gateway
 echo ""
-echo "🚀 Starting SuperRelay enterprise service..."
+echo "🌐 Starting SuperRelay API Gateway..."
 echo "------------------------------------"
-echo "💡 Architecture description:"
-echo "  • SuperRelay = Enterprise wrapper"
-echo "  • rundler = Underlying ERC-4337 engine"
-echo "  • paymaster-relay = Gas sponsorship service"
+echo "💡 New Architecture (v0.1.5):"
+echo "  • SuperRelay Gateway = Single binary with internal routing"
+echo "  • Paymaster Service = Enterprise gas sponsorship (internal)"
+echo "  • Rundler Components = ERC-4337 engine (internal method calls)"
+echo "  • Web UI = Independent deployment (port 9000)"
 echo "  • Configuration file: config/config.toml"
 echo "------------------------------------"
 echo ""
 
-# Display startup command
-echo "🔧 Executing command:"
-echo "  ./target/release/super-relay node --config config/config.toml"
-echo ""
+# Choose startup mode
+STARTUP_MODE=${1:-"gateway"}
 
-# Start SuperRelay service in foreground (ensure environment variables are passed)
-env PAYMASTER_PRIVATE_KEY="$PAYMASTER_PRIVATE_KEY" \
-    SIGNER_PRIVATE_KEYS="$SIGNER_PRIVATE_KEYS" \
-    RPC_URL="$RPC_URL" \
-    NETWORK="$NETWORK" \
-    CHAIN_ID="$CHAIN_ID" \
-    ./target/release/super-relay node --config config/config.toml
+if [ "$STARTUP_MODE" = "legacy" ] || [ "$STARTUP_MODE" = "node" ]; then
+    echo "🔧 Starting in Legacy Mode (for compatibility):"
+    echo "  ./target/release/super-relay node --config config/config.toml"
+    echo ""
+    
+    # Start legacy mode
+    env PAYMASTER_PRIVATE_KEY="$PAYMASTER_PRIVATE_KEY" \
+        SIGNER_PRIVATE_KEYS="$SIGNER_PRIVATE_KEYS" \
+        RPC_URL="$RPC_URL" \
+        NETWORK="$NETWORK" \
+        CHAIN_ID="$CHAIN_ID" \
+        ./target/release/super-relay node --config config/config.toml
+else
+    echo "🌐 Starting in Gateway Mode (recommended):"
+    echo "  ./target/release/super-relay gateway --config config/config.toml --host 127.0.0.1 --port 3000 --enable-paymaster"
+    echo ""
+    
+    # Start gateway mode
+    env PAYMASTER_PRIVATE_KEY="$PAYMASTER_PRIVATE_KEY" \
+        SIGNER_PRIVATE_KEYS="$SIGNER_PRIVATE_KEYS" \
+        RPC_URL="$RPC_URL" \
+        NETWORK="$NETWORK" \
+        CHAIN_ID="$CHAIN_ID" \
+        ./target/release/super-relay gateway \
+            --config config/config.toml \
+            --host 127.0.0.1 \
+            --port 3000 \
+            --enable-paymaster \
+            --paymaster-private-key "$PAYMASTER_PRIVATE_KEY"
+fi
