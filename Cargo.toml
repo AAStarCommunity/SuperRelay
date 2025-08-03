@@ -129,4 +129,10 @@ url = "2.5.2"
 utoipa = "5.0"
 utoipa-swagger-ui = "8.0"
 
+# Force compatible scale dependency versions via patch
+# Use specific commit that has compatible versions
+[patch.crates-io]
+scale-info = { git = "https://github.com/paritytech/scale-info", tag = "v2.10.0" }
+parity-scale-codec = { git = "https://github.com/paritytech/parity-scale-codec", tag = "v3.6.9" }
+
 
