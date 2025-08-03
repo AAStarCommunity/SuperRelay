@@ -39,6 +39,31 @@ echo "🔍 Running workspace-level checks..."
 # This avoids redundant compilation and dependency resolution
 cargo clippy --workspace --all-targets -- -D warnings
 
+echo "📦 Running package-level cargo check..."
+# Clean build artifacts before package checks to ensure fresh builds
+echo "🧹 Cleaning unnecessary build files..."
+./scripts/cleanup_target.sh
+
+# Get all workspace package names and run cargo check for each
+PACKAGES=$(find . -name "Cargo.toml" -not -path "./target/*" -not -path "./Cargo.toml" | while read f; do 
+    grep "^name = " "$f" | head -1 | sed 's/name = "//' | sed 's/"//' 
+done | sort -u)
+
+echo "ℹ️  Found packages: $(echo $PACKAGES | tr '\n' ' ')"
+
+# Check each package individually to catch package-specific issues
+for package in $PACKAGES; do
+    echo "✅ Checking package: $package"
+    if ! cargo check --package "$package" --all-targets; then
+        echo "❌ Package check failed for: $package"
+        exit 1
+    fi
+done
+
+echo "🎯 Running final workspace check..."
+# Final comprehensive workspace check
+cargo check --workspace --all-targets
+
 
 # --- Dependency and Protobuf Formatting ---
 echo "📋 Running cargo-sort..."
