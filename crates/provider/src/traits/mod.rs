@@ -29,4 +29,5 @@ mod fee_estimator;
 pub use fee_estimator::*;
 
 #[cfg(feature = "test-utils")]
-pub(crate) mod test_utils;
+/// Test utilities for provider mocking
+pub mod test_utils;

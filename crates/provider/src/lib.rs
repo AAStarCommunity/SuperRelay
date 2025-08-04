@@ -67,7 +67,7 @@ use rundler_types::{
     v0_6::UserOperation as UserOperationV0_6, v0_7::UserOperation as UserOperationV0_7,
     UserOperation, UserOperationVariant,
 };
-#[cfg(any(test, feature = "test-utils"))]
+#[cfg(feature = "test-utils")]
 pub use traits::test_utils::*;
 pub use traits::*;
 

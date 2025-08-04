@@ -7,6 +7,10 @@ pub enum GatewayError {
     #[error("Invalid request: {0}")]
     InvalidRequest(String),
 
+    /// Unsupported method
+    #[error("Unsupported method: {0}")]
+    UnsupportedMethod(String),
+
     /// Authentication failed
     #[error("Authentication failed: {0}")]
     AuthenticationFailed(String),

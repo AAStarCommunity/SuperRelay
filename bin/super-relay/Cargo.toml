@@ -16,8 +16,11 @@ regex = { workspace = true }
 
 # Rundler components
 rundler-paymaster-relay = { path = "../../crates/paymaster-relay" }
+rundler-pool = { path = "../../crates/pool" }
+rundler-provider = { path = "../../crates/provider" }
 rundler-rpc = { path = "../../crates/rpc" }
 rundler-types = { path = "../../crates/types" }
+secrecy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 

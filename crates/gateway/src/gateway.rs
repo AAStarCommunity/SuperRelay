@@ -8,6 +8,7 @@ use axum::{
     Router,
 };
 use rundler_paymaster_relay::PaymasterRelayService;
+use rundler_pool::LocalPoolHandle;
 use serde_json::Value;
 use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -15,7 +16,7 @@ use tracing::{info, warn};
 
 use crate::{
     error::{GatewayError, GatewayResult},
-    router::GatewayRouter,
+    router::{EthApiConfig, GatewayRouter},
     GatewayConfig,
 };
 
@@ -42,6 +43,22 @@ impl PaymasterGateway {
         paymaster_service: Option<Arc<PaymasterRelayService>>,
     ) -> Self {
         let router = GatewayRouter::new();
+
+        Self {
+            config,
+            paymaster_service,
+            router,
+        }
+    }
+
+    /// Create a new gateway instance with rundler components
+    pub fn with_rundler_components(
+        config: GatewayConfig,
+        paymaster_service: Option<Arc<PaymasterRelayService>>,
+        pool_handle: Arc<LocalPoolHandle>,
+        eth_config: EthApiConfig,
+    ) -> Self {
+        let router = GatewayRouter::with_rundler_components(pool_handle, eth_config);
 
         Self {
             config,

@@ -7711,8 +7711,11 @@ dependencies = [
  "eyre",
  "regex",
  "rundler-paymaster-relay",
+ "rundler-pool",
+ "rundler-provider",
  "rundler-rpc",
  "rundler-types",
+ "secrecy",
  "serde",
  "serde_json",
  "super-relay-gateway",
@@ -7726,9 +7729,14 @@ dependencies = [
 name = "super-relay-gateway"
 version = "0.1.5"
 dependencies = [
+ "alloy-primitives",
  "anyhow",
  "axum",
+ "ethers",
+ "hex",
  "rundler-paymaster-relay",
+ "rundler-pool",
+ "rundler-types",
  "serde_json",
  "thiserror 1.0.69",
  "tokio",

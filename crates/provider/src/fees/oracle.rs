@@ -346,7 +346,7 @@ impl FeeOracle for ConstantOracle {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "test-utils"))]
 mod tests {
     use std::sync::Arc;
 

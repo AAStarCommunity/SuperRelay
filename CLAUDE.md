@@ -147,3 +147,6 @@ pub fn unsafe_method(&self) -> String {
 3. 完成测试和格式化
 4. 更新 `Changes.md` 和版本号
 5. 说明修改原因和影响范围
+
+### 🚀 项目记忆
+- 每次修改完成到一阶段后,在汇报成果进度之前,请运行cargo check,build(例如cargo check --package super-relay;cargo build --package super-relay --package rundler --release)和format.sh,确认代码都正常,有错误请fix后再次运行,直到无错误

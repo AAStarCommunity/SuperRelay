@@ -12,49 +12,74 @@ AAStar's SuperPaymaster includes SuperRelay and SuperPaymaster contracts. SuperR
 - **Internal Routing**: Access rundler components through internal method calls, avoiding RPC overhead
 - **Enterprise Features**: Authentication, rate limiting, policy execution unified at gateway layer
 
-## 🔄 API Request Flow Diagram
+## 🔄 Dual-Service Architecture Flow Diagram
 
-SuperRelay Gateway achieves zero-invasion rundler compatibility through intelligent routing. Here's the complete request processing flow:
+SuperRelay implements a dual-service compatible architecture with component sharing, providing both enterprise features and full rundler compatibility:
 
 ```mermaid
 graph TD
-    A[Client JSON-RPC Request] --> B[SuperRelay Gateway :3000]
-    B --> C{Request Routing Analysis}
+    A[Client Applications] --> B{Service Selection}
 
-    C -->|pm_* methods| D[Enterprise Middleware Layer]
-    C -->|eth_* methods| H[Rundler Routing]
-    C -->|rundler_* methods| H
-    C -->|debug_* methods| H
+    B -->|Legacy Clients| C[Rundler Service :3001]
+    B -->|Enterprise Clients| D[SuperRelay Gateway :3000]
 
-    D --> E[Authentication & Authorization Check]
-    E --> F[Rate Limiting Check]
-    F --> G[Policy Engine Validation]
-    G --> I[PaymasterService Internal Call]
+    C --> C1[🔄 Native ERC-4337 APIs]
+    C1 --> C2[Direct Rundler Components Access]
 
-    H --> J[Rundler Component Internal Call]
-    J --> K[EthApi/RundlerApi/DebugApi]
+    D --> D1[🔐 Enterprise Middleware]
+    D1 --> D2[Authentication & Authorization]
+    D2 --> D3[Rate Limiting & Policy Check]
+    D3 --> D4{Request Type Analysis}
 
-    I --> L[Gas Sponsorship Processing]
-    L --> M[Signature Generation]
-    M --> N[Return Paymaster Data to Client]
+    D4 -->|pm_* methods| E[PaymasterService Processing]
+    D4 -->|eth_* methods| F[Direct Rundler Routing]
 
-    H --> J[Rundler Component Internal Call]
-    J --> K[EthApi Validation & Simulation]
-    K --> O[Submit to Rundler Memory Pool]
+    E --> E1[Gas Sponsorship Logic]
+    E1 --> E2[Signature Generation]
+    E2 --> E3[Submit to Shared Rundler Components]
 
-    N --> P[JSON-RPC Response with Paymaster Data]
-    O --> Q[JSON-RPC Response with Transaction Hash]
+    F --> F1[EthApi/RundlerApi/DebugApi]
+
+    subgraph SHARED["🔧 Shared Rundler Components (Arc<T>)"]
+        G[Provider - Ethereum Connection]
+        H[Pool - Memory Pool Management]
+        I[Builder - Transaction Building]
+        J[Sender - Blockchain Submission]
+        G --> H
+        H --> I
+        I --> J
+    end
+
+    C2 --> SHARED
+    E3 --> SHARED
+    F1 --> SHARED
+
+    J --> K[🌐 Ethereum Network]
+    K --> L[EntryPoint Contract Execution]
+
+    L --> M[Transaction Confirmation]
+    M --> N[Response Generation]
+
+    N --> O{Response Routing}
+    O -->|Legacy Path| P[JSON-RPC Response :3001]
+    O -->|Enterprise Path| Q[JSON-RPC Response :3000]
+
     P --> A
     Q --> A
 
-    style B fill:#e1f5fe
-    style D fill:#f3e5f5
-    style I fill:#e8f5e8
-    style J fill:#fff3e0
-    style P fill:#fce4ec
+    style D fill:#e1f5fe
+    style E fill:#e8f5e8
+    style SHARED fill:#fff3e0
+    style K fill:#f3e5f5
+    style C fill:#fce4ec
 ```
 
-**Key Architecture Clarification**: The paymaster service generates sponsorship data (`paymasterAndData`) and returns it to the client. The client then constructs the complete UserOperation and submits it via `eth_sendUserOperation` → EthApi → validation & simulation → memory pool. This follows the standard ERC-4337 flow while providing gas sponsorship.
+**核心架构特点**:
+- **双服务兼容**: Legacy客户端使用`:3001`原生rundler服务，Enterprise客户端使用`:3000`网关服务
+- **组件共享**: 两个服务共享相同的rundler核心组件实例，避免资源重复
+- **正确流程**: PaymasterService签名后将UserOperation提交给共享的rundler组件处理
+- **零侵入**: Rundler原生服务完全保持不变，100%向后兼容
+- **企业增强**: Gateway服务提供认证、限流、策略、监控等企业级功能
 
 ## 🏗️ Zero-Invasion Architecture Design
 

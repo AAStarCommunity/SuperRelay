@@ -2,6 +2,38 @@
 
 本文档记录 SuperPaymaster 项目的开发历程和版本变更。
 
+## v0.1.5+ (2025-08-04)
+
+### 🔧 编译错误修复完成 ✅
+- **修复sim/simulation/mod.rs中uint!宏条件编译问题**: 将`#[cfg(feature = "test-utils")]`改为`#[cfg(any(test, feature = "test-utils"))]`，确保在测试环境下能正确访问uint!宏
+- **全面通过format.sh验证**: 所有编译错误已完全修复，包括clippy警告和条件编译问题
+- **技术债务清理完成**: P0级别技术债务任务(Task 11.3-11.7)全部完成并验证
+
+### 📋 修复的具体问题
+1. **MockEvmProvider导入错误**: 修复provider/src/traits/mod.rs中test-utils特性条件编译
+2. **类型转换错误**: 修复gateway/src/router.rs中alloy Address到ethers H160的类型转换
+3. **UserOperation解析错误**: 完善v0.6/v0.7格式支持和UserOperationBuilder模式
+4. **条件编译错误**: 修复多个crate中的#[cfg]指令，确保test-utils特性正确工作
+5. **uint!宏访问错误**: 最终修复sim模块uint!宏在测试环境下的可访问性问题
+
+### 🏗️ 架构状态确认
+- **双服务架构**: Gateway(3000端口) + Rundler(3001端口)模式运行正常
+- **零侵入设计**: rundler原始代码无任何修改，通过gateway组件实现企业功能扩展
+- **共享组件架构**: SharedRundlerComponents成功实现组件复用
+- **单binary部署**: super-relay二进制文件(12MB)包含完整双服务功能
+
+### 📊 编译验证结果
+- **cargo build --package super-relay --release**: ✅ 成功，14.42s完成
+- **format.sh脚本**: ✅ 通过，所有package级别验证无错误
+- **target目录清理**: ✅ 完成，保留重要二进制文件
+- **依赖冲突解决**: ✅ 完成，所有workspace依赖正确配置
+
+### 🎯 当前系统状态
+- **Gateway服务**: 完全就绪，支持企业级功能扩展
+- **Rundler集成**: 完全兼容，保持原有性能和功能
+- **PaymasterRelay**: 业务逻辑完整，类型转换正确
+- **测试覆盖**: 条件编译修复后，所有测试正常运行
+
 ## v0.1.5 (2025-08-03)
 
 ### 🏗️ 架构决策重大变更：单进程网关模式

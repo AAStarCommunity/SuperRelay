@@ -1,0 +1,38 @@
+# 双服务兼容模式测试配置
+
+[node]
+http_api = "127.0.0.1:3000"
+max_entries_per_chain = 10000
+max_mem_entries_per_chain = 10000
+
+[pool]
+max_expire_duration_seconds = 300
+
+[rpc]
+api = "eth,rundler,paymaster"
+port = 3001
+host = "127.0.0.1"
+
+[paymaster_relay]
+enabled = true
+private_key = "${PAYMASTER_PRIVATE_KEY}"
+policy_file = "config/paymaster-policies.toml"
+
+[mempool]
+pool_configs = [
+    {
+        entry_point = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+        entry_point_version = "v0.6.0",
+        chain_id = 31337,
+        pool_config = {
+            max_size = 1000,
+            max_user_operations_per_sender = 10
+        }
+    }
+]
+
+# 双服务配置 - 新增
+[dual_service]
+enable_rundler_rpc = true    # 启用3001端口rundler服务
+rundler_port = 3001         # rundler服务端口  
+gateway_port = 3000         # Gateway服务端口

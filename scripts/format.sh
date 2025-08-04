@@ -45,8 +45,8 @@ echo "🧹 Cleaning unnecessary build files..."
 ./scripts/cleanup_target.sh
 
 # Get all workspace package names and run cargo check for each
-PACKAGES=$(find . -name "Cargo.toml" -not -path "./target/*" -not -path "./Cargo.toml" | while read f; do 
-    grep "^name = " "$f" | head -1 | sed 's/name = "//' | sed 's/"//' 
+PACKAGES=$(find . -name "Cargo.toml" -not -path "./target/*" -not -path "./Cargo.toml" | while read f; do
+    grep "^name = " "$f" | head -1 | sed 's/name = "//' | sed 's/"//'
 done | sort -u)
 
 echo "ℹ️  Found packages: $(echo $PACKAGES | tr '\n' ' ')"
