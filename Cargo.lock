@@ -6533,6 +6533,7 @@ dependencies = [
  "jsonrpsee-ws-client",
  "metrics 0.23.1",
  "metrics-exporter-prometheus",
+ "rand 0.8.5",
  "rundler-pool",
  "rundler-sim",
  "rundler-types",
@@ -6548,6 +6549,7 @@ dependencies = [
  "tracing",
  "utoipa",
  "utoipa-swagger-ui",
+ "uuid 1.17.0",
 ]
 
 [[package]]
