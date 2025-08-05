@@ -12,16 +12,16 @@
 graph TB
     A[Client Applications] --> B[Gateway Service :3000]
     A --> C[Rundler RPC Service :3001]
-    
+
     B --> D[SharedRundlerComponents]
     C --> D
-    
+
     D --> E[LocalPoolHandle]
     D --> F[ProviderConfig]
     D --> G[RundlerServiceConfig]
-    
+
     E --> H[rundler Pool]
-    H --> I[rundler Builder] 
+    H --> I[rundler Builder]
     H --> J[rundler Provider]
     H --> K[rundler Sim]
 ```
@@ -43,7 +43,7 @@ pub struct SharedRundlerComponents {
     /// 核心Pool组件句柄 - 主要通信桥梁
     pub pool: Arc<LocalPoolHandle>,
     /// Provider配置 - 网络和节点配置
-    pub provider_config: Arc<ProviderConfig>,  
+    pub provider_config: Arc<ProviderConfig>,
     /// Rundler服务配置 - 服务级配置
     pub rundler_config: Arc<RundlerServiceConfig>,
 }
@@ -59,24 +59,24 @@ async fn initialize_shared_rundler_components(
     let provider = Arc::new(rundler_provider::new_alloy_provider(
         &config.node_http, 30
     )?);
-    
+
     // 2. 创建EVM Provider和DA Gas Oracle
     let evm_provider = rundler_provider::AlloyEvmProvider::new(provider.clone());
     let (da_gas_oracle, _) = rundler_provider::new_alloy_da_gas_oracle(
         &chain_spec, provider.clone()
     );
-    
+
     // 3. 创建Entry Point providers (支持v0.6和v0.7)
     let ep_v0_6 = Some(rundler_provider::AlloyEntryPointV0_6::new(
         chain_spec.clone(),
         max_verification_gas,
         max_bundle_execution_gas,
-        max_bundle_execution_gas, 
+        max_bundle_execution_gas,
         max_bundle_execution_gas,
         provider.clone(),
         da_gas_oracle.clone(),
     ));
-    
+
     let ep_v0_7 = Some(rundler_provider::AlloyEntryPointV0_7::new(
         chain_spec.clone(),
         max_verification_gas,
@@ -86,11 +86,11 @@ async fn initialize_shared_rundler_components(
         provider.clone(),
         da_gas_oracle.clone(),
     ));
-    
+
     // 4. 创建Pool组件 - 核心共享组件
     let pool_builder = LocalPoolBuilder::new(100);
     let pool_handle = Arc::new(pool_builder.get_handle());
-    
+
     Ok(SharedRundlerComponents {
         pool: pool_handle,
         provider_config: Arc::new(provider_config),
@@ -153,7 +153,7 @@ sequenceDiagram
     G->>G: Parse JSON to UserOperationVariant
     G->>V: validate_user_operation()
     V-->>G: ValidationResult
-    
+
     alt Validation Failed
         G-->>C: ValidationError
     else Validation Passed
@@ -192,7 +192,7 @@ match user_op {
             paymaster_address.as_bytes(),
             &signature.to_vec()
         ].concat();
-        
+
         PaymasterSponsorResult {
             paymaster_and_data,
             verification_gas_limit: None, // v0.6不分离
@@ -245,7 +245,7 @@ pub async fn run_dual_service(&self) -> Result<()> {
     let shared_components = self
         .initialize_shared_rundler_components(&super_config)
         .await?;
-    
+
     // 2. 并行启动两个服务，使用相同的组件实例
     let (gateway_result, rundler_result) = tokio::join!(
         self.start_gateway_service(
@@ -259,7 +259,7 @@ pub async fn run_dual_service(&self) -> Result<()> {
             rundler_port,
         )
     );
-    
+
     // 3. 处理服务结果
     match (gateway_result, rundler_result) {
         (Ok(_), Ok(_)) => {
@@ -272,7 +272,7 @@ pub async fn run_dual_service(&self) -> Result<()> {
             return Err(e);
         }
     }
-    
+
     Ok(())
 }
 ```
@@ -337,17 +337,17 @@ pub async fn check_component_health(
             ComponentStatus::Unhealthy
         }
     };
-    
+
     // 检查Provider连接状态
     let provider_status = match shared_components
         .provider_config
         .test_connection()
-        .await 
+        .await
     {
         Ok(_) => ComponentStatus::Healthy,
         Err(_) => ComponentStatus::Degraded,
     };
-    
+
     ComponentHealthStatus {
         pool: pool_status,
         provider: provider_status,
@@ -386,7 +386,7 @@ pub async fn batch_process_operations(
         .into_iter()
         .map(|op| self.process_single_operation(op))
         .collect();
-    
+
     futures::future::join_all(tasks).await
 }
 ```
@@ -404,14 +404,14 @@ impl GatewayRouter {
         pool: &Arc<LocalPoolHandle>,
         user_op: UserOperationVariant,
     ) -> Result<Hash>;
-    
+
     // Gas估算
     async fn estimate_gas(
         &self,
-        pool: &Arc<LocalPoolHandle>, 
+        pool: &Arc<LocalPoolHandle>,
         user_op: UserOperationVariant,
     ) -> Result<GasEstimate>;
-    
+
     // 操作查询
     async fn get_user_operation(
         &self,
@@ -443,13 +443,13 @@ impl KmsProvider for TeeKmsProvider {
     async fn sign_hash(&self, hash: [u8; 32]) -> Result<Signature, KmsError> {
         // 1. 验证TEE环境
         self.attestation_verifier.verify_environment().await?;
-        
+
         // 2. 调用TEE KMS API
         let request = TeeSignRequest {
             hash: hex::encode(hash),
             key_id: self.get_key_id(),
         };
-        
+
         let response: TeeSignResponse = self
             .http_client
             .post(&self.endpoint)
@@ -458,7 +458,7 @@ impl KmsProvider for TeeKmsProvider {
             .await?
             .json()
             .await?;
-            
+
         // 3. 验证签名
         let signature = Signature::from_hex(&response.signature)?;
         Ok(signature)
@@ -477,11 +477,11 @@ pub struct CommunicationMetrics {
     pool_calls_total: Counter,
     pool_call_duration: Histogram,
     pool_errors_total: Counter,
-    
-    // Paymaster调用指标  
+
+    // Paymaster调用指标
     paymaster_sponsorships_total: Counter,
     paymaster_response_time: Histogram,
-    
+
     // 组件健康指标
     component_health_status: Gauge,
 }
@@ -502,7 +502,7 @@ async fn handle_sponsor_request(
         user_op.hash = %user_op.hash(&entry_point, &chain_id),
         entry_point = %entry_point,
     );
-    
+
     async move {
         // 业务逻辑处理...
     }.instrument(span).await
@@ -514,7 +514,7 @@ async fn handle_sponsor_request(
 SuperRelay的通信架构通过以下关键机制实现了高性能、低延迟的模块间通信：
 
 1. **SharedRundlerComponents**: 实现组件零拷贝共享
-2. **直接方法调用**: 避免网络开销，提升响应速度  
+2. **直接方法调用**: 避免网络开销，提升响应速度
 3. **异步并发**: 最大化系统吞吐量
 4. **类型兼容**: 保持与rundler的完全兼容性
 5. **统一错误处理**: 简化错误传播和处理
@@ -524,5 +524,5 @@ SuperRelay的通信架构通过以下关键机制实现了高性能、低延迟�
 
 ---
 
-*文档版本: v1.0*  
+*文档版本: v1.0*
 *更新时间: 2025-01-21*

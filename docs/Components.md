@@ -133,7 +133,7 @@ impl AuthenticationMiddleware {
     pub async fn authenticate(&self, request: &JsonRpcRequest) -> Result<(), GatewayError>
 }
 
-// 策略检查中间件  
+// 策略检查中间件
 pub struct PolicyCheckMiddleware
 impl PolicyCheckMiddleware {
     pub fn new() -> Self
@@ -311,19 +311,19 @@ graph TD
     A[客户端请求] --> B[PaymasterGateway]
     B --> C[GatewayRouter]
     C --> D{请求类型判断}
-    
+
     D -->|pm_*| E[Paymaster路由]
     D -->|eth_*| F[Rundler路由]
     D -->|debug_*| F
     D -->|admin_*| F
-    
+
     E --> G[PaymasterRelayService]
     G --> H[PolicyEngine策略检查]
     H --> I[SignerManager签名]
     I --> J[内部调用rundler]
-    
+
     F --> K[直接调用rundler组件]
-    
+
     J --> L[Rundler处理]
     K --> L
     L --> M[返回结果]
@@ -339,12 +339,12 @@ graph TD
     B --> D[check_paymaster_health]
     B --> E[check_pool_health]
     B --> F[check_router_health]
-    
+
     C --> G[组件状态汇总]
     D --> G
     E --> G
     F --> G
-    
+
     G --> H[SystemMetrics收集]
     H --> I[determine_overall_status]
     I --> J[返回HealthStatus]
@@ -362,7 +362,7 @@ graph TD
     F --> G[test_bundling]
     G --> H[test_onchain_execution]
     H --> I[test_transaction_confirmation]
-    
+
     C --> J{步骤成功?}
     D --> J
     E --> J
@@ -370,10 +370,10 @@ graph TD
     G --> J
     H --> J
     I --> J
-    
+
     J -->|是| K[继续下一步]
     J -->|否| L[记录错误并停止]
-    
+
     K --> M[determine_overall_status]
     L --> M
     M --> N[返回E2EValidationResult]
@@ -386,21 +386,21 @@ graph TD
     A[super-relay dual-service] --> B[main函数]
     B --> C[解析命令行参数]
     C --> D[initialize_shared_components]
-    
+
     D --> E[初始化Provider配置]
     D --> F[初始化Pool组件]
     D --> G[初始化Paymaster服务]
-    
+
     E --> H[SharedRundlerComponents]
     F --> H
     G --> H
-    
+
     H --> I[start_gateway_service]
     H --> J[start_rundler_service]
-    
+
     I --> K[Gateway监听3000端口]
     J --> L[Rundler监听3001端口]
-    
+
     K --> M[服务就绪]
     L --> M
 ```

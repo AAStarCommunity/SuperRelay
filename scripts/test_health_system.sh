@@ -13,7 +13,7 @@ echo "=================================="
 
 # 颜色定义
 RED='\033[0;31m'
-GREEN='\033[0;32m' 
+GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
@@ -59,20 +59,20 @@ test_endpoint() {
     local endpoint=$1
     local description=$2
     local expected_status=${3:-200}
-    
+
     echo ""
     echo -e "${BLUE}🔍 测试: $description${NC}"
     echo "   Endpoint: http://localhost:3000$endpoint"
-    
+
     response=$(curl -s -w "\n%{http_code}" "http://localhost:3000$endpoint" 2>/dev/null || echo -e "\n000")
-    
+
     # 分离响应体和状态码
     body=$(echo "$response" | head -n -1)
     status_code=$(echo "$response" | tail -n 1)
-    
+
     if [[ "$status_code" == "$expected_status" ]]; then
         echo -e "${GREEN}   ✅ 状态码: $status_code${NC}"
-        
+
         # 如果是 JSON 响应，尝试格式化
         if echo "$body" | jq . >/dev/null 2>&1; then
             echo -e "${GREEN}   📊 响应数据:${NC}"
@@ -95,7 +95,7 @@ echo "==================="
 # 1. 综合健康检查
 test_endpoint "/health" "综合健康检查 - 包含所有组件状态"
 
-# 2. 就绪检查  
+# 2. 就绪检查
 test_endpoint "/ready" "就绪检查 - 负载均衡器使用"
 
 # 3. 存活检查
@@ -112,7 +112,7 @@ echo "🧹 清理测试环境..."
 if kill -0 $GATEWAY_PID 2>/dev/null; then
     kill -TERM $GATEWAY_PID
     sleep 3
-    
+
     # 如果还没关闭，强制终止
     if kill -0 $GATEWAY_PID 2>/dev/null; then
         kill -KILL $GATEWAY_PID
@@ -126,7 +126,7 @@ echo "📊 测试总结"
 echo "==========="
 echo "✅ 内部状态检测系统已成功实现"
 echo "✅ 提供了三种不同级别的健康检查:"
-echo "   • /health - 综合健康检查 (包含详细组件状态)"  
+echo "   • /health - 综合健康检查 (包含详细组件状态)"
 echo "   • /ready  - 就绪检查 (适用于负载均衡器)"
 echo "   • /live   - 存活检查 (基础服务状态)"
 echo "✅ 集成了系统监控指标"

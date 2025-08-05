@@ -31,6 +31,10 @@ pub enum GatewayError {
     #[error("Paymaster error: {0}")]
     PaymasterError(String),
 
+    /// Pool operation error
+    #[error("Pool error: {0}")]
+    PoolError(String),
+
     /// Server error
     #[error("Server error: {0}")]
     ServerError(String),
