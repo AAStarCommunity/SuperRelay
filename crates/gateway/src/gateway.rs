@@ -12,10 +12,12 @@ use rundler_pool::LocalPoolHandle;
 use serde_json::Value;
 use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tracing::{info, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::{
+    e2e_validator::quick_e2e_health_check,
     error::{GatewayError, GatewayResult},
+    health::health_routes,
     router::{EthApiConfig, GatewayRouter},
     GatewayConfig,
 };
@@ -31,9 +33,12 @@ pub struct PaymasterGateway {
 /// Gateway state shared across requests
 #[derive(Clone)]
 pub struct GatewayState {
-    paymaster_service: Option<Arc<PaymasterRelayService>>,
-    router: GatewayRouter,
-    _config: GatewayConfig,
+    /// Optional paymaster service instance
+    pub paymaster_service: Option<Arc<PaymasterRelayService>>,
+    /// Request router instance
+    pub router: GatewayRouter,
+    /// Gateway configuration
+    pub config: GatewayConfig,
 }
 
 impl PaymasterGateway {
@@ -75,7 +80,7 @@ impl PaymasterGateway {
         let state = GatewayState {
             paymaster_service: self.paymaster_service.clone(),
             router: self.router.clone(),
-            _config: self.config.clone(),
+            config: self.config.clone(),
         };
 
         let app = self.create_router(state);
@@ -87,7 +92,10 @@ impl PaymasterGateway {
         info!("✅ Gateway server listening on {}", addr);
         info!("📋 Available endpoints:");
         info!("  • POST /        - JSON-RPC API");
-        info!("  • GET /health   - Health check");
+        info!("  • GET /health   - Comprehensive health check");
+        info!("  • GET /ready    - Readiness check");
+        info!("  • GET /live     - Liveness check");
+        info!("  • GET /e2e      - End-to-end validation");
         info!("  • GET /metrics  - Prometheus metrics");
 
         axum::serve(listener, app)
@@ -100,8 +108,9 @@ impl PaymasterGateway {
     fn create_router(&self, state: GatewayState) -> Router {
         let mut router = Router::new()
             .route("/", post(handle_jsonrpc))
-            .route("/health", get(handle_health))
+            .route("/e2e", get(handle_e2e_validation))
             .route("/metrics", get(handle_metrics))
+            .merge(health_routes())
             .with_state(state);
 
         // Add middleware layers
@@ -199,25 +208,32 @@ async fn handle_rundler_request(state: &GatewayState, request: &JsonRpcRequest) 
     }
 }
 
-/// Health check endpoint
-async fn handle_health(State(state): State<GatewayState>) -> Json<Value> {
-    let mut health = serde_json::Map::new();
-    health.insert("status".to_string(), Value::String("healthy".to_string()));
-    health.insert("gateway".to_string(), Value::String("running".to_string()));
+// Health check endpoints now handled by health module
 
-    if state.paymaster_service.is_some() {
-        health.insert(
-            "paymaster".to_string(),
-            Value::String("available".to_string()),
-        );
-    } else {
-        health.insert(
-            "paymaster".to_string(),
-            Value::String("disabled".to_string()),
-        );
+/// End-to-end validation endpoint
+async fn handle_e2e_validation(
+    State(state): State<GatewayState>,
+) -> Result<Json<crate::e2e_validator::E2EValidationResult>, StatusCode> {
+    debug!("Processing end-to-end validation request");
+
+    let result = quick_e2e_health_check(&state).await;
+
+    match result.status {
+        crate::e2e_validator::E2EStatus::Success => {
+            info!("E2E validation passed: all systems operational");
+        }
+        crate::e2e_validator::E2EStatus::PartialSuccess => {
+            warn!("E2E validation partial success: some components have warnings");
+        }
+        crate::e2e_validator::E2EStatus::Failed => {
+            error!("E2E validation failed: critical issues detected");
+        }
+        crate::e2e_validator::E2EStatus::InProgress => {
+            info!("E2E validation in progress");
+        }
     }
 
-    Json(Value::Object(health))
+    Ok(Json(result))
 }
 
 /// Metrics endpoint - integrate with rundler metrics

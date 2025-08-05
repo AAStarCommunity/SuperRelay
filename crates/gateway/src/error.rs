@@ -42,6 +42,14 @@ pub enum GatewayError {
     /// Timeout error
     #[error("Request timeout")]
     Timeout,
+
+    /// Data validation error
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+
+    /// Internal system error
+    #[error("Internal error: {0}")]
+    InternalError(String),
 }
 
 impl From<anyhow::Error> for GatewayError {

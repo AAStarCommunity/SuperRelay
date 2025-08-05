@@ -9,18 +9,33 @@
 
 //! SuperRelay Gateway - API Gateway with enterprise features
 
+/// Authorization and eligibility checking for UserOperations
+pub mod authorization;
+/// End-to-end transaction validation
+pub mod e2e_validator;
 /// Error types and result helpers
 pub mod error;
 /// Main gateway implementation
 pub mod gateway;
+/// Health check and system monitoring
+pub mod health;
 /// HTTP middleware for enterprise features
 pub mod middleware;
 /// Request routing logic
 pub mod router;
+/// Security analysis and threat detection for UserOperations
+pub mod security;
+/// Data integrity validation for UserOperations
+pub mod validation;
 
+pub use authorization::{AuthorizationChecker, AuthorizationConfig, AuthorizationResult};
+pub use e2e_validator::{quick_e2e_health_check, E2EValidationResult, E2EValidator};
 pub use error::{GatewayError, GatewayResult};
 pub use gateway::PaymasterGateway;
+pub use health::{HealthChecker, HealthStatus, SystemStatus};
 pub use router::GatewayRouter;
+pub use security::{SecurityChecker, SecurityConfig, SecurityResult};
+pub use validation::{DataIntegrityChecker, DataIntegrityResult, ValidationConfig};
 
 /// Gateway configuration
 #[derive(Debug, Clone)]

@@ -34,5 +34,5 @@ pool_configs = [
 # 双服务配置 - 新增
 [dual_service]
 enable_rundler_rpc = true    # 启用3001端口rundler服务
-rundler_port = 3001         # rundler服务端口  
+rundler_port = 3001         # rundler服务端口
 gateway_port = 3000         # Gateway服务端口

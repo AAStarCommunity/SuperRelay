@@ -18,7 +18,7 @@ check_status() {
     local name="$1"
     local status="$2"
     local details="$3"
-    
+
     case $status in
         "✅")
             echo "✅ $name"
@@ -51,7 +51,7 @@ else
     check_status "Task 11.1: PaymasterService完整初始化" "❌" "初始化逻辑缺失"
 fi
 
-# Task 11.2: 网关路由层rundler组件集成  
+# Task 11.2: 网关路由层rundler组件集成
 if grep -q "route_to_rundler" crates/gateway/src/router.rs && \
    grep -q "parse_user_operation_from_json" crates/gateway/src/router.rs && \
    grep -q "sponsor_user_operation" crates/gateway/src/router.rs; then
@@ -134,7 +134,7 @@ TOTAL=$((COMPLETED + PARTIAL + MISSING))
 COMPLETION_RATE=$((COMPLETED * 100 / TOTAL))
 
 echo "✅ 完全完成: $COMPLETED 项"
-echo "⚠️  部分完成: $PARTIAL 项"  
+echo "⚠️  部分完成: $PARTIAL 项"
 echo "❌ 待完成: $MISSING 项"
 echo "📈 总体完成度: $COMPLETION_RATE%"
 echo ""
@@ -162,7 +162,7 @@ if [ $PARTIAL -gt 0 ]; then
     echo "   1. 完善API调用细节(主要是编译问题)"
 fi
 if [ $MISSING -gt 0 ]; then
-    echo "   2. 补充缺失的功能模块"  
+    echo "   2. 补充缺失的功能模块"
 fi
 echo "   3. 执行端到端测试验证"
 echo "   4. 性能和稳定性测试"

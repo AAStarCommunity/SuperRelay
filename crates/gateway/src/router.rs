@@ -9,8 +9,11 @@ use serde_json::{json, Value};
 use tracing::{debug, error, warn};
 
 use crate::{
+    authorization::AuthorizationChecker,
     error::{GatewayError, GatewayResult},
     gateway::JsonRpcRequest,
+    security::SecurityChecker,
+    validation::DataIntegrityChecker,
 };
 
 /// Router that handles request routing to appropriate rundler components
@@ -210,7 +213,134 @@ impl GatewayRouter {
             user_op_variant.entry_point()
         );
 
-        // 4. Call paymaster service for sponsorship
+        // 4. Data Integrity Check (第一个业务步骤: 数据的完备性检查)
+        debug!("🔍 Starting data integrity validation");
+        let data_integrity_checker = DataIntegrityChecker::new();
+        let entry_point_str = format!("{:#x}", entry_point);
+
+        match data_integrity_checker
+            .validate_user_operation(&user_op_variant, &entry_point_str)
+            .await
+        {
+            Ok(validation_result) => {
+                if !validation_result.is_valid {
+                    error!(
+                        "❌ Data integrity validation failed: {}",
+                        validation_result.summary
+                    );
+                    return Err(GatewayError::ValidationError(format!(
+                        "Data integrity check failed: {} critical issues found: [{}]",
+                        validation_result.critical_issues.len(),
+                        validation_result.critical_issues.join(", ")
+                    )));
+                } else if !validation_result.warnings.is_empty() {
+                    warn!(
+                        "⚠️ Data integrity validation passed with warnings: {}",
+                        validation_result.warnings.join(", ")
+                    );
+                }
+                debug!(
+                    "✅ Data integrity validation passed (score: {}): {}",
+                    validation_result.validation_score, validation_result.summary
+                );
+            }
+            Err(e) => {
+                error!("💥 Data integrity validation error: {}", e);
+                return Err(GatewayError::InternalError(format!(
+                    "Data integrity validation system error: {}",
+                    e
+                )));
+            }
+        }
+
+        // 5. Authorization Check (第二个业务步骤: 资格检查)
+        debug!("🔐 Starting authorization and eligibility check");
+        let mut authorization_checker = AuthorizationChecker::new();
+
+        // Load authorization configuration
+        if let Err(e) = authorization_checker.load_configuration().await {
+            warn!("Failed to load authorization configuration: {}", e);
+            // Continue with default configuration
+        }
+
+        match authorization_checker
+            .check_authorization(&user_op_variant, &entry_point, None)
+            .await
+        {
+            Ok(authorization_result) => {
+                if !authorization_result.is_authorized {
+                    error!(
+                        "❌ Authorization check failed: {}",
+                        authorization_result.summary
+                    );
+                    return Err(GatewayError::ValidationError(format!(
+                        "Authorization check failed: {} blocking issues found: [{}]",
+                        authorization_result.blocking_issues.len(),
+                        authorization_result.blocking_issues.join(", ")
+                    )));
+                } else if !authorization_result.warnings.is_empty() {
+                    warn!(
+                        "⚠️ Authorization check passed with warnings: {}",
+                        authorization_result.warnings.join(", ")
+                    );
+                }
+                debug!(
+                    "✅ Authorization check passed (score: {}): {}",
+                    authorization_result.authorization_score, authorization_result.summary
+                );
+            }
+            Err(e) => {
+                error!("💥 Authorization check error: {}", e);
+                return Err(GatewayError::InternalError(format!(
+                    "Authorization check system error: {}",
+                    e
+                )));
+            }
+        }
+
+        // 6. Security Check (第三个业务步骤: 安全性检查)
+        debug!("🔒 Starting security analysis");
+        let mut security_checker = SecurityChecker::new();
+
+        // Load threat intelligence data
+        if let Err(e) = security_checker.load_threat_intelligence().await {
+            warn!("Failed to load threat intelligence: {}", e);
+            // Continue with default security configuration
+        }
+
+        match security_checker
+            .check_security(&user_op_variant, &entry_point, None)
+            .await
+        {
+            Ok(security_result) => {
+                if !security_result.is_secure {
+                    error!("🚨 Security check failed: {}", security_result.summary);
+                    return Err(GatewayError::ValidationError(format!(
+                        "Security check failed: {} critical violations found: [{}]",
+                        security_result.critical_violations.len(),
+                        security_result.critical_violations.join(", ")
+                    )));
+                } else if !security_result.warnings.is_empty() {
+                    warn!(
+                        "⚠️ Security check passed with warnings: {}",
+                        security_result.warnings.join(", ")
+                    );
+                }
+                debug!(
+                    "✅ Security check passed (score: {}): {}",
+                    security_result.security_score, security_result.summary
+                );
+            }
+            Err(e) => {
+                error!("💥 Security check error: {}", e);
+                return Err(GatewayError::InternalError(format!(
+                    "Security check system error: {}",
+                    e
+                )));
+            }
+        }
+
+        // 7. Call paymaster service for sponsorship
         // Convert alloy Address to ethers H160 for compatibility
         let ethers_entry_point = H160::from_slice(entry_point.as_slice());
         match paymaster_service

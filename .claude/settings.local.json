@@ -43,7 +43,8 @@
       "Bash(git tag:*)",
       "Bash(./format.sh)",
       "Bash(cargo:*)",
-      "Bash(./scripts/test_dual_service.sh:*)"
+      "Bash(./scripts/test_dual_service.sh:*)",
+      "Bash(./target/release/super-relay --help)"
     ],
     "deny": []
   }
