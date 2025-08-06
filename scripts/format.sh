@@ -40,9 +40,7 @@ echo "🔍 Running workspace-level checks..."
 cargo clippy --workspace --all-targets -- -D warnings
 
 echo "📦 Running package-level cargo check..."
-# Clean build artifacts before package checks to ensure fresh builds
-echo "🧹 Cleaning unnecessary build files..."
-./scripts/cleanup_target.sh
+# Package-level checks (removed cleanup - use ./scripts/clean.sh separately if needed)
 
 # Get all workspace package names and run cargo check for each
 PACKAGES=$(find . -name "Cargo.toml" -not -path "./target/*" -not -path "./Cargo.toml" | while read f; do

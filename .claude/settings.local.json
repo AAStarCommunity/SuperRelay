@@ -44,7 +44,17 @@
       "Bash(./format.sh)",
       "Bash(cargo:*)",
       "Bash(./scripts/test_dual_service.sh:*)",
-      "Bash(./target/release/super-relay --help)"
+      "Bash(./target/release/super-relay --help)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(./scripts/test_health_system.sh:*)",
+      "Bash(curl:*)",
+      "Bash(./scripts/test_rundler_init.sh:*)",
+      "Bash(./scripts/test_integration.sh:*)",
+      "Bash(./scripts/test_basic_gateway.sh:*)",
+      "Bash(./target/debug/super-relay --help)",
+      "Bash(./target/debug/super-relay:*)",
+      "Bash(./scripts/build_optimized.sh:*)"
     ],
     "deny": []
   }

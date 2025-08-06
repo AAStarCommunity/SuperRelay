@@ -37,9 +37,9 @@ echo "🚀 启动测试服务器..."
 pkill -f "super-relay" || true
 sleep 2
 
-# 在后台启动 super-relay gateway 模式
-echo "启动 Gateway 模式进行健康检查测试..."
-$SUPER_RELAY_BIN gateway &
+# 在后台启动 super-relay node 模式
+echo "启动 Node 模式进行健康检查测试..."
+$SUPER_RELAY_BIN node &
 GATEWAY_PID=$!
 
 # 等待服务启动

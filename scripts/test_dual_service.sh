@@ -58,7 +58,7 @@ rundler_port = 3001         # rundler服务端口
 gateway_port = 3000         # Gateway服务端口
 
 # 使用示例命令:
-# ./super-relay dual-service --config config/config.toml --enable-paymaster
+# ./super-relay node --config config/config.toml
 EOF
 
 echo ""

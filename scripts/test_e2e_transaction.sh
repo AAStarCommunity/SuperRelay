@@ -137,10 +137,14 @@ start_superrelay() {
     echo "🚀 启动 SuperRelay 双服务..."
 
     # 启动双服务模式: Gateway(3000) + Rundler(3001)
-    $SUPER_RELAY_BIN dual-service \
-        --network local \
-        --node-http "http://localhost:$ANVIL_PORT" \
-        --paymaster-private-key "$PAYMASTER_PRIVATE_KEY" \
+    $SUPER_RELAY_BIN node \
+        -- \
+        --network dev \
+        --node_http "http://localhost:$ANVIL_PORT" \
+        --paymaster.enabled \
+        --paymaster.private_key "$PAYMASTER_PRIVATE_KEY" \
+        --rpc.host 0.0.0.0 \
+        --rpc.port 3000 \
         > "$PROJECT_ROOT/scripts/logs/superrelay.log" 2>&1 &
     SUPERRELAY_PID=$!
 
