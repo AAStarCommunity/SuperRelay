@@ -1,5 +1,11 @@
 # 简化的SuperRelay测试配置
 
+[node]
+# 节点实例名称
+instance_name = "super-relay-test"
+# 节点运行环境
+environment = "development"
+
 [network]
 name = "dev"
 node_http = "http://localhost:8545"
@@ -14,8 +20,18 @@ port = 3000
 enabled = true
 private_key = "${PAYMASTER_PRIVATE_KEY}"
 
+[paymaster_relay]
+enabled = true
+
 [rpc]
 api = ["eth", "rundler", "paymaster"]
+
+[pool]
+max_user_ops_per_sender = 4
+user_op_validity_period = 300
+
+[mempool]
+path = "/tmp/super-relay-mempool"
 
 [monitoring]
 enabled = false

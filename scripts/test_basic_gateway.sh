@@ -123,12 +123,22 @@ echo "🧪 开始基础功能测试..."
 
 # 1. 健康检查测试
 echo "🏥 1. 健康检查测试"
-if curl -s "http://localhost:3000" | grep -q "Method not found\|Healthy"; then
+health_response=$(curl -s "http://localhost:3000/health" || echo "error")
+if [[ "$health_response" != "error" ]] && echo "$health_response" | grep -q "\"status\""; then
     test_results+=("✅ 服务响应测试: 通过")
     echo -e "${GREEN}   ✅ 服务正常响应${NC}"
 else
-    test_results+=("❌ 服务响应测试: 失败")
-    echo -e "${RED}   ❌ 服务无响应${NC}"
+    # 尝试根路径
+    root_response=$(curl -s "http://localhost:3000/" || echo "error")
+    if [[ "$root_response" != "error" ]] && echo "$root_response" | grep -q "Method not found\|jsonrpc"; then
+        test_results+=("✅ 服务响应测试: 通过")
+        echo -e "${GREEN}   ✅ 服务正常响应${NC}"
+    else
+        test_results+=("❌ 服务响应测试: 失败")
+        echo -e "${RED}   ❌ 服务无响应${NC}"
+        echo "   Health response: $health_response"
+        echo "   Root response: $root_response"
+    fi
 fi
 
 # 2. RPC接口测试

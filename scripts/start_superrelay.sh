@@ -7,6 +7,7 @@ set -e
 
 # 默认参数
 BUILD_PROFILE="debug"
+SKIP_BUILD=false
 
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
@@ -19,20 +20,28 @@ while [[ $# -gt 0 ]]; do
             BUILD_PROFILE="debug"
             shift
             ;;
+        --skip-build)
+            SKIP_BUILD=true
+            shift
+            ;;
         --help|-h)
             echo "🚀 SuperRelay 启动脚本"
             echo ""
-            echo "使用方法: $0 [release|debug] [legacy|node]"
+            echo "使用方法: $0 [OPTIONS] [MODES]"
             echo ""
-            echo "参数:"
-            echo "  release    使用生产优化的release版本（更小更快）"
-            echo "  debug      使用开发版本（默认，编译快）"
-            echo "  legacy     使用兼容模式"
-            echo "  node       使用node模式"
+            echo "构建选项:"
+            echo "  release      使用生产优化的release版本（更小更快）"
+            echo "  debug        使用开发版本（默认，编译快）"
+            echo "  --skip-build 跳过构建检测，直接使用现有二进制"
+            echo ""
+            echo "运行模式:"
+            echo "  legacy       使用兼容模式"
+            echo "  node         使用node模式"
             echo ""
             echo "优化建议:"
             echo "  • 日常开发: $0 debug (默认，编译快）"
-            echo "  • 性能测试: $0 release (最优性能）"
+            echo "  • 性能测试: $0 release (最优性能）" 
+            echo "  • 快速启动: $0 --skip-build (跳过构建检测）"
             exit 0
             ;;
         legacy|node)
@@ -262,8 +271,18 @@ else
 fi
 
 # 智能构建检查 - 仅在需要时构建
-echo "🔍 检查是否需要重新构建..."
-if check_rebuild_needed "$BINARY_PATH" "$BUILD_PROFILE"; then
+if [[ "$SKIP_BUILD" == "true" ]]; then
+    echo "⏭️  跳过构建检测，直接使用现有二进制"
+    if [[ ! -f "$BINARY_PATH" ]]; then
+        echo "❌ 二进制文件不存在: $BINARY_PATH"
+        echo "请先运行: ./scripts/build.sh --profile $BUILD_PROFILE"
+        exit 1
+    fi
+else
+    echo "🔍 检查是否需要重新构建..."
+fi
+
+if [[ "$SKIP_BUILD" != "true" ]] && check_rebuild_needed "$BINARY_PATH" "$BUILD_PROFILE"; then
     echo "🔨 开始构建 $BUILD_PROFILE 版本..."
     if [ -f "./scripts/build.sh" ]; then
         chmod +x ./scripts/build.sh

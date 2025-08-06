@@ -19,15 +19,27 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 检查二进制文件
-SUPER_RELAY_BIN="$PROJECT_ROOT/target/release/super-relay"
+SUPER_RELAY_BIN_RELEASE="$PROJECT_ROOT/target/release/super-relay"
+SUPER_RELAY_BIN_DEBUG="$PROJECT_ROOT/target/debug/super-relay"
 
-if [[ ! -f "$SUPER_RELAY_BIN" ]]; then
-    echo -e "${RED}❌ super-relay 二进制文件不存在${NC}"
-    echo "请先运行: cargo build --package super-relay --release"
-    exit 1
+# 优先使用release版本，如果不存在则使用debug版本
+if [[ -f "$SUPER_RELAY_BIN_RELEASE" ]]; then
+    SUPER_RELAY_BIN="$SUPER_RELAY_BIN_RELEASE"
+    echo -e "${GREEN}✅ 发现 super-relay 二进制文件 (release)${NC}"
+elif [[ -f "$SUPER_RELAY_BIN_DEBUG" ]]; then
+    SUPER_RELAY_BIN="$SUPER_RELAY_BIN_DEBUG"
+    echo -e "${GREEN}✅ 发现 super-relay 二进制文件 (debug)${NC}"
+else
+    echo -e "${YELLOW}⚠️  super-relay 二进制文件不存在，尝试构建...${NC}"
+    echo "构建 super-relay debug 版本..."
+    if cargo build --package super-relay; then
+        SUPER_RELAY_BIN="$SUPER_RELAY_BIN_DEBUG"
+        echo -e "${GREEN}✅ super-relay 构建成功${NC}"
+    else
+        echo -e "${RED}❌ super-relay 构建失败${NC}"
+        exit 1
+    fi
 fi
-
-echo -e "${GREEN}✅ 发现 super-relay 二进制文件${NC}"
 
 # 启动测试服务器
 echo ""
@@ -36,6 +48,46 @@ echo "🚀 启动测试服务器..."
 # 清理可能存在的进程
 pkill -f "super-relay" || true
 sleep 2
+
+# 设置测试环境变量
+echo "🔧 设置测试环境变量..."
+export SIGNER_PRIVATE_KEYS="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80,0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2"
+export PAYMASTER_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+export RPC_URL="http://localhost:8545"
+export NETWORK="dev"
+export CHAIN_ID="31337"
+
+# 启动 Anvil 用于测试
+echo "🔥 启动测试用 Anvil..."
+# 清理可能存在的 Anvil 进程
+pkill -f "anvil" || true
+sleep 1
+
+# 检查 Anvil 是否可用
+if ! command -v anvil >/dev/null 2>&1; then
+    echo -e "${RED}❌ anvil 命令不存在，请安装 Foundry${NC}"
+    exit 1
+fi
+
+# 启动 Anvil
+anvil --host 0.0.0.0 --port 8545 --chain-id $CHAIN_ID > anvil.log 2>&1 &
+ANVIL_PID=$!
+echo "Anvil PID: $ANVIL_PID"
+
+# 等待 Anvil 启动
+echo "等待 Anvil 启动..."
+sleep 3
+
+# 验证 Anvil 是否启动成功
+if ! curl -s -X POST -H "Content-Type: application/json" \
+    --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+    $RPC_URL > /dev/null; then
+    echo -e "${RED}❌ Anvil 启动失败或无法连接${NC}"
+    kill $ANVIL_PID 2>/dev/null || true
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Anvil 启动成功${NC}"
 
 # 在后台启动 super-relay node 模式
 echo "启动 Node 模式进行健康检查测试..."
@@ -67,7 +119,7 @@ test_endpoint() {
     response=$(curl -s -w "\n%{http_code}" "http://localhost:3000$endpoint" 2>/dev/null || echo -e "\n000")
 
     # 分离响应体和状态码
-    body=$(echo "$response" | head -n -1)
+    body=$(echo "$response" | sed '$d')
     status_code=$(echo "$response" | tail -n 1)
 
     if [[ "$status_code" == "$expected_status" ]]; then
@@ -118,6 +170,20 @@ if kill -0 $GATEWAY_PID 2>/dev/null; then
         kill -KILL $GATEWAY_PID
     fi
 fi
+
+# 关闭 Anvil
+if [[ -n "${ANVIL_PID:-}" ]] && kill -0 $ANVIL_PID 2>/dev/null; then
+    kill -TERM $ANVIL_PID
+    sleep 2
+    
+    # 如果还没关闭，强制终止
+    if kill -0 $ANVIL_PID 2>/dev/null; then
+        kill -KILL $ANVIL_PID
+    fi
+fi
+
+# 清理日志文件
+rm -f anvil.log
 
 echo -e "${GREEN}✅ 测试环境清理完成${NC}"
 

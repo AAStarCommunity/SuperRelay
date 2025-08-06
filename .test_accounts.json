@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-08-01T15:03:12Z",
+  "generated_at": "2025-08-06T06:05:17Z",
   "anvil_url": "http://localhost:8545",
   "v0_6": {
     "entrypoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
@@ -14,7 +14,7 @@
     }
   },
   "v0_7": {
-    "entrypoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032", 
+    "entrypoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
     "account_owner": {
       "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       "private_key": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2"
