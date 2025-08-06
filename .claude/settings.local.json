@@ -54,7 +54,8 @@
       "Bash(./scripts/test_basic_gateway.sh:*)",
       "Bash(./target/debug/super-relay --help)",
       "Bash(./target/debug/super-relay:*)",
-      "Bash(./scripts/build_optimized.sh:*)"
+      "Bash(./scripts/build_optimized.sh:*)",
+      "Bash(./scripts/build.sh:*)"
     ],
     "deny": []
   }

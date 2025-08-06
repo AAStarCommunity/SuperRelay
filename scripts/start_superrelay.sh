@@ -255,21 +255,21 @@ fi
 # 2. 智能选择或构建SuperRelay binary
 if [ "$BUILD_PROFILE" = "release" ]; then
     BINARY_PATH="./target/release/super-relay"
-    BUILD_COMMAND="./scripts/build_optimized.sh --profile release super-relay"
+    BUILD_COMMAND="./scripts/build.sh --profile release"
 else
     BINARY_PATH="./target/debug/super-relay"
-    BUILD_COMMAND="./scripts/build_optimized.sh --profile dev-fast super-relay"
+    BUILD_COMMAND="./scripts/build.sh --profile debug"
 fi
 
 # 智能构建检查 - 仅在需要时构建
 echo "🔍 检查是否需要重新构建..."
 if check_rebuild_needed "$BINARY_PATH" "$BUILD_PROFILE"; then
     echo "🔨 开始构建 $BUILD_PROFILE 版本..."
-    if [ -f "./scripts/build_optimized.sh" ]; then
-        chmod +x ./scripts/build_optimized.sh
+    if [ -f "./scripts/build.sh" ]; then
+        chmod +x ./scripts/build.sh
         $BUILD_COMMAND
         if [ $? -ne 0 ]; then
-            echo "❌ 优化构建失败，尝试标准构建..."
+            echo "❌ 独立构建失败，尝试标准构建..."
             # 后备构建方案
             if [ "$BUILD_PROFILE" = "release" ]; then
                 cargo build --package super-relay --release

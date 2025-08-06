@@ -1,0 +1,24 @@
+# 简化的SuperRelay测试配置
+
+[network]
+name = "dev"
+node_http = "http://localhost:8545"
+chain_id = 31337
+
+[gateway]
+enabled = true
+host = "0.0.0.0"
+port = 3000
+
+[paymaster]
+enabled = true
+private_key = "${PAYMASTER_PRIVATE_KEY}"
+
+[rpc]
+api = ["eth", "rundler", "paymaster"]
+
+[monitoring]
+enabled = false
+
+[security]
+rate_limiting_enabled = false
