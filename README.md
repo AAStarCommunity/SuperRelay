@@ -166,7 +166,7 @@ curl -X POST http://localhost:3000 \
 ./scripts/start_web_ui.sh
 
 # Access API documentation
-open http://localhost:9000/swagger-ui/
+open http://localhost:9000/
 ```
 
 ### 4. Verify Gateway Functionality
@@ -255,7 +255,7 @@ curl http://localhost:3000/health
 ```
 
 🎉 **SuperRelay 启动成功！**
-- 🌐 Swagger UI: http://localhost:9000/swagger-ui/
+- 🌐 Swagger UI: http://localhost:9000/
 - 📊 API 端点：http://localhost:3000
 - 📈 监控面板：http://localhost:3000/metrics
 
