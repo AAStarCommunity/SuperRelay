@@ -1,59 +1,81 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "SuperRelay API",
-    "description": "Enterprise API Gateway for ERC-4337 Account Abstraction",
-    "version": "0.1.5",
-    "contact": {
-      "name": "SuperRelay Team",
-      "url": "https://github.com/alchemyplatform/rundler"
-    },
-    "license": {
-      "name": "LGPL-3.0",
-      "url": "https://www.gnu.org/licenses/lgpl-3.0.html"
+    "title": "SuperRelay Auto-Generated API",
+    "version": "0.9.0",
+    "description": "自动从代码生成的API文档 (发现 25 个API方法)",
+    "x-generated": {
+      "timestamp": "2025-08-07T06:14:20Z",
+      "source": "自动代码分析",
+      "methods_found": 25,
+      "data_types_found": 32
     }
   },
   "servers": [
     {
       "url": "http://localhost:3000",
-      "description": "SuperRelay Gateway (Development)"
+      "description": "开发环境 - SuperRelay Gateway"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Paymaster API",
+      "description": "🎯 SuperRelay核心Paymaster功能 - Gas赞助和用户操作支持"
+    },
+    {
+      "name": "ERC-4337 API",
+      "description": "📋 标准ERC-4337账户抽象API - 兼容所有AA钱包"
+    },
+    {
+      "name": "Rundler API",
+      "description": "🔧 Rundler扩展功能API - 高级bundler操作"
+    },
+    {
+      "name": "Debug API",
+      "description": "🐛 调试和测试API - 开发环境专用"
+    },
+    {
+      "name": "Admin API",
+      "description": "⚙️ 管理和配置API - 系统管理员专用"
+    },
+    {
+      "name": "Monitoring API",
+      "description": "📊 健康检查和监控API - 运维和监控"
     }
   ],
   "paths": {
-    "/": {
+    "/sponsorUserOperation": {
       "post": {
-        "summary": "JSON-RPC Endpoint",
-        "description": "Main JSON-RPC API endpoint for all ERC-4337 operations",
+        "summary": "sponsor_user_operation - sponsorUserOperation",
+        "description": "No description available\n\n**源文件**: `crates/paymaster-relay/src/rpc.rs:191`",
+        "tags": [
+          "Paymaster API"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JsonRpcRequest"
-              },
-              "examples": {
-                "pm_sponsorUserOperation": {
-                  "summary": "Sponsor UserOperation",
-                  "value": {
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "pm_sponsorUserOperation",
-                    "params": [
-                      {
-                        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-                        "nonce": "0x0",
-                        "initCode": "0x",
-                        "callData": "0x",
-                        "callGasLimit": "0x186A0",
-                        "verificationGasLimit": "0x186A0",
-                        "preVerificationGas": "0x5208",
-                        "maxFeePerGas": "0x3B9ACA00",
-                        "maxPriorityFeePerGas": "0x3B9ACA00",
-                        "paymasterAndData": "0x",
-                        "signature": "0x"
-                      },
-                      "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
-                    ]
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "sponsorUserOperation"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['user_op', 'entry_point']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
                   }
                 }
               }
@@ -62,41 +84,22 @@
         },
         "responses": {
           "200": {
-            "description": "JSON-RPC Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JsonRpcResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/health": {
-      "get": {
-        "summary": "Health Check",
-        "description": "Check the health status of the SuperRelay Gateway",
-        "responses": {
-          "200": {
-            "description": "Health status",
+            "description": "Success response - Result<String, ErrorObjectOwned>",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": {
+                    "jsonrpc": {
                       "type": "string",
-                      "example": "healthy"
+                      "example": "2.0"
                     },
-                    "gateway": {
-                      "type": "string",
-                      "example": "running"
+                    "result": {
+                      "type": "object",
+                      "description": "Result<String, ErrorObjectOwned>"
                     },
-                    "paymaster": {
-                      "type": "string",
-                      "example": "available"
+                    "id": {
+                      "type": "integer"
                     }
                   }
                 }
@@ -106,17 +109,1559 @@
         }
       }
     },
-    "/metrics": {
-      "get": {
-        "summary": "Prometheus Metrics",
-        "description": "Get Prometheus-compatible metrics",
+    "/health": {
+      "post": {
+        "summary": "get_health - health",
+        "description": "No description available\n\n**源文件**: `crates/rpc/src/health.rs:22`",
+        "tags": [
+          "Monitoring API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "health"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: []"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Prometheus metrics",
+            "description": "Success response - RpcResult<String>",
             "content": {
-              "text/plain": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<String>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/maxPriorityFeePerGas": {
+      "post": {
+        "summary": "max_priority_fee_per_gas - maxPriorityFeePerGas",
+        "description": "Returns the maximum priority fee per gas required by Rundler\n\n**源文件**: `crates/rpc/src/rundler.rs:38`",
+        "tags": [
+          "Rundler API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "maxPriorityFeePerGas"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: []"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<U128>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<U128>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dropLocalUserOperation": {
+      "post": {
+        "summary": "drop_local_user_operation - dropLocalUserOperation",
+        "description": "Drops a user operation from the local mempool.  Requirements: - The user operation must contain a sender/nonce pair this is present in the local mempool. - The user operation must pass entrypoint.simulateValidation. I.e. it must have a valid signature and verificationGasLimit - The user operation must have zero values for: preVerificationGas, callGasLimit, calldata, and maxFeePerGas  Returns none if no user operation was found, otherwise returns the hash of the removed user operation.\n\n**源文件**: `crates/rpc/src/rundler.rs:49`",
+        "tags": [
+          "Rundler API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "dropLocalUserOperation"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['uo', 'entry_point']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Option<B256>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Option<B256>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getMinedUserOperation": {
+      "post": {
+        "summary": "get_mined_user_operation - getMinedUserOperation",
+        "description": "Gets information about a mined user operation by user operation hash, transaction hash, and entrypoint address\n\n**源文件**: `crates/rpc/src/rundler.rs:57`",
+        "tags": [
+          "Rundler API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "getMinedUserOperation"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['uo_hash', 'tx_hash', 'entry_point']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Option<RpcMinedUserOperation>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Option<RpcMinedUserOperation>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getUserOperationStatus": {
+      "post": {
+        "summary": "get_user_operation_status - getUserOperationStatus",
+        "description": "Gets the status of a user operation by user operation hash\n\n**源文件**: `crates/rpc/src/rundler.rs:66`",
+        "tags": [
+          "Rundler API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "getUserOperationStatus"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['uo_hash']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<RpcUserOperationStatus>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<RpcUserOperationStatus>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getPendingUserOperationBySenderNonce": {
+      "post": {
+        "summary": "get_pending_user_operation_by_sender_nonce - getPendingUserOperationBySenderNonce",
+        "description": "Gets the required fees for a sender nonce\n\n**源文件**: `crates/rpc/src/rundler.rs:70`",
+        "tags": [
+          "Rundler API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "getPendingUserOperationBySenderNonce"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['sender', 'nonce']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Option<RpcUserOperation>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Option<RpcUserOperation>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_clearState": {
+      "post": {
+        "summary": "bundler_clear_state - bundler_clearState",
+        "description": "Clears the state of the pool.\n\n**源文件**: `crates/rpc/src/debug.rs:36`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_clearState"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: []"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<String>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<String>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_clearMempool": {
+      "post": {
+        "summary": "bundler_clear_mempool - bundler_clearMempool",
+        "description": "Clears the state of the mempool without affect reputations.\n\n**源文件**: `crates/rpc/src/debug.rs:40`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_clearMempool"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: []"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<String>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<String>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_dumpMempool": {
+      "post": {
+        "summary": "bundler_dump_mempool - bundler_dumpMempool",
+        "description": "Dumps the mempool.\n\n**源文件**: `crates/rpc/src/debug.rs:44`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_dumpMempool"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['entry_point']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Vec<RpcUserOperation>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Vec<RpcUserOperation>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_sendBundleNow": {
+      "post": {
+        "summary": "bundler_send_bundle_now - bundler_sendBundleNow",
+        "description": "Triggers the builder to send a bundle now  Note that the bundling mode must be set to `Manual` else this will fail.\n\n**源文件**: `crates/rpc/src/debug.rs:50`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_sendBundleNow"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: []"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<B256>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<B256>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_setBundlingMode": {
+      "post": {
+        "summary": "bundler_set_bundling_mode - bundler_setBundlingMode",
+        "description": "Sets the bundling mode.\n\n**源文件**: `crates/rpc/src/debug.rs:54`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_setBundlingMode"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['mode']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<String>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<String>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_setReputation": {
+      "post": {
+        "summary": "bundler_set_reputation - bundler_setReputation",
+        "description": "Sets the reputations of entities on the given entry point.\n\n**源文件**: `crates/rpc/src/debug.rs:58`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_setReputation"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['reputations', 'entry_point']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<String>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<String>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_dumpReputation": {
+      "post": {
+        "summary": "bundler_dump_reputation - bundler_dumpReputation",
+        "description": "Dumps the reputations of entities from the given entry point.\n\n**源文件**: `crates/rpc/src/debug.rs:66`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_dumpReputation"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['entry_point']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Vec<RpcReputationOutput>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Vec<RpcReputationOutput>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_getStakeStatus": {
+      "post": {
+        "summary": "bundler_get_stake_status - bundler_getStakeStatus",
+        "description": "Returns stake status given an address and entrypoint\n\n**源文件**: `crates/rpc/src/debug.rs:73`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_getStakeStatus"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['address', 'entry_point']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<RpcStakeStatus>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<RpcStakeStatus>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_dumpPaymasterBalances": {
+      "post": {
+        "summary": "bundler_dump_paymaster_balances - bundler_dumpPaymasterBalances",
+        "description": "Dumps the paymaster balance cache\n\n**源文件**: `crates/rpc/src/debug.rs:81`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_dumpPaymasterBalances"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['entry_point']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Vec<RpcDebugPaymasterBalance>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Vec<RpcDebugPaymasterBalance>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundler_clearReputation": {
+      "post": {
+        "summary": "bundler_clear_reputation - bundler_clearReputation",
+        "description": "Clear the reputations of pool.\n\n**源文件**: `crates/rpc/src/debug.rs:88`",
+        "tags": [
+          "Debug API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "bundler_clearReputation"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: []"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<String>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<String>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clearState": {
+      "post": {
+        "summary": "clear_state - clearState",
+        "description": "Clears the state of the mempool field if name is true\n\n**源文件**: `crates/rpc/src/admin.rs:29`",
+        "tags": [
+          "Admin API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "clearState"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['clear_params']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<String>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<String>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/setTracking": {
+      "post": {
+        "summary": "set_tracking - setTracking",
+        "description": "Sets the tracking state for the paymaster and reputation pool modules\n\n**源文件**: `crates/rpc/src/admin.rs:33`",
+        "tags": [
+          "Admin API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "setTracking"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['entry_point', 'tracking_info']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<String>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<String>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sendUserOperation": {
+      "post": {
+        "summary": "send_user_operation - sendUserOperation",
+        "description": "Sends a user operation to the pool.\n\n**源文件**: `crates/rpc/src/eth/mod.rs:40`",
+        "tags": [
+          "ERC-4337 API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "sendUserOperation"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['op', 'entry_point', 'permissions']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<B256>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<B256>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/estimateUserOperationGas": {
+      "post": {
+        "summary": "estimate_user_operation_gas - estimateUserOperationGas",
+        "description": "Estimates the gas fields for a user operation.\n\n**源文件**: `crates/rpc/src/eth/mod.rs:49`",
+        "tags": [
+          "ERC-4337 API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "estimateUserOperationGas"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['op', 'entry_point', 'state_override']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<RpcGasEstimate>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<RpcGasEstimate>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getUserOperationByHash": {
+      "post": {
+        "summary": "get_user_operation_by_hash - getUserOperationByHash",
+        "description": "Returns the user operation with the given hash.\n\n**源文件**: `crates/rpc/src/eth/mod.rs:58`",
+        "tags": [
+          "ERC-4337 API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "getUserOperationByHash"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['hash']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Option<RpcUserOperationByHash>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Option<RpcUserOperationByHash>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getUserOperationReceipt": {
+      "post": {
+        "summary": "get_user_operation_receipt - getUserOperationReceipt",
+        "description": "Returns the user operation receipt with the given hash.\n\n**源文件**: `crates/rpc/src/eth/mod.rs:65`",
+        "tags": [
+          "ERC-4337 API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "getUserOperationReceipt"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: ['hash']"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Option<RpcUserOperationReceipt>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Option<RpcUserOperationReceipt>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/supportedEntryPoints": {
+      "post": {
+        "summary": "supported_entry_points - supportedEntryPoints",
+        "description": "Returns the supported entry points addresses\n\n**源文件**: `crates/rpc/src/eth/mod.rs:72`",
+        "tags": [
+          "ERC-4337 API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "supportedEntryPoints"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: []"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<Vec<String>>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<Vec<String>>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chainId": {
+      "post": {
+        "summary": "chain_id - chainId",
+        "description": "Returns the chain ID\n\n**源文件**: `crates/rpc/src/eth/mod.rs:76`",
+        "tags": [
+          "ERC-4337 API"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jsonrpc": {
+                    "type": "string",
+                    "example": "2.0"
+                  },
+                  "method": {
+                    "type": "string",
+                    "example": "chainId"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "参数: []"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success response - RpcResult<U64>",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jsonrpc": {
+                      "type": "string",
+                      "example": "2.0"
+                    },
+                    "result": {
+                      "type": "object",
+                      "description": "RpcResult<U64>"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
                 }
               }
             }
@@ -127,66 +1672,818 @@
   },
   "components": {
     "schemas": {
-      "JsonRpcRequest": {
+      "ComponentStatus": {
         "type": "object",
-        "required": ["jsonrpc", "method", "id"],
         "properties": {
-          "jsonrpc": {
-            "type": "string",
-            "example": "2.0"
+          "signer": {
+            "type": "string"
           },
-          "method": {
-            "type": "string",
-            "example": "pm_sponsorUserOperation"
+          "policy_engine": {
+            "type": "string"
           },
-          "params": {
-            "type": "array",
-            "items": {}
+          "rpc_server": {
+            "type": "string"
           },
-          "id": {
-            "oneOf": [
-              {"type": "string"},
-              {"type": "number"},
-              {"type": "null"}
-            ]
+          "eth_connection": {
+            "type": "string"
           }
-        }
+        },
+        "file": "crates/paymaster-relay/src/schemas.rs"
       },
-      "JsonRpcResponse": {
+      "PerformanceMetrics": {
         "type": "object",
-        "required": ["jsonrpc", "id"],
         "properties": {
-          "jsonrpc": {
-            "type": "string",
-            "example": "2.0"
+          "avg_response_time_ms": {
+            "type": "number",
+            "format": "double"
           },
-          "result": {},
-          "error": {
-            "$ref": "#/components/schemas/JsonRpcError"
+          "requests_per_second": {
+            "type": "number",
+            "format": "double"
           },
-          "id": {
-            "oneOf": [
-              {"type": "string"},
-              {"type": "number"},
-              {"type": "null"}
-            ]
+          "error_rate": {
+            "type": "number",
+            "format": "double"
           }
-        }
+        },
+        "file": "crates/paymaster-relay/src/schemas.rs"
       },
-      "JsonRpcError": {
+      "BalanceThresholds": {
         "type": "object",
-        "required": ["code", "message"],
+        "properties": {
+          "paymaster_min": {
+            "type": "string"
+          },
+          "deposit_min": {
+            "type": "string"
+          }
+        },
+        "file": "crates/paymaster-relay/src/schemas.rs"
+      },
+      "BalanceAddresses": {
+        "type": "object",
+        "properties": {
+          "paymaster": {
+            "type": "string"
+          },
+          "entry_point": {
+            "type": "string"
+          }
+        },
+        "file": "crates/paymaster-relay/src/schemas.rs"
+      },
+      "SponsorUserOperationRequest": {
+        "type": "object",
+        "properties": {
+          "user_op": {
+            "type": "object",
+            "description": "Custom type: serde_json::Value"
+          },
+          "entry_point": {
+            "type": "string"
+          }
+        },
+        "file": "crates/paymaster-relay/src/rpc.rs"
+      },
+      "ErrorResponse": {
+        "type": "object",
         "properties": {
           "code": {
             "type": "integer",
-            "example": -32601
+            "format": "int32"
           },
           "message": {
-            "type": "string",
-            "example": "Method not found"
+            "type": "string"
           },
-          "data": {}
-        }
+          "data": {
+            "type": "object",
+            "description": "Custom type: serde_json::Value"
+          }
+        },
+        "file": "crates/paymaster-relay/src/api_docs.rs"
+      },
+      "BalanceStatus": {
+        "type": "object",
+        "properties": {
+          "paymaster_balance": {
+            "type": "string"
+          },
+          "entry_point_deposit": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "file": "crates/paymaster-relay/src/api_docs.rs"
+      },
+      "PolicyStatus": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "active_policies": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "policy_file": {
+            "type": "string"
+          }
+        },
+        "file": "crates/paymaster-relay/src/api_docs.rs"
+      },
+      "SystemMetrics": {
+        "type": "object",
+        "properties": {
+          "memory_usage_mb": {
+            "type": "number",
+            "format": "double"
+          },
+          "active_connections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total_requests": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "error_rate": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "file": "crates/gateway/src/health.rs"
+      },
+      "HealthStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "object",
+            "description": "Custom type: SystemStatus"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uptime_seconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "components": {
+            "type": "object",
+            "description": "Custom type: ComponentsStatus"
+          },
+          "metrics": {
+            "type": "object",
+            "description": "Custom type: SystemMetrics"
+          }
+        },
+        "file": "crates/gateway/src/health.rs"
+      },
+      "KmsKeyInfo": {
+        "type": "object",
+        "properties": {
+          "key_id": {
+            "type": "string"
+          },
+          "key_type": {
+            "type": "object",
+            "description": "Custom type: KmsKeyType"
+          },
+          "address": {
+            "type": "string",
+            "description": "Ethereum address"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Custom type: HashMap<String"
+          }
+        },
+        "file": "crates/paymaster-relay/src/kms.rs"
+      },
+      "SigningContext": {
+        "type": "object",
+        "properties": {
+          "operation_type": {
+            "type": "string"
+          },
+          "user_operation_hash": {
+            "type": "object",
+            "description": "Custom type: H256"
+          },
+          "sender_address": {
+            "type": "string",
+            "description": "Ethereum address"
+          },
+          "entry_point": {
+            "type": "string",
+            "description": "Ethereum address"
+          },
+          "gas_estimates": {
+            "type": "object",
+            "description": "Custom type: GasEstimates"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Custom type: HashMap<String"
+          }
+        },
+        "file": "crates/paymaster-relay/src/kms.rs"
+      },
+      "GasEstimates": {
+        "type": "object",
+        "properties": {
+          "call_gas_limit": {
+            "type": "object",
+            "description": "Custom type: u128"
+          },
+          "verification_gas_limit": {
+            "type": "object",
+            "description": "Custom type: u128"
+          },
+          "pre_verification_gas": {
+            "type": "object",
+            "description": "Custom type: u128"
+          },
+          "max_fee_per_gas": {
+            "type": "object",
+            "description": "Custom type: u128"
+          },
+          "max_priority_fee_per_gas": {
+            "type": "object",
+            "description": "Custom type: u128"
+          }
+        },
+        "file": "crates/paymaster-relay/src/kms.rs"
+      },
+      "SigningAuditInfo": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "service_metadata": {
+            "type": "object",
+            "description": "Custom type: HashMap<String"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hardware_validated": {
+            "type": "boolean"
+          }
+        },
+        "file": "crates/paymaster-relay/src/kms.rs"
+      },
+      "SponsorUserOperationResponse": {
+        "type": "object",
+        "properties": {
+          "user_op_hash": {
+            "type": "string"
+          }
+        },
+        "file": "crates/paymaster-relay/src/rpc.rs"
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "description": "Custom type: serde_json::Value"
+          }
+        },
+        "file": "crates/paymaster-relay/src/api_schemas.rs"
+      },
+      "ChainSpec": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entry_point_address_v0_6": {
+            "type": "string",
+            "description": "Ethereum address"
+          },
+          "entry_point_address_v0_7": {
+            "type": "string",
+            "description": "Ethereum address"
+          },
+          "multicall3_address": {
+            "type": "string",
+            "description": "Ethereum address"
+          },
+          "deposit_transfer_overhead": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "max_transaction_size_bytes": {
+            "type": "object",
+            "description": "Custom type: usize"
+          },
+          "block_gas_limit": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "transaction_intrinsic_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "per_user_op_v0_6_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "per_user_op_v0_7_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "per_user_op_deploy_overhead_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "per_user_op_word_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "calldata_zero_byte_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "calldata_non_zero_byte_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "da_pre_verification_gas": {
+            "type": "boolean"
+          },
+          "da_gas_oracle_type": {
+            "type": "object",
+            "description": "Custom type: DAGasOracleType"
+          },
+          "da_gas_oracle_contract_address": {
+            "type": "string",
+            "description": "Ethereum address"
+          },
+          "include_da_gas_in_gas_limit": {
+            "type": "boolean"
+          },
+          "eip1559_enabled": {
+            "type": "boolean"
+          },
+          "eip7702_enabled": {
+            "type": "boolean"
+          },
+          "eip7623_enabled": {
+            "type": "boolean"
+          },
+          "eip7623_calldata_floor_zero_byte_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "eip7623_calldata_floor_non_zero_byte_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "priority_fee_oracle_type": {
+            "type": "object",
+            "description": "Custom type: PriorityFeeOracleType"
+          },
+          "min_max_priority_fee_per_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "max_max_priority_fee_per_gas": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "congestion_trigger_usage_ratio_threshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "bundle_max_send_interval_millis": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "flashbots_enabled": {
+            "type": "boolean"
+          },
+          "flashbots_relay_url": {
+            "type": "string"
+          },
+          "bloxroute_enabled": {
+            "type": "boolean"
+          },
+          "chain_history_size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "signature_aggregators": {
+            "type": "object",
+            "description": "Custom type: Arc<ContractRegistry<Arc<dyn SignatureAggregator>>>"
+          },
+          "submission_proxies": {
+            "type": "object",
+            "description": "Custom type: Arc<ContractRegistry<Arc<dyn SubmissionProxy>>>"
+          }
+        },
+        "file": "crates/types/src/chain.rs"
+      },
+      "AggregatorCosts": {
+        "type": "object",
+        "properties": {
+          "execution_fixed_gas": {
+            "type": "object",
+            "description": "Custom type: u128"
+          },
+          "execution_variable_gas": {
+            "type": "object",
+            "description": "Custom type: u128"
+          },
+          "sig_fixed_length": {
+            "type": "object",
+            "description": "Custom type: u128"
+          },
+          "sig_variable_length": {
+            "type": "object",
+            "description": "Custom type: u128"
+          }
+        },
+        "file": "crates/types/src/aggregator.rs"
+      },
+      "PaymasterValidationRejectedData": {
+        "type": "object",
+        "properties": {
+          "paymaster": {
+            "type": "string",
+            "description": "Ethereum address"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "file": "crates/rpc/src/eth/error.rs"
+      },
+      "UnsupportedAggregatorData": {
+        "type": "object",
+        "properties": {
+          "aggregator": {
+            "type": "string",
+            "description": "Ethereum address"
+          }
+        },
+        "file": "crates/rpc/src/eth/error.rs"
+      },
+      "ComponentsStatus": {
+        "type": "object",
+        "properties": {
+          "gateway": {
+            "type": "object",
+            "description": "Custom type: ComponentHealth"
+          },
+          "paymaster": {
+            "type": "object",
+            "description": "Custom type: ComponentHealth"
+          },
+          "pool": {
+            "type": "object",
+            "description": "Custom type: ComponentHealth"
+          },
+          "router": {
+            "type": "object",
+            "description": "Custom type: ComponentHealth"
+          }
+        },
+        "file": "crates/gateway/src/health.rs"
+      },
+      "ComponentHealth": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "object",
+            "description": "Custom type: ComponentStatus"
+          },
+          "last_check": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "response_time_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "file": "crates/gateway/src/health.rs"
+      },
+      "SecurityResult": {
+        "type": "object",
+        "properties": {
+          "is_secure": {
+            "type": "boolean"
+          },
+          "security_score": {
+            "type": "object",
+            "description": "Custom type: u8"
+          },
+          "check_results": {
+            "type": "object",
+            "description": "Custom type: HashMap<String"
+          },
+          "critical_violations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Custom type: SecurityMetadata"
+          }
+        },
+        "file": "crates/gateway/src/security.rs"
+      },
+      "SecurityCheck": {
+        "type": "object",
+        "properties": {
+          "check_name": {
+            "type": "string"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "risk_level": {
+            "type": "object",
+            "description": "Custom type: SecurityRiskLevel"
+          },
+          "context": {
+            "type": "object",
+            "description": "Custom type: serde_json::Value"
+          }
+        },
+        "file": "crates/gateway/src/security.rs"
+      },
+      "SecurityMetadata": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "anomaly_score": {
+            "type": "number",
+            "format": "double"
+          },
+          "phishing_risk_level": {
+            "type": "string"
+          },
+          "contract_risk_score": {
+            "type": "object",
+            "description": "Custom type: u8"
+          },
+          "pattern_analysis": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "file": "crates/gateway/src/security.rs"
+      },
+      "DataIntegrityResult": {
+        "type": "object",
+        "properties": {
+          "is_valid": {
+            "type": "boolean"
+          },
+          "validation_score": {
+            "type": "object",
+            "description": "Custom type: u8"
+          },
+          "field_validations": {
+            "type": "object",
+            "description": "Custom type: HashMap<String"
+          },
+          "critical_issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "file": "crates/gateway/src/validation.rs"
+      },
+      "FieldValidation": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "is_valid": {
+            "type": "boolean"
+          },
+          "value": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "object",
+            "description": "Custom type: ValidationSeverity"
+          }
+        },
+        "file": "crates/gateway/src/validation.rs"
+      },
+      "E2EValidationResult": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "object",
+            "description": "Custom type: E2EStatus"
+          },
+          "steps_completed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Custom type: E2EStep"
+            }
+          },
+          "total_time_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "step_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Custom type: E2EStepResult"
+            }
+          },
+          "transaction_hash": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "file": "crates/gateway/src/e2e_validator.rs"
+      },
+      "E2EStepResult": {
+        "type": "object",
+        "properties": {
+          "step": {
+            "type": "object",
+            "description": "Custom type: E2EStep"
+          },
+          "status": {
+            "type": "object",
+            "description": "Custom type: StepStatus"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "data": {
+            "type": "object",
+            "description": "Custom type: serde_json::Value"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "file": "crates/gateway/src/e2e_validator.rs"
+      },
+      "AuthorizationResult": {
+        "type": "object",
+        "properties": {
+          "is_authorized": {
+            "type": "boolean"
+          },
+          "authorization_score": {
+            "type": "object",
+            "description": "Custom type: u8"
+          },
+          "check_results": {
+            "type": "object",
+            "description": "Custom type: HashMap<String"
+          },
+          "blocking_issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Custom type: AuthorizationMetadata"
+          }
+        },
+        "file": "crates/gateway/src/authorization.rs"
+      },
+      "AuthorizationCheck": {
+        "type": "object",
+        "properties": {
+          "check_name": {
+            "type": "string"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "object",
+            "description": "Custom type: AuthorizationSeverity"
+          },
+          "context": {
+            "type": "object",
+            "description": "Custom type: serde_json::Value"
+          }
+        },
+        "file": "crates/gateway/src/authorization.rs"
+      },
+      "AuthorizationMetadata": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sender_reputation": {
+            "type": "object",
+            "description": "Custom type: u8"
+          },
+          "paymaster_verified": {
+            "type": "boolean"
+          },
+          "rate_limit_remaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "geo_restrictions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "file": "crates/gateway/src/authorization.rs"
       }
     }
   }
