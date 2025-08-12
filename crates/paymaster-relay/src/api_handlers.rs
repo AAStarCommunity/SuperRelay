@@ -1,41 +1,8 @@
 // api_handlers.rs
-// Axum HTTP handlers that integrate with utoipa for OpenAPI generation
+// Basic HTTP handlers for health checks and monitoring
 
-use std::sync::Arc;
-
-use axum::{extract::State, http::StatusCode, response::Json};
+use axum::response::Json;
 use utoipa::ToSchema;
-
-use crate::{
-    api_schemas::{ErrorResponse, SponsorUserOperationRequest, SponsorUserOperationResponse},
-    rpc::PaymasterRelayApiServerImpl,
-};
-
-/// HTTP handler for sponsoring user operations
-///
-/// This endpoint provides HTTP REST interface on top of the JSON-RPC implementation.
-/// It transforms HTTP requests to RPC calls and returns JSON responses.
-#[utoipa::path(
-    post,
-    path = "/api/v1/sponsor",
-    request_body = SponsorUserOperationRequest,
-    responses(
-        (status = 200, description = "Successfully sponsored the user operation", body = SponsorUserOperationResponse),
-        (status = 400, description = "Invalid request parameters", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse)
-    ),
-    tag = "paymaster"
-)]
-pub async fn sponsor_user_operation_handler(
-    State(_rpc_service): State<Arc<PaymasterRelayApiServerImpl>>,
-    Json(_request): Json<SponsorUserOperationRequest>,
-) -> Result<Json<SponsorUserOperationResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // TODO: Implement actual RPC call integration
-    // For now, return a placeholder response
-    Ok(Json(SponsorUserOperationResponse {
-        paymaster_and_data: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000".to_string(),
-    }))
-}
 
 /// Health check endpoint
 #[utoipa::path(

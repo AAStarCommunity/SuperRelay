@@ -41,7 +41,7 @@ JSON-RPC 方法名: "pm_sponsorUserOperation"
 }
 ```
 
-**结果**: 
+**结果**:
 ```json
 {
   "jsonrpc": "2.0",
@@ -65,7 +65,7 @@ JSON-RPC 方法名: "pm_sponsorUserOperation"
 ```rust
 // 不同服务可能有相同的方法名
 namespace = "pm"    → pm_sponsorUserOperation
-namespace = "eth"   → eth_sponsorUserOperation  
+namespace = "eth"   → eth_sponsorUserOperation
 namespace = "debug" → debug_sponsorUserOperation
 ```
 

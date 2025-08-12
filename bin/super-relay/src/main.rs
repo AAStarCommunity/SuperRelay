@@ -8,7 +8,8 @@ use std::{fs, path::Path, process::Command, sync::Arc};
 use clap::{Parser, Subcommand};
 use eyre::Result;
 use rundler_paymaster_relay::{
-    policy::PolicyEngine, service::PaymasterRelayService, signer::SignerManager,
+    policy::PolicyEngine, service::PaymasterRelayService, signer::SignerManager, start_api_server,
+    PaymasterRelayApiServerImpl,
 };
 use rundler_pool::{LocalPoolBuilder, LocalPoolHandle};
 use rundler_provider::{
@@ -64,6 +65,20 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// 启动独立的 Swagger UI 测试服务器 (端口 9000) - 需要外部 SuperRelay 服务
+    ApiServer {
+        /// Host to bind to
+        #[arg(long, default_value = "0.0.0.0")]
+        host: String,
+
+        /// Port to bind to
+        #[arg(long, default_value = "9000")]
+        port: u16,
+
+        /// SuperRelay service URL to connect to
+        #[arg(long, default_value = "http://localhost:3000")]
+        super_relay_url: String,
+    },
     /// 双服务兼容模式 - 启动 Gateway(3000) + Rundler(3001) 双服务
     DualService {
         /// Path to configuration file
@@ -264,6 +279,14 @@ impl Cli {
         self.show_banner();
 
         match self.command {
+            Commands::ApiServer {
+                ref host,
+                port,
+                ref super_relay_url,
+            } => {
+                self.run_api_server(host.clone(), port, super_relay_url.clone())
+                    .await?
+            }
             Commands::DualService {
                 ref config,
                 ref gateway_host,
@@ -419,6 +442,56 @@ impl Cli {
                 self.check_status().await?;
             }
         }
+
+        Ok(())
+    }
+
+    /// 启动独立的 Swagger UI 测试服务器 (代理模式)
+    async fn run_api_server(&self, host: String, port: u16, super_relay_url: String) -> Result<()> {
+        info!("🚀 Starting SuperRelay API Testing Server (Proxy Mode)");
+        info!("📍 API Server will bind to {}:{}", host, port);
+        info!("🔗 Connecting to SuperRelay service: {}", super_relay_url);
+        info!(
+            "📊 Swagger UI will be available at: http://{}:{}/swagger-ui/",
+            host, port
+        );
+
+        // Test connection to SuperRelay service
+        info!("🔍 Testing connection to SuperRelay service...");
+        let proxy_client =
+            rundler_paymaster_relay::proxy_client::SuperRelayProxyClient::new(&super_relay_url);
+
+        match proxy_client.health_check().await {
+            Ok(_) => {
+                info!("✅ Successfully connected to SuperRelay service");
+            }
+            Err(e) => {
+                error!("❌ Failed to connect to SuperRelay service: {}", e);
+                info!(
+                    "💡 Please ensure SuperRelay service is running at: {}",
+                    super_relay_url
+                );
+                info!("   Example: ./target/debug/super-relay gateway --enable-paymaster");
+                return Err(eyre::eyre!("SuperRelay service connection failed: {}", e));
+            }
+        }
+
+        // Create proxy-based API server
+        let bind_address = format!("{}:{}", host, port);
+
+        info!("✨ Starting Swagger UI server with proxy mode...");
+        info!("🎯 Usage:");
+        info!("   1. Start SuperRelay: ./target/debug/super-relay gateway --enable-paymaster");
+        info!("   2. Start API Test Server: ./target/debug/super-relay api-server");
+        info!(
+            "   3. Open Swagger UI: http://{}:{}/swagger-ui/",
+            host, port
+        );
+
+        // Start the proxy API server
+        rundler_paymaster_relay::start_proxy_api_server(&bind_address, proxy_client)
+            .await
+            .map_err(|e| eyre::eyre!("Proxy API server failed: {}", e))?;
 
         Ok(())
     }

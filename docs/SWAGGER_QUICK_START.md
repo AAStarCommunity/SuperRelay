@@ -16,7 +16,7 @@
 等待看到 `✅ Anvil started` 和服务完全启动的消息。
 
 **终端 2 - 启动 Web UI：**
-```bash 
+```bash
 ./scripts/start_web_ui.sh
 ```
 
@@ -48,7 +48,7 @@
 ```json
 {
   "jsonrpc": "2.0",
-  "method": "pm_sponsorUserOperation", 
+  "method": "pm_sponsorUserOperation",
   "params": [
     {
       "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -56,7 +56,7 @@
       "initCode": "0x",
       "callData": "0xb61d27f6000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000",
       "callGasLimit": "0x30D40",
-      "verificationGasLimit": "0x186A0", 
+      "verificationGasLimit": "0x186A0",
       "preVerificationGas": "0xC350",
       "maxFeePerGas": "0x59682F00",
       "maxPriorityFeePerGas": "0x59682F00",
@@ -86,7 +86,7 @@
 ```
 
 这会检查：
-- ✅ 所有服务是否正常运行  
+- ✅ 所有服务是否正常运行
 - ✅ OpenAPI 规范是否包含真实数据
 - ✅ API 端点是否可访问
 - ✅ JSON-RPC 调用是否正常工作
@@ -131,11 +131,11 @@ pkill -f http-server
 
 完成测试后，可以：
 1. 修改示例数据测试不同场景
-2. 查看其他 API 端点  
+2. 查看其他 API 端点
 3. 集成到你的前端应用
 
 ## 📚 相关文档
 
-- [完整集成文档](SWAGGER_INTEGRATION.md) 
+- [完整集成文档](SWAGGER_INTEGRATION.md)
 - [API 开发指南](API_GENERATION_GUIDE.md)
 - [服务启动指南](ServiceStartupGuide.md)

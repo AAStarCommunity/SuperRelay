@@ -404,19 +404,44 @@ graph LR
 
 ## 🚀 Quick Start
 
-### 1. One-Click Development Environment
+SuperRelay 提供**双协议分离架构**，您可以根据需要独立启动不同的服务：
 
+### 🌐 双协议架构说明
+- **JSON-RPC 服务** (端口 3000) - 为区块链工具 (web3.js, ethers.js) 和 DApp 提供标准接口
+- **HTTP REST API** (端口 9000) - 为 Web/Mobile 应用提供 REST 接口 + 交互式 Swagger UI
+
+### 启动选项
+
+#### 选项1：启动 JSON-RPC 服务 (推荐用于区块链开发)
 ```bash
-# Clone project
+# 克隆项目
 git clone https://github.com/AAStarCommunity/SuperRelay.git
 cd SuperRelay
 
-# Start complete development environment (recommended)
+# 启动传统的 JSON-RPC 服务，兼容所有 ERC-4337 工具
 ./scripts/start_superrelay.sh
-
-# Or use quick start
-./scripts/quick_start.sh
+# 🌐 服务地址: http://localhost:3000
+# 🧪 测试: curl -X POST http://localhost:3000 -d '{"jsonrpc":"2.0","method":"pm_sponsorUserOperation","params":[...],"id":1}'
 ```
+
+#### 选项2：启动 HTTP REST API + Swagger UI (推荐用于 API 测试)
+```bash
+# 启动 HTTP REST API 服务器和交互式文档
+./scripts/start_api_server.sh
+# 🌐 Swagger UI: http://localhost:9000/swagger-ui/
+# 🏥 健康检查: http://localhost:9000/health
+# 🧪 测试: curl -X POST http://localhost:9000/api/v1/sponsor -d '{"user_op":{},"entry_point":"0x..."}'
+```
+
+#### 选项3：双服务模式 (完整功能)
+```bash
+# 同时启动两种协议服务 (JSON-RPC + REST API)
+./target/debug/super-relay dual-service --enable-paymaster
+# 🔄 JSON-RPC: http://localhost:3000
+# 🌐 REST API: http://localhost:9000/swagger-ui/
+```
+
+### 1. 快速开发环境设置
 
 ### 2. Test API Functionality
 
@@ -457,15 +482,21 @@ curl -X POST http://localhost:3000 \
   }'
 ```
 
-### 3. Start Web UI (Optional)
+### 3. 访问接口文档 (推荐)
 
 ```bash
-# Start Swagger UI (independent deployment)
-./scripts/start_web_ui.sh
+# 方式1：使用新的 utoipa 自动生成的 Swagger UI (推荐)
+./scripts/start_api_server.sh
+# 🌐 访问: http://localhost:9000/swagger-ui/
+# ✨ 特性: 自动生成、实时更新、可交互测试
 
-# Access API documentation
-open http://localhost:9000/
+# 方式2：使用遗留的独立 Web UI (备选)
+./scripts/start_web_ui.sh
+# 📱 访问: http://localhost:9000/
+# 📋 说明: 静态文档，需要手动维护
 ```
+
+**推荐使用方式1** - utoipa自动生成的文档始终与代码同步，支持实时API测试。
 
 ### 4. Verify Gateway Functionality
 
@@ -484,10 +515,17 @@ curl http://localhost:3000/metrics
 
 | Service | Port | Description |
 |---------|------|------------|
-| SuperRelay Gateway | 3000 | Main API gateway service |
-| Swagger UI | 9000 | Independent Web UI documentation |
-| Anvil (Development) | 8545 | Local test chain |
-| Prometheus Metrics | 3000/metrics | Monitoring metrics endpoint |
+| **JSON-RPC API** | 3000 | 主要的 ERC-4337 bundler 服务 (区块链工具使用) |
+| **HTTP REST API** | 9000 | REST 接口 + utoipa 自动生成 Swagger UI |
+| 遗留 Web UI | 9000 | 独立的静态文档部署 (可选) |
+| Anvil (Development) | 8545 | 本地以太坊测试网络 |
+| Prometheus Metrics | 3000/metrics | 监控指标端点 |
+
+### 🔗 访问地址
+- **Swagger UI (推荐)**: http://localhost:9000/swagger-ui/
+- **JSON-RPC 端点**: http://localhost:3000
+- **健康检查**: http://localhost:9000/health 或 http://localhost:3000/health
+- **OpenAPI 规范**: http://localhost:9000/api-doc/openapi.json
 
 ## 🎯 Core Features
 

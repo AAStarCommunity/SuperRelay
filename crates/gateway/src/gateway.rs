@@ -13,8 +13,11 @@ use serde_json::Value;
 use tokio::net::TcpListener;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::{debug, error, info, warn};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
+    api_docs::CompleteApiDoc,
     e2e_validator::quick_e2e_health_check,
     error::{GatewayError, GatewayResult},
     health::health_routes,
@@ -91,12 +94,16 @@ impl PaymasterGateway {
 
         info!("✅ Gateway server listening on {}", addr);
         info!("📋 Available endpoints:");
-        info!("  • POST /        - JSON-RPC API");
-        info!("  • GET /health   - Comprehensive health check");
-        info!("  • GET /ready    - Readiness check");
-        info!("  • GET /live     - Liveness check");
-        info!("  • GET /e2e      - End-to-end validation");
-        info!("  • GET /metrics  - Prometheus metrics");
+        info!("  • POST /              - JSON-RPC API (25 methods)");
+        info!("  • GET /swagger-ui     - Complete API Documentation");
+        info!("  • GET /health         - Comprehensive health check");
+        info!("  • GET /ready          - Readiness check");
+        info!("  • GET /live           - Liveness check");
+        info!("  • GET /e2e            - End-to-end validation");
+        info!("  • GET /metrics        - Prometheus metrics");
+        info!("");
+        info!("🌐 Swagger UI: http://{}/swagger-ui/", addr);
+        info!("🔥 Complete SuperRelay API Documentation Available!");
 
         axum::serve(listener, app)
             .await
@@ -107,10 +114,17 @@ impl PaymasterGateway {
 
     fn create_router(&self, state: GatewayState) -> Router {
         let mut router = Router::new()
+            // JSON-RPC API endpoint
             .route("/", post(handle_jsonrpc))
+            // Monitoring and health endpoints
             .route("/e2e", get(handle_e2e_validation))
             .route("/metrics", get(handle_metrics))
             .merge(health_routes())
+            // Swagger UI integration - Complete API documentation
+            .merge(
+                SwaggerUi::new("/swagger-ui")
+                    .url("/api-docs/openapi.json", CompleteApiDoc::openapi()),
+            )
             .with_state(state);
 
         // Add middleware layers

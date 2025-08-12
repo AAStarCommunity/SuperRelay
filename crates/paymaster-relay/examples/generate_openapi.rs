@@ -35,7 +35,7 @@ fn main() {
 
     // 显示 API 路径
     println!("🛣️  API 路径:");
-    for (path, _path_item) in &openapi.paths.paths {
+    for path in openapi.paths.paths.keys() {
         println!("  {}", path);
     }
     println!();

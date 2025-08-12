@@ -39,7 +39,7 @@ print_result() {
 check_service() {
     local url=$1
     local service_name=$2
-    
+
     if curl -s -f -o /dev/null "$url"; then
         return 0
     else
@@ -205,7 +205,7 @@ else
     echo ""
     echo "🔧 Troubleshooting:"
     echo "1. Start SuperRelay service: ./scripts/start_superrelay.sh"
-    echo "2. Start Web UI service: ./scripts/start_web_ui.sh"  
+    echo "2. Start Web UI service: ./scripts/start_web_ui.sh"
     echo "3. Wait for services to fully initialize (~10-15 seconds)"
     echo "4. Check service logs for errors"
     echo "5. Verify ports 3000, 8545, 9000 are not blocked"

@@ -9,6 +9,8 @@
 
 //! SuperRelay Gateway - API Gateway with enterprise features
 
+/// Complete API documentation with OpenAPI/Swagger support
+pub mod api_docs;
 /// Authorization and eligibility checking for UserOperations
 pub mod authorization;
 /// End-to-end transaction validation

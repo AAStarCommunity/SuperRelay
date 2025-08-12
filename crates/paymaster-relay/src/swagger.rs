@@ -17,7 +17,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
+// Prometheus monitoring removed - using Rundler's existing metrics system
 use reqwest;
 use serde_json::json;
 use tower::ServiceBuilder;
@@ -38,7 +38,7 @@ pub struct SwaggerState {
     pub paymaster_service: Arc<PaymasterRelayService>,
     pub metrics: SwaggerMetrics,
     pub start_time: Instant,
-    pub prometheus_handle: PrometheusHandle,
+    // Prometheus handle removed - using Rundler's metrics
 }
 
 /// Additional metrics for Swagger UI itself
@@ -96,21 +96,18 @@ pub async fn serve_swagger_ui(
     paymaster_service: Arc<PaymasterRelayService>,
     addr: SocketAddr,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // TODO: Fix Prometheus integration - temporarily disabled for service startup
-    let recorder = PrometheusBuilder::new().build_recorder();
-    let prometheus_handle = recorder.handle();
+    // Using Rundler's existing metrics system instead of separate Prometheus
 
     let state = SwaggerState {
         paymaster_service,
         metrics: SwaggerMetrics::new(),
         start_time: Instant::now(),
-        prometheus_handle,
     };
 
     let app = create_router().with_state(state);
 
     info!("Starting Swagger UI server on {}", addr);
-    info!("Prometheus metrics available on http://localhost:8080/metrics");
+    // Metrics are available through Rundler's main metrics endpoint
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
@@ -464,12 +461,13 @@ async fn get_metrics(State(state): State<SwaggerState>) -> Json<serde_json::Valu
     }))
 }
 
-/// Get Prometheus metrics in Prometheus format
-async fn get_prometheus_metrics(State(state): State<SwaggerState>) -> impl IntoResponse {
-    let metrics = state.prometheus_handle.render();
+/// Get Prometheus metrics - redirects to Rundler's metrics endpoint
+async fn get_prometheus_metrics() -> impl IntoResponse {
+    // Rundler exposes metrics on its own endpoint
     Response::builder()
-        .header("content-type", "text/plain; version=0.0.4")
-        .body(metrics)
+        .status(303)
+        .header("Location", "http://localhost:8080/metrics")
+        .body("Metrics available at Rundler's metrics endpoint".to_string())
         .unwrap()
 }
 

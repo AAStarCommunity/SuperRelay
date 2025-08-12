@@ -2,33 +2,46 @@
 // OpenAPI schemas and documentation for the Paymaster Relay API
 
 use serde::{Deserialize, Serialize};
+#[allow(unused_imports)]
+use serde_json::json;
 use utoipa::{OpenApi, ToSchema};
 
 /// Main OpenAPI documentation structure
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::api_handlers::sponsor_user_operation_handler,
-        crate::api_handlers::health_check_handler
+        crate::proxy_server::json_rpc_proxy_handler,
+        crate::proxy_server::proxy_health_check,
+        crate::proxy_server::readiness_check,
+        crate::proxy_server::get_examples
     ),
     components(
         schemas(
-            SponsorUserOperationRequest,
-            SponsorUserOperationResponse,
-            JsonUserOperation,
+            JsonRpcRequest,
+            JsonRpcResponse,
+            JsonRpcError,
             ErrorResponse,
             ApiError,
             crate::api_handlers::HealthResponse
         )
     ),
     tags(
-        (name = "paymaster", description = "Paymaster Relay API endpoints for sponsoring user operations"),
-        (name = "monitoring", description = "Health check and monitoring endpoints")
+        (name = "json-rpc", description = "JSON-RPC 2.0 - 区块链标准协议测试 pm_sponsorUserOperation"), 
+        (name = "monitoring", description = "系统监控和健康检查端点"),
+        (name = "examples", description = "示例数据和代码生成工具")
     ),
     info(
-        title = "SuperPaymaster Relay API",
+        title = "SuperRelay JSON-RPC Proxy",
         version = "0.2.0",
-        description = "Enterprise-grade Paymaster Relay service for ERC-4337 user operation sponsorship",
+        description = r#"
+SuperRelay JSON-RPC 代理服务器
+
+🔄 **JSON-RPC 2.0**: 标准区块链协议，直接转发到 SuperRelay:3000
+📋 **交互式文档**: 通过 Swagger UI 测试 JSON-RPC 方法
+
+⚙️ **支持方法**:
+- pm_sponsorUserOperation: UserOperation 赞助服务
+        "#,
         contact(
             name = "SuperPaymaster Team",
             url = "https://github.com/aastar/super-relay"
@@ -39,130 +52,96 @@ use utoipa::{OpenApi, ToSchema};
         )
     ),
     servers(
-        (url = "http://localhost:3000", description = "Local development server"),
-        (url = "http://localhost:9000", description = "Swagger UI server")
+        (url = "http://localhost:9000", description = "Swagger UI JSON-RPC 代理服务"),
+        (url = "http://localhost:3000", description = "Direct SuperRelay Service (高级用户)")
     )
 )]
 pub struct ApiDoc;
 
-/// Request structure for sponsoring a user operation
+/// JSON-RPC 2.0 Request structure
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
-    "user_op": {
-        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-        "nonce": "0x0",
-        "callData": "0x",
-        "callGasLimit": "0x186A0",
-        "verificationGasLimit": "0x186A0", 
-        "preVerificationGas": "0x5208",
-        "maxFeePerGas": "0x3B9ACA00",
-        "maxPriorityFeePerGas": "0x3B9ACA00",
-        "signature": "0x",
-        "initCode": "0x",
-        "paymasterAndData": "0x"
-    },
-    "entry_point": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+    "jsonrpc": "2.0",
+    "method": "pm_sponsorUserOperation",
+    "params": [
+        {
+            "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "nonce": "0x0",
+            "callData": "0x",
+            "callGasLimit": "0x186A0",
+            "verificationGasLimit": "0x186A0", 
+            "preVerificationGas": "0x5208",
+            "maxFeePerGas": "0x3B9ACA00",
+            "maxPriorityFeePerGas": "0x3B9ACA00",
+            "signature": "0x",
+            "initCode": "0x",
+            "paymasterAndData": "0x"
+        },
+        "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+    ],
+    "id": 1
 }))]
-pub struct SponsorUserOperationRequest {
-    /// The user operation to sponsor (ERC-4337 v0.6 or v0.7 format)
-    pub user_op: serde_json::Value,
+pub struct JsonRpcRequest {
+    /// JSON-RPC protocol version (must be "2.0")
+    #[schema(example = "2.0")]
+    pub jsonrpc: String,
 
-    /// The EntryPoint contract address
-    #[schema(example = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")]
-    pub entry_point: String,
+    /// RPC method name
+    #[schema(example = "pm_sponsorUserOperation")]
+    pub method: String,
+
+    /// Method parameters array
+    pub params: serde_json::Value,
+
+    /// Request identifier
+    #[schema(example = 1)]
+    pub id: serde_json::Value,
 }
 
-/// Response structure for successful sponsorship
+/// JSON-RPC 2.0 Response structure
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
-    "paymaster_and_data": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000"
+    "jsonrpc": "2.0",
+    "result": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000",
+    "id": 1
 }))]
-pub struct SponsorUserOperationResponse {
-    /// Paymaster and data containing sponsorship information
-    #[schema(
-        example = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000"
-    )]
-    pub paymaster_and_data: String,
+pub struct JsonRpcResponse {
+    /// JSON-RPC protocol version
+    #[schema(example = "2.0")]
+    pub jsonrpc: String,
+
+    /// Method result (only present on success)
+    pub result: Option<serde_json::Value>,
+
+    /// Error object (only present on error)
+    pub error: Option<JsonRpcError>,
+
+    /// Request identifier
+    #[schema(example = 1)]
+    pub id: serde_json::Value,
 }
 
-/// Unified UserOperation structure supporting both v0.6 and v0.7 formats
+/// JSON-RPC 2.0 Error structure
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
 #[schema(example = json!({
-    "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-    "nonce": "0x0",
-    "callData": "0x",
-    "callGasLimit": "0x186A0",
-    "verificationGasLimit": "0x186A0",
-    "preVerificationGas": "0x5208", 
-    "maxFeePerGas": "0x3B9ACA00",
-    "maxPriorityFeePerGas": "0x3B9ACA00",
-    "signature": "0x"
+    "code": -32602,
+    "message": "Invalid params: Invalid user operation format",
+    "data": {
+        "field": "sender",
+        "reason": "Invalid address format"
+    }
 }))]
-pub struct JsonUserOperation {
-    /// The account making the operation
-    #[schema(example = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")]
-    pub sender: String,
+pub struct JsonRpcError {
+    /// Error code
+    #[schema(example = -32602)]
+    pub code: i32,
 
-    /// Anti-replay parameter (hex or decimal)
-    #[schema(example = "0x0")]
-    pub nonce: String,
+    /// Error message
+    #[schema(example = "Invalid params")]
+    pub message: String,
 
-    /// Data to pass to the account's execute function
-    #[schema(example = "0x")]
-    pub call_data: String,
-
-    /// Gas limit for the account's execution phase
-    #[schema(example = "0x186A0")]
-    pub call_gas_limit: String,
-
-    /// Gas limit for the account's verification phase  
-    #[schema(example = "0x186A0")]
-    pub verification_gas_limit: String,
-
-    /// Gas overhead of this UserOperation
-    #[schema(example = "0x5208")]
-    pub pre_verification_gas: String,
-
-    /// Maximum fee per gas unit (hex or decimal)
-    #[schema(example = "0x3B9ACA00")]
-    pub max_fee_per_gas: String,
-
-    /// Maximum priority fee per gas unit (hex or decimal)
-    #[schema(example = "0x3B9ACA00")]
-    pub max_priority_fee_per_gas: String,
-
-    /// Account signature
-    #[schema(example = "0x")]
-    pub signature: String,
-
-    // v0.6 specific fields
-    /// Account initialization code (v0.6 format)
-    #[schema(example = "0x")]
-    pub init_code: Option<String>,
-
-    /// Paymaster address and data (v0.6 format)
-    #[schema(example = "0x")]
-    pub paymaster_and_data: Option<String>,
-
-    // v0.7 specific fields
-    /// Account factory address (v0.7 format)
-    pub factory: Option<String>,
-
-    /// Factory initialization data (v0.7 format)
-    pub factory_data: Option<String>,
-
-    /// Paymaster address (v0.7 format)
-    pub paymaster: Option<String>,
-
-    /// Paymaster verification gas limit (v0.7 format)
-    pub paymaster_verification_gas_limit: Option<String>,
-
-    /// Paymaster post-operation gas limit (v0.7 format)
-    pub paymaster_post_op_gas_limit: Option<String>,
-
-    /// Paymaster data (v0.7 format)
-    pub paymaster_data: Option<String>,
+    /// Additional error data
+    pub data: Option<serde_json::Value>,
 }
 
 /// Standard error response structure

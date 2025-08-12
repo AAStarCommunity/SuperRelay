@@ -90,35 +90,35 @@ EOF
 if cd /tmp && cargo run --quiet > openapi_output.json 2>/dev/null && cd - > /dev/null; then
     if [ -f /tmp/openapi_output.json ] && [ -s /tmp/openapi_output.json ]; then
         print_result 0 "OpenAPI JSON 文档生成成功"
-        
+
         # Validate JSON structure
         if jq . /tmp/openapi_output.json > /dev/null 2>&1; then
             print_result 0 "生成的 OpenAPI JSON 格式有效"
         else
             print_result 1 "生成的 OpenAPI JSON 格式无效"
         fi
-        
+
         # Check for required fields
         if jq -r '.info.title' /tmp/openapi_output.json | grep -q "SuperPaymaster"; then
             print_result 0 "OpenAPI 文档包含正确的标题"
         else
             print_result 1 "OpenAPI 文档标题不正确"
         fi
-        
+
         # Check for API paths
         if jq -r '.paths | keys[]' /tmp/openapi_output.json | grep -q "/api/v1/sponsor"; then
             print_result 0 "OpenAPI 文档包含 API 端点路径"
         else
             print_result 1 "OpenAPI 文档缺少 API 端点路径"
         fi
-        
+
         # Check for components/schemas
         if jq -r '.components.schemas | keys[]' /tmp/openapi_output.json | grep -q "SponsorUserOperationRequest"; then
             print_result 0 "OpenAPI 文档包含请求结构定义"
         else
             print_result 1 "OpenAPI 文档缺少请求结构定义"
         fi
-        
+
     else
         print_result 1 "OpenAPI JSON 文档生成失败 (文件为空)"
     fi
@@ -171,7 +171,7 @@ if [ $FAILED -eq 0 ]; then
     echo ""
     echo "✅ 完成的功能："
     echo "  • RPC 方法 utoipa 注解 ✓"
-    echo "  • API 处理程序端点定义 ✓" 
+    echo "  • API 处理程序端点定义 ✓"
     echo "  • OpenAPI 自动文档生成 ✓"
     echo "  • Schema 结构定义 ✓"
     echo "  • 编译和测试通过 ✓"

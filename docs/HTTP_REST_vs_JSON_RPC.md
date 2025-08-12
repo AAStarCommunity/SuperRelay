@@ -161,14 +161,14 @@ Content-Type: application/json
 [
   {
     "jsonrpc": "2.0",
-    "method": "pm_sponsorUserOperation", 
+    "method": "pm_sponsorUserOperation",
     "params": [userOp1, entryPoint],
     "id": 1
   },
   {
     "jsonrpc": "2.0",
     "method": "pm_sponsorUserOperation",
-    "params": [userOp2, entryPoint], 
+    "params": [userOp2, entryPoint],
     "id": 2
   }
 ]
@@ -211,7 +211,7 @@ pub async fn sponsor_user_operation_handler(
     State(rpc_service): State<Arc<PaymasterRelayApiServerImpl>>,
     Json(request): Json<SponsorUserOperationRequest>,
 ) -> Result<Json<SponsorUserOperationResponse>, (StatusCode, Json<ErrorResponse>)> {
-    
+
     // 1. 调用内部 JSON-RPC 实现
     match rpc_service.sponsor_user_operation(
         request.user_op,      // REST 请求体 → RPC 参数
@@ -230,7 +230,7 @@ pub async fn sponsor_user_operation_handler(
                 message: rpc_error.message().to_string(),
                 data: rpc_error.data().cloned(),
             };
-            
+
             let status_code = match rpc_error.code() {
                 -32600 => StatusCode::BAD_REQUEST,      // Invalid Request
                 -32601 => StatusCode::NOT_FOUND,        // Method not found
@@ -238,7 +238,7 @@ pub async fn sponsor_user_operation_handler(
                 -32603 => StatusCode::INTERNAL_SERVER_ERROR, // Internal error
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             };
-            
+
             Err((status_code, Json(error_response)))
         }
     }
@@ -253,7 +253,7 @@ pub async fn sponsor_user_operation_handler(
 pub struct SponsorUserOperationRequest {
     /// 用户操作数据
     pub user_op: serde_json::Value,
-    
+
     /// EntryPoint 合约地址
     #[schema(example = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")]
     pub entry_point: String,
@@ -307,11 +307,11 @@ const sponsorUserOp = async (userOperation, entryPoint) => {
         entry_point: entryPoint
       })
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    
+
     const result = await response.json();
     return result.paymaster_and_data;
   } catch (error) {
@@ -360,11 +360,11 @@ const sponsorUserOp = async (userOperation, entryPoint) => {
       params: [userOperation, entryPoint],
       id: Date.now()
     });
-    
+
     if (result.error) {
       throw new Error(`RPC Error ${result.error.code}: ${result.error.message}`);
     }
-    
+
     return result.result;
   } catch (error) {
     console.error('赞助失败:', error);
@@ -380,7 +380,7 @@ const batchSponsor = async (operations) => {
     params: [op.userOperation, op.entryPoint],
     id: index + 1
   }));
-  
+
   const results = await web3.currentProvider.send(requests);
   return results.map(r => r.result);
 };
@@ -414,11 +414,11 @@ curl -X POST "http://localhost:3000" \
 # 启动 JSON-RPC 服务 (端口 3000)
 ./target/release/super-relay node --rpc-addr 0.0.0.0:3000
 
-# 启动 HTTP REST 服务 (端口 9000) 
+# 启动 HTTP REST 服务 (端口 9000)
 ./target/release/super-relay api-server --bind-addr 0.0.0.0:9000
 ```
 
-**方式2: 使用脚本启动** 
+**方式2: 使用脚本启动**
 ```bash
 # 使用启动脚本
 ./scripts/start_superrelay.sh    # JSON-RPC 服务
@@ -434,7 +434,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 创建服务实例
     let service = create_paymaster_service().await?;
     let rpc_impl = Arc::new(PaymasterRelayApiServerImpl::new(service));
-    
+
     // 启动 HTTP REST 服务器
     start_api_server("0.0.0.0:9000", rpc_impl).await?;
     Ok(())
@@ -509,6 +509,6 @@ curl -v -X POST http://localhost:3000 \
 
 ---
 
-**本文档版本**: v1.0  
-**最后更新**: 2025-08-12  
+**本文档版本**: v1.0
+**最后更新**: 2025-08-12
 **适用版本**: SuperRelay v0.2.0+

@@ -43,9 +43,11 @@ senders = ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
 async fn test_api_schemas_serialization() {
     use rundler_paymaster_relay::api_schemas::*;
 
-    // Test request serialization
-    let request = SponsorUserOperationRequest {
-        user_op: serde_json::json!({
+    // Test JSON-RPC request serialization
+    let request = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "pm_sponsorUserOperation".to_string(),
+        params: serde_json::json!([{
             "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "nonce": "0x0",
             "callData": "0x",
@@ -57,22 +59,24 @@ async fn test_api_schemas_serialization() {
             "signature": "0x",
             "initCode": "0x",
             "paymasterAndData": "0x"
-        }),
-        entry_point: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789".to_string(),
+        }, "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"]),
+        id: serde_json::json!(1),
     };
 
     let json_str = serde_json::to_string(&request).expect("Failed to serialize request");
-    assert!(json_str.contains("user_op"));
-    assert!(json_str.contains("entry_point"));
+    assert!(json_str.contains("jsonrpc"));
+    assert!(json_str.contains("pm_sponsorUserOperation"));
 
-    // Test response serialization
-    let response = SponsorUserOperationResponse {
-        paymaster_and_data: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000"
-            .to_string(),
+    // Test JSON-RPC response serialization
+    let response = JsonRpcResponse {
+        jsonrpc: "2.0".to_string(),
+        result: Some(serde_json::json!("0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000")),
+        error: None,
+        id: serde_json::json!(1),
     };
 
     let json_str = serde_json::to_string(&response).expect("Failed to serialize response");
-    assert!(json_str.contains("paymaster_and_data"));
+    assert!(json_str.contains("result"));
 
     // Test error response
     let error_response = ErrorResponse {

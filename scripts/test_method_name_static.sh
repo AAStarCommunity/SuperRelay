@@ -45,7 +45,7 @@ if [ -f "$RPC_FILE" ]; then
     else
         print_result 1 "RPC trait 缺少 pm 命名空间定义"
     fi
-    
+
     # Check method name
     if grep -q 'method(name = "sponsorUserOperation")' "$RPC_FILE"; then
         print_result 0 "RPC method 定义使用 sponsorUserOperation (正确，将自动添加 pm_ 前缀)"
@@ -66,7 +66,7 @@ if [ -f "$SWAGGER_FILE" ]; then
     else
         print_result 1 "Swagger 实现不包含新方法名"
     fi
-    
+
     # Check if old method name is removed
     if grep -q '"sponsorUserOperation"' "$SWAGGER_FILE" | grep -v pm_; then
         print_result 1 "Swagger 实现仍包含旧方法名 sponsorUserOperation"
@@ -87,14 +87,14 @@ if [ -f "$OPENAPI_FILE" ]; then
     else
         print_result 1 "OpenAPI 规范不包含新方法名"
     fi
-    
+
     # Verify JSON format
     if jq . "$OPENAPI_FILE" > /dev/null 2>&1; then
         print_result 0 "OpenAPI 规范 JSON 格式正确"
     else
         print_result 1 "OpenAPI 规范 JSON 格式错误"
     fi
-    
+
     # Check example data completeness
     if jq -r '.paths["/sponsorUserOperation"].post.requestBody.content["application/json"].schema.example.params[0].sender' "$OPENAPI_FILE" | grep -q "0xf39Fd"; then
         print_result 0 "OpenAPI 规范包含完整的示例数据"
@@ -115,7 +115,7 @@ if [ -f "$API_SCHEMA_FILE" ]; then
     else
         print_result 1 "API Schema 响应结构定义不正确"
     fi
-    
+
     # Check request structure
     if grep -q "SponsorUserOperationRequest" "$API_SCHEMA_FILE"; then
         print_result 0 "API Schema 包含请求结构定义"
@@ -136,7 +136,7 @@ if [ -f "$TEST_FILE" ]; then
     else
         print_result 1 "测试文件使用错误的响应字段"
     fi
-    
+
     # Check error structure
     if grep -q "error_response.code" "$TEST_FILE"; then
         print_result 0 "测试文件使用正确的错误结构"
@@ -160,7 +160,7 @@ if [ -f "$CARGO_FILE" ]; then
     else
         print_result 1 "Cargo.toml 缺少 reqwest 依赖"
     fi
-    
+
     if grep -q "utoipa.*=" "$CARGO_FILE"; then
         print_result 0 "Cargo.toml 包含 utoipa 依赖"
     else
@@ -251,7 +251,7 @@ if [ $FAILED -eq 0 ]; then
     echo ""
     echo "✅ 确认结果："
     echo "  • RPC trait: 使用 sponsorUserOperation + pm 命名空间 ✓"
-    echo "  • 实际调用: 使用 pm_sponsorUserOperation ✓" 
+    echo "  • 实际调用: 使用 pm_sponsorUserOperation ✓"
     echo "  • OpenAPI: 使用 pm_sponsorUserOperation ✓"
     echo "  • Swagger UI: 使用 pm_sponsorUserOperation ✓"
     echo "  • 代码编译: 成功 ✓"
