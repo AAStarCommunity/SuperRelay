@@ -95,7 +95,7 @@ pub async fn start_api_server(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let app_state = AppState { rpc_service };
     let app = create_api_router(app_state);
-    
+
     let listener = tokio::net::TcpListener::bind(bind_address).await?;
     axum::serve(listener, app).await?;
     Ok(())
@@ -125,7 +125,7 @@ Commands::ApiServer { .. } => {
 // JSON-RPC pm_sponsorUserOperation
 {
   "jsonrpc": "2.0",
-  "method": "pm_sponsorUserOperation", 
+  "method": "pm_sponsorUserOperation",
   "params": [user_op, entry_point],
   "id": 1
 }
@@ -212,6 +212,6 @@ curl -X POST http://localhost:9000/api/v1/sponsor \
 
 ---
 
-**版本**: v0.2.0  
-**更新日期**: 2025-08-12  
+**版本**: v0.2.0
+**更新日期**: 2025-08-12
 **作者**: SuperRelay Team

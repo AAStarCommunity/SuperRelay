@@ -49,7 +49,38 @@ use utoipa::{OpenApi, ToSchema};
             JsonRpcError,
             HealthResponse,
             UserOperation,
-            ErrorResponse
+            ErrorResponse,
+            // Legacy schemas from previous version
+            ComponentStatus,
+            PerformanceMetrics,
+            BalanceThresholds,
+            BalanceAddresses,
+            SponsorUserOperationRequest,
+            BalanceStatus,
+            PolicyStatus,
+            SystemMetrics,
+            KmsKeyInfo,
+            SigningContext,
+            GasEstimates,
+            SigningAuditInfo,
+            SponsorUserOperationResponse,
+            ApiError,
+            ChainSpec,
+            AggregatorCosts,
+            PaymasterValidationRejectedData,
+            UnsupportedAggregatorData,
+            ComponentsStatus,
+            ComponentHealth,
+            SecurityResult,
+            SecurityCheck,
+            SecurityMetadata,
+            DataIntegrityResult,
+            FieldValidation,
+            E2EValidationResult,
+            E2EStepResult,
+            AuthorizationResult,
+            AuthorizationCheck,
+            AuthorizationMetadata
         )
     ),
     tags(
@@ -832,3 +863,451 @@ pub async fn e2e_endpoint() {}
     )
 )]
 pub async fn metrics_endpoint() {}
+
+// ============================================================================
+// Legacy Business Data Structures (迁移自 openapi-legacy.json)
+// ============================================================================
+
+/// Component status information
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ComponentStatus {
+    /// Signer component status
+    pub signer: String,
+    /// Policy engine status
+    pub policy_engine: String,
+    /// RPC server status
+    pub rpc_server: String,
+    /// Ethereum connection status
+    pub eth_connection: String,
+}
+
+/// Performance metrics data
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct PerformanceMetrics {
+    /// Average response time in milliseconds
+    pub avg_response_time_ms: f64,
+    /// Requests per second
+    pub requests_per_second: f64,
+    /// Error rate percentage
+    pub error_rate: f64,
+}
+
+/// Balance threshold configuration
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BalanceThresholds {
+    /// Minimum paymaster balance
+    pub paymaster_min: String,
+    /// Minimum deposit balance
+    pub deposit_min: String,
+}
+
+/// Balance addresses
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BalanceAddresses {
+    /// Paymaster contract address
+    pub paymaster: String,
+    /// EntryPoint contract address
+    pub entry_point: String,
+}
+
+/// Sponsor UserOperation request
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SponsorUserOperationRequest {
+    /// UserOperation data
+    pub user_op: Value,
+    /// EntryPoint contract address
+    pub entry_point: String,
+}
+
+/// Balance status information
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BalanceStatus {
+    /// Paymaster balance
+    pub paymaster_balance: String,
+    /// EntryPoint deposit amount
+    pub entry_point_deposit: String,
+    /// Balance status description
+    pub status: String,
+}
+
+/// Policy status information
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct PolicyStatus {
+    /// Whether policies are enabled
+    pub enabled: bool,
+    /// Number of active policies
+    pub active_policies: i32,
+    /// Policy configuration file path
+    pub policy_file: String,
+}
+
+/// System metrics
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SystemMetrics {
+    /// Memory usage in MB
+    pub memory_usage_mb: f64,
+    /// Number of active connections
+    pub active_connections: i32,
+    /// Total requests processed
+    pub total_requests: i64,
+    /// Error rate percentage
+    pub error_rate: f64,
+}
+
+/// KMS key information
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct KmsKeyInfo {
+    /// KMS key identifier
+    pub key_id: String,
+    /// Key type
+    pub key_type: String,
+    /// Ethereum address
+    pub address: String,
+    /// Key description
+    pub description: String,
+    /// Whether key is enabled
+    pub enabled: bool,
+    /// Key permissions
+    pub permissions: Vec<String>,
+    /// Additional metadata
+    pub metadata: Value,
+}
+
+/// Signing context information
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SigningContext {
+    /// Type of operation
+    pub operation_type: String,
+    /// UserOperation hash
+    pub user_operation_hash: String,
+    /// Sender address
+    pub sender_address: String,
+    /// EntryPoint address
+    pub entry_point: String,
+    /// Gas estimates
+    pub gas_estimates: GasEstimates,
+    /// Additional metadata
+    pub metadata: Value,
+}
+
+/// Gas estimation values
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct GasEstimates {
+    /// Call gas limit
+    pub call_gas_limit: String,
+    /// Verification gas limit
+    pub verification_gas_limit: String,
+    /// Pre-verification gas
+    pub pre_verification_gas: String,
+    /// Maximum fee per gas
+    pub max_fee_per_gas: String,
+    /// Maximum priority fee per gas
+    pub max_priority_fee_per_gas: String,
+}
+
+/// Signing audit information
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SigningAuditInfo {
+    /// Request identifier
+    pub request_id: String,
+    /// Service metadata
+    pub service_metadata: Value,
+    /// Duration in milliseconds
+    pub duration_ms: i64,
+    /// Whether hardware validation was performed
+    pub hardware_validated: bool,
+}
+
+/// Sponsor UserOperation response
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SponsorUserOperationResponse {
+    /// UserOperation hash
+    pub user_op_hash: String,
+}
+
+/// API error structure
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ApiError {
+    /// Error code
+    pub code: i32,
+    /// Error message
+    pub message: String,
+    /// Additional error data
+    pub data: Option<Value>,
+}
+
+/// Chain specification
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ChainSpec {
+    /// Chain name
+    pub name: String,
+    /// Chain ID
+    pub id: i64,
+    /// EntryPoint v0.6 address
+    pub entry_point_address_v0_6: String,
+    /// EntryPoint v0.7 address
+    pub entry_point_address_v0_7: String,
+    /// Multicall3 contract address
+    pub multicall3_address: String,
+    /// Deposit transfer overhead
+    pub deposit_transfer_overhead: i64,
+    /// Maximum transaction size in bytes
+    pub max_transaction_size_bytes: u64,
+    /// Block gas limit
+    pub block_gas_limit: i64,
+    /// Transaction intrinsic gas cost
+    pub transaction_intrinsic_gas: i64,
+    /// Per UserOp v0.6 gas cost
+    pub per_user_op_v0_6_gas: i64,
+    /// Per UserOp v0.7 gas cost
+    pub per_user_op_v0_7_gas: i64,
+    /// Per UserOp deploy overhead gas
+    pub per_user_op_deploy_overhead_gas: i64,
+    /// Per UserOp word gas cost
+    pub per_user_op_word_gas: i64,
+    /// Calldata zero byte gas cost
+    pub calldata_zero_byte_gas: i64,
+    /// Calldata non-zero byte gas cost
+    pub calldata_non_zero_byte_gas: i64,
+    /// Whether DA pre-verification gas is enabled
+    pub da_pre_verification_gas: bool,
+    /// EIP-1559 enabled
+    pub eip1559_enabled: bool,
+    /// EIP-7702 enabled
+    pub eip7702_enabled: bool,
+    /// EIP-7623 enabled
+    pub eip7623_enabled: bool,
+    /// Minimum priority fee per gas
+    pub min_max_priority_fee_per_gas: i64,
+    /// Maximum priority fee per gas
+    pub max_max_priority_fee_per_gas: i64,
+    /// Congestion trigger usage ratio threshold
+    pub congestion_trigger_usage_ratio_threshold: f64,
+    /// Bundle maximum send interval in milliseconds
+    pub bundle_max_send_interval_millis: i64,
+    /// Whether Flashbots is enabled
+    pub flashbots_enabled: bool,
+    /// Flashbots relay URL
+    pub flashbots_relay_url: Option<String>,
+    /// Whether Bloxroute is enabled
+    pub bloxroute_enabled: bool,
+    /// Chain history size
+    pub chain_history_size: i64,
+}
+
+/// Aggregator cost configuration
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AggregatorCosts {
+    /// Execution fixed gas cost
+    pub execution_fixed_gas: String,
+    /// Execution variable gas cost
+    pub execution_variable_gas: String,
+    /// Signature fixed length cost
+    pub sig_fixed_length: String,
+    /// Signature variable length cost
+    pub sig_variable_length: String,
+}
+
+/// Paymaster validation rejected data
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct PaymasterValidationRejectedData {
+    /// Paymaster address
+    pub paymaster: String,
+    /// Rejection reason
+    pub reason: String,
+}
+
+/// Unsupported aggregator data
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct UnsupportedAggregatorData {
+    /// Aggregator address
+    pub aggregator: String,
+}
+
+/// Components status overview
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ComponentsStatus {
+    /// Gateway component health
+    pub gateway: ComponentHealth,
+    /// Paymaster component health
+    pub paymaster: ComponentHealth,
+    /// Pool component health
+    pub pool: ComponentHealth,
+    /// Router component health
+    pub router: ComponentHealth,
+}
+
+/// Individual component health
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ComponentHealth {
+    /// Component status
+    pub status: String,
+    /// Last check timestamp
+    pub last_check: i64,
+    /// Response time in milliseconds
+    pub response_time_ms: i64,
+    /// Error message if any
+    pub error: Option<String>,
+}
+
+/// Security validation result
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SecurityResult {
+    /// Whether the request is secure
+    pub is_secure: bool,
+    /// Security score (0-100)
+    pub security_score: u8,
+    /// Individual check results
+    pub check_results: Value,
+    /// Critical security violations
+    pub critical_violations: Vec<String>,
+    /// Security warnings
+    pub warnings: Vec<String>,
+    /// Security assessment summary
+    pub summary: String,
+    /// Security metadata
+    pub metadata: SecurityMetadata,
+}
+
+/// Security check result
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SecurityCheck {
+    /// Name of the security check
+    pub check_name: String,
+    /// Whether the check passed
+    pub passed: bool,
+    /// Check result message
+    pub message: String,
+    /// Risk level
+    pub risk_level: String,
+    /// Additional context
+    pub context: Value,
+}
+
+/// Security metadata
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SecurityMetadata {
+    /// Check timestamp
+    pub timestamp: i64,
+    /// Anomaly score
+    pub anomaly_score: f64,
+    /// Phishing risk level
+    pub phishing_risk_level: String,
+    /// Contract risk score
+    pub contract_risk_score: u8,
+    /// Pattern analysis results
+    pub pattern_analysis: Vec<String>,
+}
+
+/// Data integrity validation result
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct DataIntegrityResult {
+    /// Whether data is valid
+    pub is_valid: bool,
+    /// Validation score (0-100)
+    pub validation_score: u8,
+    /// Field-level validation results
+    pub field_validations: Value,
+    /// Critical data issues
+    pub critical_issues: Vec<String>,
+    /// Data warnings
+    pub warnings: Vec<String>,
+    /// Validation summary
+    pub summary: String,
+}
+
+/// Individual field validation
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct FieldValidation {
+    /// Field name
+    pub field: String,
+    /// Whether field is valid
+    pub is_valid: bool,
+    /// Field value
+    pub value: String,
+    /// Validation message
+    pub message: String,
+    /// Validation severity
+    pub severity: String,
+}
+
+/// End-to-end validation result
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct E2EValidationResult {
+    /// Overall E2E test status
+    pub status: String,
+    /// Completed test steps
+    pub steps_completed: Vec<String>,
+    /// Total test time in milliseconds
+    pub total_time_ms: i64,
+    /// Individual step results
+    pub step_results: Vec<E2EStepResult>,
+    /// Transaction hash if successful
+    pub transaction_hash: Option<String>,
+    /// Error message if failed
+    pub error: Option<String>,
+}
+
+/// E2E test step result
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct E2EStepResult {
+    /// Test step name
+    pub step: String,
+    /// Step status
+    pub status: String,
+    /// Step duration in milliseconds
+    pub duration_ms: i64,
+    /// Step result data
+    pub data: Value,
+    /// Error message if step failed
+    pub error: Option<String>,
+}
+
+/// Authorization check result
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AuthorizationResult {
+    /// Whether request is authorized
+    pub is_authorized: bool,
+    /// Authorization score (0-100)
+    pub authorization_score: u8,
+    /// Individual check results
+    pub check_results: Value,
+    /// Blocking authorization issues
+    pub blocking_issues: Vec<String>,
+    /// Authorization warnings
+    pub warnings: Vec<String>,
+    /// Authorization summary
+    pub summary: String,
+    /// Authorization metadata
+    pub metadata: AuthorizationMetadata,
+}
+
+/// Individual authorization check
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AuthorizationCheck {
+    /// Check name
+    pub check_name: String,
+    /// Whether check passed
+    pub passed: bool,
+    /// Check result message
+    pub message: String,
+    /// Check severity level
+    pub severity: String,
+    /// Additional context
+    pub context: Value,
+}
+
+/// Authorization metadata
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AuthorizationMetadata {
+    /// Authorization check timestamp
+    pub timestamp: i64,
+    /// Sender reputation score
+    pub sender_reputation: u8,
+    /// Whether paymaster is verified
+    pub paymaster_verified: bool,
+    /// Remaining rate limit count
+    pub rate_limit_remaining: i32,
+    /// Geographic restrictions
+    pub geo_restrictions: Vec<String>,
+}
