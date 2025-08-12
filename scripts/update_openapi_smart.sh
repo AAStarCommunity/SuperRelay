@@ -39,17 +39,17 @@ OPENAPI_FILE="${WEB_UI_DIR}/openapi.json"
 if [[ -f "$OPENAPI_FILE" ]]; then
     if python3 -m json.tool "$OPENAPI_FILE" > /dev/null 2>&1; then
         echo "✅ 生成的OpenAPI规范格式正确"
-        
+
         # 显示统计信息
         echo "📊 生成统计:"
         METHODS_COUNT=$(python3 -c "import json; data=json.load(open('$OPENAPI_FILE')); print(len(data['paths']))")
         SCHEMAS_COUNT=$(python3 -c "import json; data=json.load(open('$OPENAPI_FILE')); print(len(data['components']['schemas']))")
         VERSION=$(python3 -c "import json; data=json.load(open('$OPENAPI_FILE')); print(data['info']['version'])")
-        
+
         echo "   • 项目版本: $VERSION"
         echo "   • API端点: $METHODS_COUNT 个"
         echo "   • 数据模型: $SCHEMAS_COUNT 个"
-        
+
     else
         echo "❌ 生成的JSON格式无效"
         exit 1
@@ -73,11 +73,11 @@ BACKUP_FILE="${WEB_UI_DIR}/openapi-backup.json"
 if [[ -f "$BACKUP_FILE" ]]; then
     echo ""
     echo "🔄 API变更检测:"
-    
+
     # 比较API数量
     OLD_COUNT=$(python3 -c "import json; data=json.load(open('$BACKUP_FILE')); print(len(data.get('paths', {})))" 2>/dev/null || echo "0")
     NEW_COUNT=$METHODS_COUNT
-    
+
     if [[ "$NEW_COUNT" -gt "$OLD_COUNT" ]]; then
         echo "   📈 新增API: $((NEW_COUNT - OLD_COUNT)) 个"
     elif [[ "$NEW_COUNT" -lt "$OLD_COUNT" ]]; then

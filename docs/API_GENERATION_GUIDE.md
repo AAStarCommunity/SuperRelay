@@ -113,7 +113,7 @@ git commit -m "feat: add new API endpoint and update docs"
 # .github/workflows/docs.yml
 - name: Generate API Documentation
   run: ./scripts/update_openapi_smart.sh
-  
+
 - name: Commit Updated Docs
   run: |
     git add web-ui/swagger-ui/openapi.json
@@ -129,7 +129,7 @@ git commit -m "feat: add new API endpoint and update docs"
 # 修改API分组逻辑
 method_groups = {
     'pm_': 'Paymaster API',
-    'eth_': 'Ethereum API', 
+    'eth_': 'Ethereum API',
     'rundler_': 'Rundler API',
     'custom_': 'Custom API'  # 新增分组
 }
@@ -201,7 +201,7 @@ python3 --version
 ### 代码注释
 ```rust
 /// 赞助用户操作，为Gas费用提供支付
-/// 
+///
 /// 此方法接受一个UserOperation并返回paymaster签名数据
 #[method(name = "sponsorUserOperation")]
 async fn sponsor_user_operation(&self, user_op: JsonValue) -> Result<String> {
@@ -216,7 +216,7 @@ async fn sponsor_user_operation(&self, user_op: JsonValue) -> Result<String> {
 pub struct BalanceStatus {
     /// Paymaster合约余额
     pub paymaster_balance: String,
-    /// EntryPoint存款余额  
+    /// EntryPoint存款余额
     pub entry_point_deposit: String,
     /// 系统状态
     pub status: String,

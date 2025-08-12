@@ -10,7 +10,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use alloy_primitives::Address;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -25,6 +24,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+use reqwest;
 
 use crate::{
     api_docs::{ApiDoc, ErrorResponse, SponsorUserOperationRequest, SponsorUserOperationResponse},
@@ -120,9 +120,17 @@ pub async fn serve_swagger_ui(
 
 /// Create the Swagger router with all endpoints
 fn create_router() -> Router<SwaggerState> {
+    // Modify OpenAPI spec to set correct server URL
+    let mut openapi = ApiDoc::openapi();
+    
+    // Update servers to point to the actual service
+    openapi.servers = Some(vec![
+        utoipa::openapi::Server::new("http://localhost:3000"),
+    ]);
+    
     Router::new()
         // Swagger UI with integrated dashboard
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi))
         // Dashboard integration
         .route("/", get(dashboard_home))
         .route("/dashboard", get(dashboard_page))
@@ -156,6 +164,7 @@ fn create_router() -> Router<SwaggerState> {
 }
 
 /// Sponsor user operation endpoint with metrics
+/// This endpoint forwards requests to the actual SuperRelay service at port 3000
 #[utoipa::path(
     post,
     path = "/api/v1/sponsor",
@@ -203,7 +212,113 @@ async fn sponsor_user_operation_endpoint(
         ));
     }
 
-    // 调用Paymaster服务
+    // Forward to the actual SuperRelay service at port 3000
+    // This ensures Swagger UI can test against the real service
+    let client = reqwest::Client::new();
+    
+    // Prepare the JSON-RPC request
+    let rpc_request = json!({
+        "jsonrpc": "2.0",
+        "method": "pm_sponsorUserOperation",
+        "params": [request.user_operation, request.entry_point],
+        "id": 1
+    });
+    
+    // Forward request to the actual service
+    match client.post("http://localhost:3000")
+        .json(&rpc_request)
+        .send()
+        .await
+    {
+        Ok(response) => {
+            let status = response.status();
+            match response.json::<serde_json::Value>().await {
+                Ok(json_response) => {
+                    // Check if it's an error response
+                    if let Some(error) = json_response.get("error") {
+                        state.metrics.record_request(false, start_time.elapsed());
+                        return Err((
+                            StatusCode::BAD_REQUEST,
+                            Json(ErrorResponse {
+                                code: error.get("code").and_then(|c| c.as_i64()).unwrap_or(-32603) as i32,
+                                message: error.get("message").and_then(|m| m.as_str()).unwrap_or("Unknown error").to_string(),
+                                data: error.get("data").cloned(),
+                            }),
+                        ));
+                    }
+                    
+                    // Extract result
+                    if let Some(result) = json_response.get("result") {
+                        state.metrics.record_request(true, start_time.elapsed());
+                        
+                        // Extract paymasterAndData from result
+                        let paymaster_and_data = result.as_str().unwrap_or("0x").to_string();
+                        
+                        Ok(Json(SponsorUserOperationResponse {
+                            paymaster_and_data,
+                        }))
+                    } else {
+                        state.metrics.record_request(false, start_time.elapsed());
+                        Err((
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(ErrorResponse {
+                                code: -32603,
+                                message: "Invalid response format from service".to_string(),
+                                data: Some(json_response),
+                            }),
+                        ))
+                    }
+                },
+                Err(e) => {
+                    state.metrics.record_request(false, start_time.elapsed());
+                    Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(ErrorResponse {
+                            code: -32603,
+                            message: "Failed to parse service response".to_string(),
+                            data: Some(json!({
+                                "error": e.to_string(),
+                                "status": status.as_u16()
+                            })),
+                        }),
+                    ))
+                }
+            }
+        },
+        Err(e) => {
+            state.metrics.record_request(false, start_time.elapsed());
+            
+            // If service is not running, provide helpful message
+            if e.to_string().contains("Connection refused") {
+                Err((
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(ErrorResponse {
+                        code: -32603,
+                        message: "SuperRelay service is not running. Please start it with: ./scripts/start_superrelay.sh".to_string(),
+                        data: Some(json!({
+                            "error": "Connection refused",
+                            "service_url": "http://localhost:3000",
+                            "hint": "Run './scripts/start_superrelay.sh' to start the service"
+                        })),
+                    }),
+                ))
+            } else {
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        code: -32603,
+                        message: "Failed to connect to SuperRelay service".to_string(),
+                        data: Some(json!({
+                            "error": e.to_string()
+                        })),
+                    }),
+                ))
+            }
+        }
+    }
+    
+    // Remove old implementation below
+    /*
     let user_op = match serde_json::from_value(json!(request.user_operation)) {
         Ok(op) => op,
         Err(e) => {
@@ -269,6 +384,7 @@ async fn sponsor_user_operation_endpoint(
             ))
         }
     }
+    */
 }
 
 /// Health check endpoint

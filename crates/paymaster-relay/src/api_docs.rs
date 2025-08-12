@@ -93,9 +93,9 @@ SuperPaymaster是基于ERC-4337标准的企业级账户抽象Paymaster解决方�
         )
     ),
     servers(
-        (url = "http://localhost:3000", description = "开发环境 - Rundler RPC服务器"),
-        (url = "http://localhost:8082", description = "开发环境 - Dashboard管理界面"),
-        (url = "http://localhost:9000", description = "独立Swagger UI服务器"),
+        (url = "http://localhost:3000", description = "开发环境 - SuperRelay主服务（实际处理请求）"),
+        (url = "http://localhost:9000", description = "Swagger UI服务器（文档界面）"),
+        (url = "http://localhost:8545", description = "Anvil本地区块链（测试环境）"),
         (url = "https://api.superpaymaster.io", description = "生产环境API")
     ),
     external_docs(

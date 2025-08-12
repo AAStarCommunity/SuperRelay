@@ -214,7 +214,7 @@ graph TB
     RPC1 --> P1
     RPC2 --> PL2
     RPC3 --> B1
-    
+
     P1 --> P2
     P2 --> P3
     P3 --> P4
@@ -280,17 +280,17 @@ sequenceDiagram
     Client->>Gateway: POST /pm_sponsorUserOperation
     Gateway->>MW: CORS + Auth + Rate Limit
     MW->>Router: Route to PaymasterService
-    
+
     Router->>PM: Process sponsorship request
     PM->>PM: Check policies
     PM->>PM: Generate signature
     PM->>Pool: Submit to mempool
-    
+
     Pool->>Provider: Validate operation
     Provider->>Blockchain: Simulate transaction
     Blockchain-->>Provider: Validation result
     Provider-->>Pool: Return status
-    
+
     Pool-->>PM: Operation added
     PM-->>Router: Return paymasterAndData
     Router-->>Client: JSON-RPC Response
@@ -388,11 +388,11 @@ graph LR
     A1 --> |Gateway→Router| D[Internal Routing]
     A2 --> |Service→Pool| E[Component Integration]
     A3 --> |Shared Components| F[State Management]
-    
+
     B1 --> |Pool→Builder| G[Task Coordination]
     B2 --> |Async Operations| H[Non-blocking I/O]
     B3 --> |Status Updates| I[Event Handling]
-    
+
     C1 --> |Client→Gateway| J[API Requests]
     C2 --> |Provider→Blockchain| K[Real-time Updates]
     C3 --> |Monitoring→Metrics| L[Telemetry]

@@ -11,12 +11,12 @@
   ```bash
   # 健康检查
   curl http://localhost:3000/health
-  
+
   # RPC API调用
   curl -X POST http://localhost:3000 \
     -H "Content-Type: application/json" \
     -d '{"jsonrpc":"2.0","id":1,"method":"eth_supportedEntryPoints","params":[]}'
-  
+
   # Paymaster API
   curl -X POST http://localhost:3000 \
     -H "Content-Type: application/json" \
@@ -35,7 +35,7 @@
   ```bash
   # Web界面
   open http://localhost:9000/
-  
+
   # OpenAPI规范
   curl http://localhost:9000/openapi.json
   ```
@@ -111,7 +111,7 @@
 ./scripts/test_suite.sh                       # 验证功能
 
 # 访问服务
-curl http://localhost:3000/health             # 健康检查  
+curl http://localhost:3000/health             # 健康检查
 open http://localhost:9000/                   # API文档
 ```
 

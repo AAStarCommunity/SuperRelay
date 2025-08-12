@@ -175,7 +175,7 @@ fi
 if [[ -n "${ANVIL_PID:-}" ]] && kill -0 $ANVIL_PID 2>/dev/null; then
     kill -TERM $ANVIL_PID
     sleep 2
-    
+
     # 如果还没关闭，强制终止
     if kill -0 $ANVIL_PID 2>/dev/null; then
         kill -KILL $ANVIL_PID

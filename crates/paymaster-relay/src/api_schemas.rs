@@ -72,12 +72,12 @@ pub struct SponsorUserOperationRequest {
 /// Response structure for successful sponsorship
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
-    "user_op_hash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    "paymaster_and_data": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000"
 }))]
 pub struct SponsorUserOperationResponse {
-    /// Hash of the user operation after sponsorship
-    #[schema(example = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")]
-    pub user_op_hash: String,
+    /// Paymaster and data containing sponsorship information
+    #[schema(example = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000")]
+    pub paymaster_and_data: String,
 }
 
 /// Unified UserOperation structure supporting both v0.6 and v0.7 formats
@@ -163,15 +163,21 @@ pub struct JsonUserOperation {
 /// Standard error response structure
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
-    "error": {
-        "code": -32602,
-        "message": "Invalid params: Invalid user operation format",
-        "data": null
-    }
+    "code": -32602,
+    "message": "Invalid params: Invalid user operation format",
+    "data": null
 }))]
 pub struct ErrorResponse {
-    /// Error details
-    pub error: ApiError,
+    /// JSON-RPC error code
+    #[schema(example = -32602)]
+    pub code: i32,
+
+    /// Human-readable error message
+    #[schema(example = "Invalid params")]
+    pub message: String,
+
+    /// Additional error context
+    pub data: Option<serde_json::Value>,
 }
 
 /// API error details
@@ -207,63 +213,60 @@ pub mod error_codes {
 pub mod examples {
     use super::*;
 
-    /// Example v0.6 UserOperation
+    /// Example v0.6 UserOperation with realistic test data
     pub fn example_user_op_v06() -> serde_json::Value {
         serde_json::json!({
             "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "nonce": "0x0",
             "initCode": "0x",
-            "callData": "0x",
-            "callGasLimit": "0x186A0",
+            "callData": "0xb61d27f6000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000",
+            "callGasLimit": "0x30D40",
             "verificationGasLimit": "0x186A0",
-            "preVerificationGas": "0x5208",
-            "maxFeePerGas": "0x3B9ACA00",
-            "maxPriorityFeePerGas": "0x3B9ACA00",
+            "preVerificationGas": "0xC350",
+            "maxFeePerGas": "0x59682F00",
+            "maxPriorityFeePerGas": "0x59682F00",
             "paymasterAndData": "0x",
-            "signature": "0x"
+            "signature": "0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c"
         })
     }
 
-    /// Example v0.7 UserOperation
+    /// Example v0.7 UserOperation with realistic test data
     pub fn example_user_op_v07() -> serde_json::Value {
         serde_json::json!({
             "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "nonce": "0x0",
-            "callData": "0x",
-            "callGasLimit": "0x186A0",
+            "callData": "0xb61d27f6000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000",
+            "callGasLimit": "0x30D40",
             "verificationGasLimit": "0x186A0",
-            "preVerificationGas": "0x5208",
-            "maxFeePerGas": "0x3B9ACA00",
-            "maxPriorityFeePerGas": "0x3B9ACA00",
-            "signature": "0x",
+            "preVerificationGas": "0xC350",
+            "maxFeePerGas": "0x59682F00",
+            "maxPriorityFeePerGas": "0x59682F00",
+            "signature": "0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c",
             "factory": "0x9406Cc6185a346906296840746125a0E44976454",
             "factoryData": "0x5fbfb9cf000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-            "paymaster": null,
-            "paymasterVerificationGasLimit": null,
-            "paymasterPostOpGasLimit": null,
-            "paymasterData": null
+            "paymaster": "0x0000000000000000000000000000000000000000",
+            "paymasterVerificationGasLimit": "0x186A0",
+            "paymasterPostOpGasLimit": "0x4E20",
+            "paymasterData": "0x"
         })
     }
 
-    /// Example successful response
-    pub fn example_success_response() -> SponsorUserOperationResponse {
-        SponsorUserOperationResponse {
-            user_op_hash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
-                .to_string(),
-        }
+    /// Example successful response with realistic paymaster data
+    pub fn example_success_response() -> serde_json::Value {
+        serde_json::json!({
+            "paymasterAndData": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        })
     }
 
     /// Example error response
     pub fn example_error_response() -> ErrorResponse {
         ErrorResponse {
-            error: ApiError {
-                code: error_codes::INVALID_PARAMS,
-                message: "Invalid user operation format".to_string(),
-                data: Some(serde_json::json!({
-                    "field": "sender",
-                    "reason": "Invalid address format"
-                })),
-            },
+            code: error_codes::INVALID_PARAMS,
+            message: "Invalid user operation format".to_string(),
+            data: Some(serde_json::json!({
+                "field": "sender",
+                "reason": "Invalid address format"
+            })),
         }
     }
 }

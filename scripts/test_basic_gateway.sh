@@ -103,7 +103,7 @@ while [[ $attempt -le $max_attempts ]]; do
         echo -e "${GREEN}✅ 服务启动成功${NC}"
         break
     fi
-    
+
     if [[ $attempt -eq $max_attempts ]]; then
         echo -e "${RED}❌ 服务启动超时${NC}"
         echo "=== 服务日志 ==="
@@ -111,7 +111,7 @@ while [[ $attempt -le $max_attempts ]]; do
         kill $SUPER_RELAY_PID $ANVIL_PID 2>/dev/null || true
         exit 1
     fi
-    
+
     echo -n "."
     sleep 2
     ((attempt++))
@@ -165,7 +165,7 @@ if [[ "$error_response" != "error" ]] && echo "$error_response" | grep -q "error
     test_results+=("✅ 错误处理测试: 通过")
     echo -e "${GREEN}   ✅ 错误处理正常${NC}"
 else
-    test_results+=("❌ 错误处理测试: 失败") 
+    test_results+=("❌ 错误处理测试: 失败")
     echo -e "${RED}   ❌ 错误处理异常${NC}"
 fi
 

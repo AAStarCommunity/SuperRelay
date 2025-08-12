@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "优化建议:"
             echo "  • 日常开发: $0 debug (默认，编译快）"
-            echo "  • 性能测试: $0 release (最优性能）" 
+            echo "  • 性能测试: $0 release (最优性能）"
             echo "  • 快速启动: $0 --skip-build (跳过构建检测）"
             exit 0
             ;;

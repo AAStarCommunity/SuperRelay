@@ -67,24 +67,22 @@ async fn test_api_schemas_serialization() {
 
     // Test response serialization
     let response = SponsorUserOperationResponse {
-        user_op_hash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+        paymaster_and_data: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000"
             .to_string(),
     };
 
     let json_str = serde_json::to_string(&response).expect("Failed to serialize response");
-    assert!(json_str.contains("user_op_hash"));
+    assert!(json_str.contains("paymaster_and_data"));
 
     // Test error response
     let error_response = ErrorResponse {
-        error: ApiError {
-            code: error_codes::INVALID_PARAMS,
-            message: "Test error".to_string(),
-            data: Some(serde_json::json!({"test": "data"})),
-        },
+        code: error_codes::INVALID_PARAMS,
+        message: "Test error".to_string(),
+        data: Some(serde_json::json!({"test": "data"})),
     };
 
     let json_str = serde_json::to_string(&error_response).expect("Failed to serialize error");
-    assert!(json_str.contains("error"));
+    assert!(json_str.contains("code"));
     assert!(json_str.contains("-32602"));
 }
 
@@ -132,8 +130,8 @@ async fn test_examples_generation() {
 
     // Test response examples
     let success_response = examples::example_success_response();
-    assert!(!success_response.user_op_hash.is_empty());
+    assert!(success_response.get("paymasterAndData").is_some());
 
     let error_response = examples::example_error_response();
-    assert_eq!(error_response.error.code, -32602);
+    assert_eq!(error_response.code, -32602);
 }

@@ -23,7 +23,7 @@ show_usage() {
     echo ""
     echo "OPTIONS:"
     echo "  --profile PROFILE    构建配置 [debug|release] (默认: debug)"
-    echo "  --package PACKAGE    指定包名 (默认: super-relay)" 
+    echo "  --package PACKAGE    指定包名 (默认: super-relay)"
     echo "  --check             仅检查语法，不构建"
     echo "  --clean             清理后构建"
     echo "  --timeout SECONDS   构建超时时间 (默认: 600秒)"
@@ -116,7 +116,7 @@ else
     USE_CACHE=false
 fi
 
-# 检查 cargo-watch  
+# 检查 cargo-watch
 if command -v cargo-watch >/dev/null 2>&1; then
     echo -e "${GREEN}  ✅ cargo-watch 可用 (开发时自动重建)${NC}"
 else
@@ -138,44 +138,44 @@ fi
 # 构建函数 - 带超时控制
 build_with_timeout() {
     local start_time=$(date +%s)
-    
+
     echo -e "${CYAN}🔨 开始构建: $PACKAGE${NC}"
-    
+
     # 构建命令组装
     local cmd_args=""
-    
+
     if [[ $CHECK_ONLY == true ]]; then
         cmd_args="check"
     else
         cmd_args="build"
     fi
-    
+
     # 添加配置参数
     if [[ "$PROFILE" == "release" ]]; then
         cmd_args="$cmd_args --release"
     fi
-    
+
     # 添加包参数
     cmd_args="$cmd_args --package $PACKAGE"
-    
+
     # 执行构建
     echo -e "${BLUE}📋 执行命令: cargo $cmd_args${NC}"
     echo -e "${YELLOW}⏰ 超时时间: ${TIMEOUT}秒，如需更长时间请使用 --timeout 参数${NC}"
     echo ""
-    
+
     # 使用 timeout 命令执行构建
     if timeout ${TIMEOUT}s cargo $cmd_args; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
         echo ""
         echo -e "${GREEN}✅ 构建成功: $PACKAGE (${duration}秒)${NC}"
-        
+
         # 显示缓存统计
         if [[ $USE_CACHE == true ]]; then
             echo -e "${CYAN}📊 sccache 统计:${NC}"
             sccache --show-stats 2>/dev/null || true
         fi
-        
+
         # 显示构建产物信息
         if [[ $CHECK_ONLY == false ]]; then
             local binary_path=""
@@ -187,19 +187,19 @@ build_with_timeout() {
                     binary_path="target/release/$PACKAGE"
                     ;;
             esac
-            
+
             if [[ -f "$binary_path" ]]; then
                 local size=$(du -h "$binary_path" | cut -f1)
                 echo -e "${CYAN}📦 二进制文件: $binary_path ($size)${NC}"
             fi
         fi
-        
+
         return 0
     else
         local exit_code=$?
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
-        
+
         if [[ $exit_code == 124 ]]; then
             echo ""
             echo -e "${RED}❌ 构建超时: $PACKAGE (${duration}秒 > ${TIMEOUT}秒)${NC}"
@@ -208,7 +208,7 @@ build_with_timeout() {
             echo ""
             echo -e "${RED}❌ 构建失败: $PACKAGE (${duration}秒)${NC}"
         fi
-        
+
         return 1
     fi
 }
@@ -238,16 +238,16 @@ echo ""
 if build_with_timeout; then
     echo ""
     echo -e "${GREEN}🎉 构建完成！${NC}"
-    
+
     # 开发模式建议
     if [[ "$PROFILE" == "debug" ]]; then
         echo ""
         echo -e "${YELLOW}🔥 开发提示:${NC}"
-        echo "  • 快速检查: $0 --check"  
+        echo "  • 快速检查: $0 --check"
         echo "  • 生产构建: $0 --profile release"
         echo "  • 自动重建: cargo watch -x 'run --package $PACKAGE'"
     fi
-    
+
     exit 0
 else
     echo ""

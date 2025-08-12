@@ -1,13 +1,13 @@
 # SuperRelay 构建优化指南
 
-**基于 Jason Cursor Rules Rust 构建优化实践**  
-**更新时间**: 2025-08-05  
+**基于 Jason Cursor Rules Rust 构建优化实践**
+**更新时间**: 2025-08-05
 
 ## 🚀 优化概览
 
 基于 [Jason Cursor Rules](https://github.com/jhfnetboy/cursor-rules-jason/blob/main/Rust-rule.md) 的Rust构建优化规则，我们实现了：
 
-- ⚡ **3x 更快的开发构建速度** 
+- ⚡ **3x 更快的开发构建速度**
 - 🏆 **智能profile选择系统**
 - 📊 **完整的构建环境优化**
 - 🔧 **便捷的开发工具集成**
@@ -94,7 +94,7 @@ cargo install cargo-watch
 ### 系统优化
 ```bash
 # macOS - 启用zld链接器 (在.cargo/config.toml中)
-[target.aarch64-apple-darwin] 
+[target.aarch64-apple-darwin]
 rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/zld"]
 
 # Linux - 启用mold链接器
@@ -111,7 +111,7 @@ cargo c
 # 或
 ./scripts/build_optimized.sh --check
 
-# 2. 自动重建模式 
+# 2. 自动重建模式
 cargo watch -x 'run --package super-relay'
 
 # 3. 极速开发启动
@@ -205,7 +205,7 @@ sccache --zero-stats
 通过实施Jason Cursor Rules的Rust构建优化实践，SuperRelay的开发体验得到了显著提升：
 
 - 🚀 **开发效率提升3倍**: 快速语法检查和增量编译
-- 🧠 **智能化构建**: 自动选择最优构建配置  
+- 🧠 **智能化构建**: 自动选择最优构建配置
 - ⚡ **极速启动**: debug模式下最快的开发迭代
 - 🏆 **生产就绪**: release模式提供最优性能
 

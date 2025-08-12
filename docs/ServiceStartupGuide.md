@@ -1,7 +1,7 @@
 # SuperRelay 服务启动指南
 
-**更新时间**: 2025-08-05  
-**适用版本**: SuperRelay v0.1.5  
+**更新时间**: 2025-08-05
+**适用版本**: SuperRelay v0.1.5
 
 ## 🚀 快速启动
 
@@ -60,15 +60,15 @@ curl -X POST http://localhost:3000 \
 curl -X POST http://localhost:3000 \
   -H "Content-Type: application/json" \
   -d '{
-    "jsonrpc": "2.0", 
-    "id": 1, 
-    "method": "pm_sponsorUserOperation", 
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "pm_sponsorUserOperation",
     "params": [{
       "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
       "nonce": "0x0",
       "callData": "0x",
       "callGasLimit": "0x186A0",
-      "verificationGasLimit": "0x186A0", 
+      "verificationGasLimit": "0x186A0",
       "preVerificationGas": "0x5208",
       "maxFeePerGas": "0x3B9ACA00",
       "maxPriorityFeePerGas": "0x3B9ACA00"
@@ -86,7 +86,7 @@ Commands:
   gateway  # 企业级API Gateway模式 (推荐)
   node     # 兼容模式，内部调用rundler
   pool     # 独立Pool服务
-  builder  # 独立Builder服务  
+  builder  # 独立Builder服务
   admin    # 管理工具
   version  # 版本信息
   status   # 服务状态
@@ -134,7 +134,7 @@ requests_per_second = 100
 # 运行综合规范符合性测试
 ./scripts/test_spec_comprehensive.sh
 
-# 运行健康检查测试  
+# 运行健康检查测试
 ./scripts/test_health_system.sh
 ```
 
@@ -147,7 +147,7 @@ requests_per_second = 100
    # 检查端口占用
    lsof -i :3000
    lsof -i :8545
-   
+
    # 清理进程
    pkill -f "super-relay|anvil"
    ```
@@ -156,17 +156,17 @@ requests_per_second = 100
    ```bash
    # 检查配置文件格式
    cat config/config.toml | head -20
-   
+
    # 验证环境变量
    echo $PAYMASTER_PRIVATE_KEY
    ```
 
-3. **依赖项问题**  
+3. **依赖项问题**
    ```bash
    # 重新构建
    cargo clean
    cargo build --package super-relay
-   
+
    # 检查Foundry安装
    anvil --version
    cast --version

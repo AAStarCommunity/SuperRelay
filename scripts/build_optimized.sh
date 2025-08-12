@@ -123,7 +123,7 @@ echo "=================================="
 echo -e "${BLUE}📋 构建配置:${NC}"
 echo "  🎯 目标: $TARGET"
 echo "  📊 配置: $PROFILE"
-echo "  📦 包名: $PACKAGE" 
+echo "  📦 包名: $PACKAGE"
 echo "  🔍 仅检查: $CHECK_ONLY"
 echo "  🧹 清理构建: $CLEAN_BUILD"
 echo "  ⏱️  时间分析: $SHOW_TIMING"
@@ -183,24 +183,24 @@ fi
 build_target() {
     local target=$1
     local start_time=$(date +%s)
-    
+
     echo -e "${CYAN}🔨 开始构建: $target${NC}"
-    
+
     # 构建命令组装
     cmd="cargo"
     args=""
-    
+
     if [[ $CHECK_ONLY == true ]]; then
         args="check"
     else
         args="build"
     fi
-    
+
     # 添加配置参数
     if [[ "$PROFILE" == "release" ]]; then
         args="$args --release"
     fi
-    
+
     # 添加包参数
     case $target in
         super-relay)
@@ -213,26 +213,26 @@ build_target() {
             # 构建所有包
             ;;
     esac
-    
+
     # 添加时间分析
     if [[ $SHOW_TIMING == true ]]; then
         args="$args --timings"
     fi
-    
+
     # 执行构建
     echo -e "${BLUE}📋 执行命令: $cmd $args${NC}"
-    
+
     if $cmd $args; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
         echo -e "${GREEN}✅ 构建成功: $target (${duration}秒)${NC}"
-        
+
         # 显示缓存统计
         if [[ $USE_CACHE == true ]]; then
             echo -e "${CYAN}📊 缓存统计:${NC}"
             sccache --show-stats 2>/dev/null || true
         fi
-        
+
         return 0
     else
         local end_time=$(date +%s)
@@ -265,11 +265,11 @@ total_start=$(date +%s)
 if build_target "$TARGET"; then
     total_end=$(date +%s)
     total_duration=$((total_end - total_start))
-    
+
     echo ""
     echo -e "${GREEN}🎉 构建完成！${NC}"
     echo -e "${GREEN}📊 总时间: ${total_duration}秒${NC}"
-    
+
     # 显示构建产物信息
     if [[ $CHECK_ONLY == false ]]; then
         case $PROFILE in
@@ -280,13 +280,13 @@ if build_target "$TARGET"; then
                 BINARY_PATH="target/release"
                 ;;
         esac
-        
+
         if [[ "$TARGET" != "all" ]]; then
             binary_name="$TARGET"
             if [[ -f "$BINARY_PATH/$binary_name" ]]; then
                 size=$(du -h "$BINARY_PATH/$binary_name" | cut -f1)
                 echo -e "${CYAN}📦 二进制文件: $BINARY_PATH/$binary_name ($size)${NC}"
-                
+
                 # 性能建议
                 if [[ "$PROFILE" == "dev" ]] && [[ "$size" > "50M" ]]; then
                     echo -e "${YELLOW}💡 提示: 二进制较大，考虑使用 --profile release 优化体积${NC}"
@@ -294,7 +294,7 @@ if build_target "$TARGET"; then
             fi
         fi
     fi
-    
+
     # 开发模式建议
     if [[ "$PROFILE" == "dev" ]]; then
         echo ""
@@ -303,7 +303,7 @@ if build_target "$TARGET"; then
         echo "  • 快速检查: $0 --check"
         echo "  • 生产构建: $0 --profile release"
     fi
-    
+
 else
     echo ""
     echo -e "${RED}💥 构建失败${NC}"
