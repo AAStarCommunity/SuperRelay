@@ -8,7 +8,8 @@ use utoipa::{OpenApi, ToSchema};
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::swagger::sponsor_user_operation_endpoint
+        crate::api_handlers::sponsor_user_operation_handler,
+        crate::api_handlers::health_check_handler
     ),
     components(
         schemas(
@@ -16,11 +17,13 @@ use utoipa::{OpenApi, ToSchema};
             SponsorUserOperationResponse,
             JsonUserOperation,
             ErrorResponse,
-            ApiError
+            ApiError,
+            crate::api_handlers::HealthResponse
         )
     ),
     tags(
-        (name = "paymaster", description = "Paymaster Relay API endpoints for sponsoring user operations")
+        (name = "paymaster", description = "Paymaster Relay API endpoints for sponsoring user operations"),
+        (name = "monitoring", description = "Health check and monitoring endpoints")
     ),
     info(
         title = "SuperPaymaster Relay API",

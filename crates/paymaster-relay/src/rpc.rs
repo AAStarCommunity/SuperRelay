@@ -188,6 +188,10 @@ pub struct SponsorUserOperationResponse {
 #[rpc(client, server, namespace = "pm")]
 #[async_trait]
 pub trait PaymasterRelayApi {
+    /// Sponsor a user operation for gas fee payment
+    ///
+    /// Takes a UserOperation and EntryPoint address, returns paymaster data
+    /// that can be used to sponsor the operation's gas fees.
     #[method(name = "sponsorUserOperation")]
     async fn sponsor_user_operation(
         &self,

@@ -36,6 +36,7 @@ uuid = { version = "1.0", features = ["v4"] }
 
 [dev-dependencies]
 anyhow = { workspace = true }
+axum-test = "14.0"
 ethers = { workspace = true, features = ["ws", "rustls"] }
 jsonrpsee-core = { workspace = true, features = ["client"] }
 jsonrpsee-ws-client = { workspace = true }

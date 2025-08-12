@@ -1,0 +1,362 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SuperPaymaster Relay API",
+    "description": "Enterprise-grade Paymaster Relay service for ERC-4337 user operation sponsorship",
+    "contact": {
+      "name": "SuperPaymaster Team",
+      "url": "https://github.com/aastar/super-relay"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "0.2.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    },
+    {
+      "url": "http://localhost:9000",
+      "description": "Swagger UI server"
+    }
+  ],
+  "paths": {
+    "/api/v1/sponsor": {
+      "post": {
+        "tags": [
+          "paymaster"
+        ],
+        "summary": "HTTP handler for sponsoring user operations",
+        "description": "This endpoint provides HTTP REST interface on top of the JSON-RPC implementation.\nIt transforms HTTP requests to RPC calls and returns JSON responses.",
+        "operationId": "sponsor_user_operation_handler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SponsorUserOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully sponsored the user operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorUserOperationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Health check endpoint",
+        "operationId": "health_check_handler",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "description": "API error details",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "JSON-RPC error code",
+            "example": -32602
+          },
+          "data": {
+            "description": "Additional error context",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "Invalid params"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Standard error response structure",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "JSON-RPC error code",
+            "example": -32602
+          },
+          "data": {
+            "description": "Additional error context",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "Invalid params"
+          }
+        },
+        "example": {
+          "code": -32602,
+          "data": null,
+          "message": "Invalid params: Invalid user operation format"
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "description": "Health check response structure",
+        "required": [
+          "status",
+          "version",
+          "timestamp"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Service status",
+            "example": "UP"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Response timestamp",
+            "example": "2024-01-01T12:00:00Z"
+          },
+          "version": {
+            "type": "string",
+            "description": "Service version",
+            "example": "0.2.0"
+          }
+        }
+      },
+      "JsonUserOperation": {
+        "type": "object",
+        "description": "Unified UserOperation structure supporting both v0.6 and v0.7 formats",
+        "required": [
+          "sender",
+          "nonce",
+          "callData",
+          "callGasLimit",
+          "verificationGasLimit",
+          "preVerificationGas",
+          "maxFeePerGas",
+          "maxPriorityFeePerGas",
+          "signature"
+        ],
+        "properties": {
+          "callData": {
+            "type": "string",
+            "description": "Data to pass to the account's execute function",
+            "example": "0x"
+          },
+          "callGasLimit": {
+            "type": "string",
+            "description": "Gas limit for the account's execution phase",
+            "example": "0x186A0"
+          },
+          "factory": {
+            "type": "string",
+            "description": "Account factory address (v0.7 format)",
+            "nullable": true
+          },
+          "factoryData": {
+            "type": "string",
+            "description": "Factory initialization data (v0.7 format)",
+            "nullable": true
+          },
+          "initCode": {
+            "type": "string",
+            "description": "Account initialization code (v0.6 format)",
+            "example": "0x",
+            "nullable": true
+          },
+          "maxFeePerGas": {
+            "type": "string",
+            "description": "Maximum fee per gas unit (hex or decimal)",
+            "example": "0x3B9ACA00"
+          },
+          "maxPriorityFeePerGas": {
+            "type": "string",
+            "description": "Maximum priority fee per gas unit (hex or decimal)",
+            "example": "0x3B9ACA00"
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Anti-replay parameter (hex or decimal)",
+            "example": "0x0"
+          },
+          "paymaster": {
+            "type": "string",
+            "description": "Paymaster address (v0.7 format)",
+            "nullable": true
+          },
+          "paymasterAndData": {
+            "type": "string",
+            "description": "Paymaster address and data (v0.6 format)",
+            "example": "0x",
+            "nullable": true
+          },
+          "paymasterData": {
+            "type": "string",
+            "description": "Paymaster data (v0.7 format)",
+            "nullable": true
+          },
+          "paymasterPostOpGasLimit": {
+            "type": "string",
+            "description": "Paymaster post-operation gas limit (v0.7 format)",
+            "nullable": true
+          },
+          "paymasterVerificationGasLimit": {
+            "type": "string",
+            "description": "Paymaster verification gas limit (v0.7 format)",
+            "nullable": true
+          },
+          "preVerificationGas": {
+            "type": "string",
+            "description": "Gas overhead of this UserOperation",
+            "example": "0x5208"
+          },
+          "sender": {
+            "type": "string",
+            "description": "The account making the operation",
+            "example": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+          },
+          "signature": {
+            "type": "string",
+            "description": "Account signature",
+            "example": "0x"
+          },
+          "verificationGasLimit": {
+            "type": "string",
+            "description": "Gas limit for the account's verification phase",
+            "example": "0x186A0"
+          }
+        },
+        "example": {
+          "callData": "0x",
+          "callGasLimit": "0x186A0",
+          "maxFeePerGas": "0x3B9ACA00",
+          "maxPriorityFeePerGas": "0x3B9ACA00",
+          "nonce": "0x0",
+          "preVerificationGas": "0x5208",
+          "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          "signature": "0x",
+          "verificationGasLimit": "0x186A0"
+        }
+      },
+      "SponsorUserOperationRequest": {
+        "type": "object",
+        "description": "Request structure for sponsoring a user operation",
+        "required": [
+          "user_op",
+          "entry_point"
+        ],
+        "properties": {
+          "entry_point": {
+            "type": "string",
+            "description": "The EntryPoint contract address",
+            "example": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+          },
+          "user_op": {
+            "description": "The user operation to sponsor (ERC-4337 v0.6 or v0.7 format)"
+          }
+        },
+        "example": {
+          "entry_point": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+          "user_op": {
+            "callData": "0x",
+            "callGasLimit": "0x186A0",
+            "initCode": "0x",
+            "maxFeePerGas": "0x3B9ACA00",
+            "maxPriorityFeePerGas": "0x3B9ACA00",
+            "nonce": "0x0",
+            "paymasterAndData": "0x",
+            "preVerificationGas": "0x5208",
+            "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "signature": "0x",
+            "verificationGasLimit": "0x186A0"
+          }
+        }
+      },
+      "SponsorUserOperationResponse": {
+        "type": "object",
+        "description": "Response structure for successful sponsorship",
+        "required": [
+          "paymaster_and_data"
+        ],
+        "properties": {
+          "paymaster_and_data": {
+            "type": "string",
+            "description": "Paymaster and data containing sponsorship information",
+            "example": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "example": {
+          "paymaster_and_data": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8000000000000000000000000000000000000000000000000000000006678c5500000000000000000000000000000000000000000000000000000000000000000"
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "paymaster",
+      "description": "Paymaster Relay API endpoints for sponsoring user operations"
+    },
+    {
+      "name": "monitoring",
+      "description": "Health check and monitoring endpoints"
+    }
+  ]
+}
