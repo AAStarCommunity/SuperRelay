@@ -85,6 +85,7 @@ graph TD
 
 **Core Principle**: Implement feature extensions through external wrapper gateway, rundler core code remains completely unchanged
 
+### High-Level Architecture
 ```
 SuperRelay API Gateway (Port 3000)
     ├── 🔐 Authentication & Authorization Module (JWT/API Key)
@@ -98,6 +99,303 @@ SuperRelay API Gateway (Port 3000)
         └── 📊 Monitoring System → Reuse Existing Rundler Metrics
             ↓
         🌐 Ethereum Network (EntryPoint Contract)
+```
+
+### Detailed Component Architecture
+
+```mermaid
+graph TB
+    subgraph CLIENT["🖥️ Client Layer"]
+        C1[DApp/Wallet]
+        C2[SDK/Libraries]
+        C3[CLI Tools]
+    end
+
+    subgraph GATEWAY["🌐 SuperRelay Gateway (Port 3000)"]
+        subgraph MIDDLEWARE["🛡️ Middleware Stack"]
+            MW1[CORS Handler]
+            MW2[Request Logger]
+            MW3[Rate Limiter]
+            MW4[Auth Validator]
+        end
+
+        subgraph ROUTER["🎯 Smart Router"]
+            R1[Method Parser]
+            R2[Route Dispatcher]
+            R3[Response Builder]
+        end
+
+        subgraph SERVICES["🔧 Service Layer"]
+            subgraph PAYMASTER["💳 PaymasterRelay Service"]
+                PM1[Policy Engine]
+                PM2[Signer Manager]
+                PM3[KMS Integration]
+                PM4[Validation Module]
+            end
+
+            subgraph GATEWAY_MODULES["📦 Gateway Modules"]
+                GM1[Health Checker]
+                GM2[E2E Validator]
+                GM3[Security Checker]
+                GM4[Authorization Checker]
+                GM5[Data Integrity Checker]
+            end
+        end
+    end
+
+    subgraph RUNDLER["⚙️ Rundler Core (Shared Components)"]
+        subgraph PROVIDER["🔌 Provider Layer"]
+            P1[Alloy Provider]
+            P2[EVM Provider]
+            P3[DA Gas Oracle]
+            P4[Fee Estimator]
+        end
+
+        subgraph POOL["🏊 Pool Management"]
+            PL1[LocalPoolBuilder]
+            PL2[PoolHandle]
+            PL3[Mempool Storage]
+            PL4[Operation Validator]
+        end
+
+        subgraph BUILDER["🏗️ Builder Service"]
+            B1[Bundle Builder]
+            B2[Transaction Sender]
+            B3[Nonce Manager]
+        end
+
+        subgraph RPC["🔄 RPC Service (Port 3001)"]
+            RPC1[EthApi]
+            RPC2[RundlerApi]
+            RPC3[DebugApi]
+            RPC4[AdminApi]
+        end
+    end
+
+    subgraph BLOCKCHAIN["⛓️ Blockchain Layer"]
+        BC1[Ethereum Network]
+        BC2[EntryPoint Contract]
+        BC3[Paymaster Contract]
+        BC4[Account Contracts]
+    end
+
+    %% Client connections
+    C1 --> MW1
+    C2 --> MW1
+    C3 --> MW1
+
+    %% Middleware flow
+    MW1 --> MW2
+    MW2 --> MW3
+    MW3 --> MW4
+    MW4 --> R1
+
+    %% Router dispatching
+    R1 --> R2
+    R2 -->|pm_* methods| PM1
+    R2 -->|eth_* methods| RPC1
+    R2 -->|rundler_* methods| RPC2
+    R2 -->|debug_* methods| RPC3
+    R2 -->|health checks| GM1
+
+    %% PaymasterService flow
+    PM1 --> PM2
+    PM2 --> PM3
+    PM3 --> PM4
+    PM4 --> PL2
+
+    %% Health and validation
+    GM1 --> GM2
+    GM2 --> GM3
+    GM3 --> GM4
+    GM4 --> GM5
+
+    %% Rundler components interaction
+    RPC1 --> P1
+    RPC2 --> PL2
+    RPC3 --> B1
+    
+    P1 --> P2
+    P2 --> P3
+    P3 --> P4
+
+    PL2 --> PL3
+    PL3 --> PL4
+    PL4 --> B1
+
+    B1 --> B2
+    B2 --> B3
+    B3 --> BC1
+
+    %% Blockchain interaction
+    BC1 --> BC2
+    BC2 --> BC3
+    BC2 --> BC4
+
+    %% Response flow
+    BC2 --> R3
+    R3 --> C1
+
+    style GATEWAY fill:#e1f5fe
+    style PAYMASTER fill:#e8f5e8
+    style RUNDLER fill:#fff3e0
+    style BLOCKCHAIN fill:#f3e5f5
+```
+
+### Component Dependency Matrix
+
+| Component | Dependencies | Communication Protocol | Purpose |
+|-----------|-------------|----------------------|----------|
+| **Gateway Layer** | | | |
+| PaymasterGateway | GatewayRouter, PaymasterRelayService | Internal Method Calls | Main gateway orchestrator |
+| GatewayRouter | EthApi, RundlerApi, DebugApi | Direct Function Calls | Request routing and dispatching |
+| Middleware Stack | Tower-HTTP, Axum | HTTP/JSON-RPC | Request preprocessing |
+| **PaymasterRelay** | | | |
+| PaymasterRelayService | SignerManager, PolicyEngine, LocalPoolHandle | Arc<T> Shared State | Gas sponsorship service |
+| SignerManager | KMS Module, Alloy Signer | Async Traits | Key management and signing |
+| PolicyEngine | TOML Config, Validation Module | File I/O | Policy enforcement |
+| **Rundler Core** | | | |
+| LocalPoolHandle | Provider, Mempool | Arc<Mutex<T>> | Operation pool management |
+| AlloyProvider | Alloy Libraries | HTTP/WebSocket | Blockchain connectivity |
+| EVM Provider | AlloyProvider, ChainSpec | Internal Structs | EVM-specific operations |
+| Builder Service | Pool, Provider, Signer | Message Passing | Bundle building and submission |
+| **Monitoring** | | | |
+| Health System | All Components | Status Checks | System health monitoring |
+| Metrics Collector | Prometheus | HTTP Metrics Export | Performance monitoring |
+
+### Data Flow and Component Interactions
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Gateway as SuperRelay Gateway
+    participant MW as Middleware Stack
+    participant Router
+    participant PM as PaymasterService
+    participant Pool as Pool Handle
+    participant Provider
+    participant Blockchain
+
+    %% Standard UserOperation submission with Paymaster
+    Client->>Gateway: POST /pm_sponsorUserOperation
+    Gateway->>MW: CORS + Auth + Rate Limit
+    MW->>Router: Route to PaymasterService
+    
+    Router->>PM: Process sponsorship request
+    PM->>PM: Check policies
+    PM->>PM: Generate signature
+    PM->>Pool: Submit to mempool
+    
+    Pool->>Provider: Validate operation
+    Provider->>Blockchain: Simulate transaction
+    Blockchain-->>Provider: Validation result
+    Provider-->>Pool: Return status
+    
+    Pool-->>PM: Operation added
+    PM-->>Router: Return paymasterAndData
+    Router-->>Client: JSON-RPC Response
+
+    %% Bundle building and submission
+    Note over Pool,Provider: Periodic bundle building
+    Pool->>Pool: Collect operations
+    Pool->>Provider: Build bundle
+    Provider->>Blockchain: Submit bundle
+    Blockchain-->>Provider: Transaction hash
+    Provider-->>Pool: Update status
+```
+
+### Module Hierarchy and Workspace Structure
+
+```
+super-relay/
+├── bin/                           # Binary crates
+│   ├── super-relay/              # Main gateway binary
+│   │   └── src/
+│   │       └── main.rs          # Entry point with dual-service mode
+│   ├── rundler/                 # Original rundler binary
+│   ├── dashboard/               # Monitoring dashboard
+│   └── integration-tests/       # E2E test suite
+│
+├── crates/                       # Library crates
+│   ├── gateway/                 # Gateway core functionality
+│   │   ├── src/
+│   │   │   ├── lib.rs          # Public API exports
+│   │   │   ├── gateway.rs      # PaymasterGateway implementation
+│   │   │   ├── router.rs       # Request routing logic
+│   │   │   ├── middleware.rs   # HTTP middleware stack
+│   │   │   ├── health.rs       # Health check endpoints
+│   │   │   ├── security.rs     # Security validation
+│   │   │   ├── authorization.rs # Auth & permissions
+│   │   │   ├── validation.rs   # Data integrity checks
+│   │   │   └── e2e_validator.rs # End-to-end validation
+│   │   └── Cargo.toml
+│   │
+│   ├── paymaster-relay/         # Paymaster service
+│   │   ├── src/
+│   │   │   ├── lib.rs
+│   │   │   ├── service.rs      # PaymasterRelayService
+│   │   │   ├── signer.rs       # SignerManager
+│   │   │   ├── policy.rs       # PolicyEngine
+│   │   │   ├── kms.rs          # KMS integration
+│   │   │   ├── validation.rs   # Operation validation
+│   │   │   ├── rpc.rs          # RPC handlers
+│   │   │   └── swagger.rs      # API documentation
+│   │   └── Cargo.toml
+│   │
+│   ├── pool/                    # Mempool management
+│   ├── builder/                 # Bundle building
+│   ├── provider/               # Blockchain providers
+│   ├── rpc/                    # RPC service implementations
+│   ├── sim/                    # Simulation engine
+│   ├── signer/                 # Transaction signing
+│   ├── types/                  # Common types
+│   └── utils/                  # Utility functions
+│
+├── config/                      # Configuration files
+│   ├── config.toml             # Main configuration
+│   └── paymaster-policies.toml # Paymaster policies
+│
+├── scripts/                     # Automation scripts
+│   ├── start_superrelay.sh    # Start all services
+│   ├── test_integration.sh    # Run integration tests
+│   └── format.sh              # Code formatting
+│
+└── Cargo.toml                  # Workspace configuration
+```
+
+### Component Communication Patterns
+
+```mermaid
+graph LR
+    subgraph "Synchronous Communication"
+        A1[Direct Function Calls]
+        A2[Trait Method Invocations]
+        A3[Arc Shared State Access]
+    end
+
+    subgraph "Asynchronous Communication"
+        B1[Tokio Channels]
+        B2[Future Chaining]
+        B3[Event Notifications]
+    end
+
+    subgraph "External Communication"
+        C1[JSON-RPC over HTTP]
+        C2[WebSocket Connections]
+        C3[gRPC Streams]
+    end
+
+    A1 --> |Gateway→Router| D[Internal Routing]
+    A2 --> |Service→Pool| E[Component Integration]
+    A3 --> |Shared Components| F[State Management]
+    
+    B1 --> |Pool→Builder| G[Task Coordination]
+    B2 --> |Async Operations| H[Non-blocking I/O]
+    B3 --> |Status Updates| I[Event Handling]
+    
+    C1 --> |Client→Gateway| J[API Requests]
+    C2 --> |Provider→Blockchain| K[Real-time Updates]
+    C3 --> |Monitoring→Metrics| L[Telemetry]
 ```
 
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
