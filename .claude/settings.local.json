@@ -60,5 +60,12 @@
       "Bash(./scripts/test_suite.sh:*)"
     ],
     "deny": []
-  }
+  },
+  "disabledMcpjsonServers": [
+    "task-master-ai"
+  ],
+  "enabledMcpjsonServers": [
+    "task-master-ai"
+  ],
+  "enableAllProjectMcpServers": true
 }
