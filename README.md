@@ -536,9 +536,79 @@ curl http://localhost:3000/metrics
 ✅ **Independent Web UI** - Frontend/backend separation, technology stack freedom
 ✅ **Complete ERC-4337 Support** - v0.6/v0.7 format compatibility
 
+## 🚀 SDK Integration Guide
+
+SuperRelay provides enterprise-grade Account Abstraction services with simple SDK integration for DApps and wallets.
+
+### Node.js Quick Integration
+
+```bash
+# Install dependencies
+npm install ethers axios
+
+# Basic setup
+git clone https://github.com/AAStarCommunity/SuperRelay.git
+cd SuperRelay && ./scripts/start_superrelay.sh
+```
+
+```javascript
+// Simple UserOperation sponsorship
+const { ethers } = require('ethers');
+const axios = require('axios');
+
+const client = {
+    SUPER_RELAY_URL: 'http://localhost:3000',
+    ENTRY_POINT: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+};
+
+// Sponsor a UserOperation
+async function sponsorUserOp(userOp) {
+    const response = await axios.post(client.SUPER_RELAY_URL, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "pm_sponsorUserOperation", 
+        params: [userOp, client.ENTRY_POINT]
+    });
+    return response.data.result; // Returns paymasterAndData
+}
+```
+
+### Key Integration Features
+
+- **🎯 Gas Sponsorship**: `pm_sponsorUserOperation` API for seamless gas abstraction
+- **⚡ ERC-4337 Compatible**: Full support for standard UserOperation flow
+- **🔧 Multiple Networks**: Works with Anvil, Sepolia, Mainnet
+- **📊 Enterprise Ready**: Built-in rate limiting, auth, and monitoring
+
+### Developer Resources
+
+| Resource | Description | Link |
+|----------|-------------|------|
+| **SDK Integration Guide** | Complete Node.js integration tutorial | [docs/SDK-Integration-Guide.md](docs/SDK-Integration-Guide.md) |
+| **Demo Application** | Working demo with examples | [demo/](demo/) |
+| **Scripts Collection** | Automated setup and testing tools | [scripts/](scripts/) |
+| **Swagger UI** | Interactive API documentation | `http://localhost:9000/swagger-ui/` |
+
+### Quick Start Scripts
+
+```bash
+# Complete development environment setup
+./scripts/start_anvil.sh           # Start test network
+./scripts/deploy_entrypoint.sh     # Deploy EntryPoint contract  
+./scripts/setup_test_accounts.sh   # Configure test accounts
+./scripts/start_superrelay.sh      # Launch SuperRelay gateway
+
+# Run demo and tests  
+cd demo && npm install && npm run demo
+./scripts/test_integration.sh      # Comprehensive test suite
+```
+
+**⚡ Ready in under 2 minutes** - Complete Account Abstraction infrastructure
+
 ## 📚 Documentation Navigation
 
 ### 👩‍💻 **Developers**
+- **[SDK Integration Guide](docs/SDK-Integration-Guide.md)** - Complete Node.js SDK integration tutorial
 - **[Technical Architecture Analysis](docs/Architecture-Analysis.md)** - Deep dive into system design & Rundler integration
 - **[API Interface Documentation](docs/API-Analysis.md)** - Complete REST API and Swagger UI guide
 - **[Testing Guide](docs/Testing-Analysis.md)** - Unit testing, integration testing full coverage
@@ -555,6 +625,23 @@ curl http://localhost:3000/metrics
 ### 🧪 **Test Engineers**
 - **[Testing Summary](docs/Testing-Summary.md)** - Test coverage and result statistics
 - **[User Scenario Testing](docs/UserCaseTest.md)** - End-to-end user scenario validation
+
+### 🛠️ **Essential Scripts Reference**
+
+| Script | Purpose | Command |
+|--------|---------|---------|
+| **Environment Setup** | Complete dev environment | `./scripts/start_anvil.sh && ./scripts/deploy_entrypoint.sh` |
+| **Service Launch** | Start SuperRelay services | `./scripts/start_superrelay.sh` |
+| **API Testing** | Test Swagger API endpoints | `./scripts/test_swagger_api.sh` |
+| **Integration Tests** | Full test suite execution | `./scripts/test_integration.sh` |
+| **Production Deploy** | Production environment setup | `./scripts/start_production.sh` |
+| **Code Formatting** | Rust code formatting | `./scripts/format.sh` |
+
+### 📦 **Demo Applications**
+
+- **[Node.js Demo](demo/)** - SuperPaymaster SDK usage examples
+- **[Package Configuration](demo/package.json)** - NPM dependencies and scripts
+- **[Demo Script](demo/superPaymasterDemo.js)** - Complete working example
 
 ## 🛠️ Installation Requirements
 
