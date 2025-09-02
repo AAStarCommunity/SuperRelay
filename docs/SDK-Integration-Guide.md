@@ -99,12 +99,12 @@ async function createSponsoredUserOperation(client, senderAddress, callData) {
     try {
         // 2. 获取 Paymaster 赞助
         const paymasterAndData = await client.sponsorUserOperation(
-            userOp, 
+            userOp,
             client.config.ENTRY_POINT_ADDRESS
         );
-        
+
         console.log('✅ 获得 Paymaster 赞助:', paymasterAndData);
-        
+
         // 3. 完成 UserOperation
         const sponsoredUserOp = {
             ...userOp,
@@ -113,7 +113,7 @@ async function createSponsoredUserOperation(client, senderAddress, callData) {
         };
 
         return sponsoredUserOp;
-        
+
     } catch (error) {
         console.error('❌ 创建赞助用户操作失败:', error.message);
         throw error;
@@ -127,7 +127,7 @@ SuperRelay 完全兼容 ERC-4337 标准，支持所有标准方法：
 
 ```javascript
 class SuperRelayERC4337Client extends SuperRelayClient {
-    
+
     /**
      * 获取支持的 EntryPoint 地址列表
      */
@@ -188,10 +188,10 @@ class SuperRelayERC4337Client extends SuperRelayClient {
 ```javascript
 async function simpleGasSponsorDemo() {
     const client = new SuperRelayClient();
-    
+
     // 测试账户地址 (Anvil 默认)
     const testAccount = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-    
+
     try {
         // 创建赞助的用户操作
         const sponsoredUserOp = await createSponsoredUserOperation(
@@ -199,13 +199,13 @@ async function simpleGasSponsorDemo() {
             testAccount,
             "0x" // 空调用数据
         );
-        
+
         console.log('🎉 成功创建赞助用户操作:', {
             sender: sponsoredUserOp.sender,
             paymasterAndData: sponsoredUserOp.paymasterAndData,
             callGasLimit: sponsoredUserOp.callGasLimit
         });
-        
+
     } catch (error) {
         console.error('❌ Demo 失败:', error.message);
     }
@@ -230,16 +230,16 @@ async function batchSponsorDemo() {
     for (let i = 0; i < accounts.length; i++) {
         try {
             console.log(`\n📋 处理账户 ${i + 1}/${accounts.length}: ${accounts[i]}`);
-            
+
             const sponsoredUserOp = await createSponsoredUserOperation(
                 client,
                 accounts[i],
-                "0x" 
+                "0x"
             );
-            
+
             console.log(`✅ 账户 ${accounts[i]} 赞助成功`);
             console.log(`   📦 PaymasterAndData: ${sponsoredUserOp.paymasterAndData.slice(0, 20)}...`);
-            
+
         } catch (error) {
             console.error(`❌ 账户 ${accounts[i]} 赞助失败:`, error.message);
         }
@@ -252,16 +252,16 @@ async function batchSponsorDemo() {
 ```javascript
 async function healthCheckDemo() {
     const client = new SuperRelayClient();
-    
+
     try {
         // 检查服务健康状态
         const healthResponse = await axios.get(`${client.config.SUPER_RELAY_URL}/health`);
         console.log('🏥 服务健康状态:', healthResponse.data);
-        
+
         // 检查支持的 EntryPoint
         const entryPoints = await client.getSupportedEntryPoints();
         console.log('🎯 支持的 EntryPoint:', entryPoints);
-        
+
         // 获取网络信息
         const provider = new ethers.JsonRpcProvider(client.config.RPC_URL);
         const network = await provider.getNetwork();
@@ -269,7 +269,7 @@ async function healthCheckDemo() {
             chainId: network.chainId,
             name: network.name
         });
-        
+
     } catch (error) {
         console.error('❌ 健康检查失败:', error.message);
     }
@@ -342,7 +342,7 @@ chain_id = 31337
 entry_point = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 
 [http_server]
-host = "127.0.0.1"  
+host = "127.0.0.1"
 port = 3000
 cors_enabled = true
 
@@ -359,7 +359,7 @@ requests_per_minute = 100
    ```bash
    # 检查 SuperRelay 服务状态
    curl http://localhost:3000/health
-   
+
    # 重启服务
    ./scripts/start_superrelay.sh
    ```
@@ -368,7 +368,7 @@ requests_per_minute = 100
    ```bash
    # 重新部署 EntryPoint 合约
    ./scripts/deploy_entrypoint.sh
-   
+
    # 检查生成的合约地址
    cat .env | grep ENTRY_POINT_ADDRESS
    ```

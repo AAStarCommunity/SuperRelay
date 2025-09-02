@@ -223,17 +223,13 @@ mod tests {
         assert_eq!(openapi.info.version, "0.2.0");
 
         // Verify paths are present
-        assert!(openapi.paths.paths.contains_key("/api/v1/sponsor"));
+        assert!(openapi.paths.paths.contains_key("/jsonrpc"));
         assert!(openapi.paths.paths.contains_key("/health"));
 
         // Verify components/schemas
         if let Some(components) = &openapi.components {
-            assert!(components
-                .schemas
-                .contains_key("SponsorUserOperationRequest"));
-            assert!(components
-                .schemas
-                .contains_key("SponsorUserOperationResponse"));
+            assert!(components.schemas.contains_key("JsonRpcRequest"));
+            assert!(components.schemas.contains_key("JsonRpcResponse"));
             assert!(components.schemas.contains_key("HealthResponse"));
         }
     }

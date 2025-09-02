@@ -57,15 +57,18 @@
       "Bash(./scripts/build_optimized.sh:*)",
       "Bash(./scripts/build.sh:*)",
       "Bash(./scripts/test_simple_health.sh:*)",
-      "Bash(./scripts/test_suite.sh:*)"
+      "Bash(./scripts/test_suite.sh:*)",
+      "Read(/Volumes/UltraDisk/Dev2/aastar/AirAccount/docs/**)",
+      "Read(/Volumes/UltraDisk/Dev2/aastar/AirAccount/docs/**)",
+      "Read(/Volumes/UltraDisk/Dev2/aastar/AirAccount/packages/core-logic/**)"
     ],
     "deny": []
   },
-  "disabledMcpjsonServers": [
-    "task-master-ai"
-  ],
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "task-master-ai"
   ],
-  "enableAllProjectMcpServers": true
+  "disabledMcpjsonServers": [
+    "task-master-ai"
+  ]
 }

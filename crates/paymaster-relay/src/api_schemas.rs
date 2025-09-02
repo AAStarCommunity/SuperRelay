@@ -31,7 +31,7 @@ use utoipa::{OpenApi, ToSchema};
         (name = "examples", description = "示例数据和代码生成工具")
     ),
     info(
-        title = "SuperRelay JSON-RPC Proxy",
+        title = "SuperPaymaster Relay API",
         version = "0.2.0",
         description = r#"
 SuperRelay JSON-RPC 代理服务器

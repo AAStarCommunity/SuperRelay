@@ -12,6 +12,7 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.0", features = ["derive"] }
 ethers = { workspace = true }
 eyre = { workspace = true }
+futures = { workspace = true }
 hex = "0.4"
 jsonrpsee = { workspace = true, features = ["full"] }
 metrics = { workspace = true }
@@ -29,12 +30,15 @@ toml = { workspace = true }
 tower = { version = "0.4" }
 tower-http = { workspace = true, features = ["cors", "trace"] }
 tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 utoipa = { version = "4.2", features = ["axum_extras", "chrono"] }
 utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
 uuid = { version = "1.0", features = ["v4"] }
 
 [features]
 default = []
+optee-kms = []
+integration-tests = ["optee-kms"]
 
 [dev-dependencies]
 anyhow = { workspace = true }

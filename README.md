@@ -566,7 +566,7 @@ async function sponsorUserOp(userOp) {
     const response = await axios.post(client.SUPER_RELAY_URL, {
         jsonrpc: "2.0",
         id: 1,
-        method: "pm_sponsorUserOperation", 
+        method: "pm_sponsorUserOperation",
         params: [userOp, client.ENTRY_POINT]
     });
     return response.data.result; // Returns paymasterAndData
@@ -594,11 +594,11 @@ async function sponsorUserOp(userOp) {
 ```bash
 # Complete development environment setup
 ./scripts/start_anvil.sh           # Start test network
-./scripts/deploy_entrypoint.sh     # Deploy EntryPoint contract  
+./scripts/deploy_entrypoint.sh     # Deploy EntryPoint contract
 ./scripts/setup_test_accounts.sh   # Configure test accounts
 ./scripts/start_superrelay.sh      # Launch SuperRelay gateway
 
-# Run demo and tests  
+# Run demo and tests
 cd demo && npm install && npm run demo
 ./scripts/test_integration.sh      # Comprehensive test suite
 ```
