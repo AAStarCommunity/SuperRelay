@@ -1,0 +1,149 @@
+# SuperRelay with OP-TEE on QEMU ARM64
+# Multi-stage build for optimized container size
+
+# ================================
+# Stage 1: OP-TEE Builder
+# ================================
+FROM ubuntu:22.04 AS optee-builder
+LABEL stage="optee-build"
+LABEL description="Build OP-TEE OS and client libraries"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install OP-TEE build dependencies
+RUN apt-get update && apt-get install -y \
+    git build-essential python3 python3-pycryptodome \
+    python3-pyelftools python3-serial python3-pip \
+    device-tree-compiler flex bison \
+    libssl-dev curl wget \
+    gcc-aarch64-linux-gnu \
+    libc6-dev-arm64-cross \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install repo tool for OP-TEE manifest
+RUN curl https://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo && \
+    chmod a+x /usr/local/bin/repo
+
+# Set up OP-TEE build environment
+WORKDIR /optee
+ENV OPTEE_VERSION=3.22.0
+
+# Clone OP-TEE repositories
+RUN repo init -u https://github.com/OP-TEE/manifest.git -m qemu_v8.xml -b ${OPTEE_VERSION}
+RUN repo sync -j$(nproc)
+
+# Build OP-TEE for QEMU virt platform
+RUN cd build && \
+    make -j$(nproc) toolchains && \
+    make -j$(nproc) qemu CFG_TEE_CORE_LOG_LEVEL=2 CFG_TEE_TA_LOG_LEVEL=2
+
+# ================================
+# Stage 2: Rust Builder
+# ================================  
+FROM rust:1.70-slim AS rust-builder
+LABEL stage="rust-build"
+LABEL description="Build SuperRelay with OP-TEE support"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install cross-compilation tools
+RUN apt-get update && apt-get install -y \
+    gcc-aarch64-linux-gnu \
+    libc6-dev-arm64-cross \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add ARM64 target
+RUN rustup target add aarch64-unknown-linux-gnu
+
+# Set up cross-compilation environment
+ENV CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+ENV CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
+ENV AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+
+# Copy SuperRelay source code
+COPY . /superrelay
+WORKDIR /superrelay
+
+# Build SuperRelay for ARM64 with OP-TEE features
+RUN cargo build --target=aarch64-unknown-linux-gnu --release --features=optee-kms
+
+# ================================
+# Stage 3: TA (Trusted Application) Builder  
+# ================================
+FROM optee-builder AS ta-builder
+LABEL stage="ta-build"
+LABEL description="Build SuperRelay Trusted Application"
+
+# Copy TA source code
+COPY ta/super_relay_ta /optee/optee_examples/super_relay_ta
+
+# Build the Trusted Application
+WORKDIR /optee/optee_examples/super_relay_ta
+RUN make CROSS_COMPILE=aarch64-linux-gnu- \
+         TA_DEV_KIT_DIR=/optee/optee_os/out/arm/export-ta_arm64 \
+         PLATFORM=vexpress-qemu_virt
+
+# ================================
+# Stage 4: Runtime Environment
+# ================================
+FROM ubuntu:22.04 AS runtime
+LABEL version="1.0"
+LABEL description="SuperRelay with OP-TEE on QEMU ARM64"
+LABEL maintainer="AAStarCommunity <info@aastar.io>"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install QEMU and runtime dependencies
+RUN apt-get update && apt-get install -y \
+    qemu-system-arm qemu-utils \
+    socat telnet expect netcat-openbsd \
+    python3 python3-pip \
+    curl jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create application directories
+RUN mkdir -p /opt/optee/images /opt/optee/scripts /opt/superrelay/config /opt/superrelay/logs
+
+# Copy OP-TEE images and binaries
+COPY --from=optee-builder /optee/build/out-br/images/ /opt/optee/images/
+COPY --from=optee-builder /optee/build/qemu_v8.mk /opt/optee/
+COPY --from=optee-builder /optee/optee_client/out/export/usr/ /usr/
+
+# Copy SuperRelay binary
+COPY --from=rust-builder /superrelay/target/aarch64-unknown-linux-gnu/release/super-relay /opt/superrelay/
+
+# Copy Trusted Application
+COPY --from=ta-builder /optee/optee_examples/super_relay_ta/out/*.ta /lib/optee_armtz/
+
+# Copy configuration files
+COPY config/optee-config.toml /opt/superrelay/config/
+COPY docker/optee-startup.sh /opt/optee/scripts/
+COPY docker/qemu-monitor.py /opt/optee/scripts/
+
+# Make scripts executable
+RUN chmod +x /opt/optee/scripts/*.sh /opt/optee/scripts/*.py
+
+# Set up proper permissions for OP-TEE
+RUN mkdir -p /data/tee && \
+    chmod 700 /data/tee
+
+# Create non-root user for security
+RUN useradd -m -s /bin/bash -u 1001 optee && \
+    chown -R optee:optee /opt/superrelay /data/tee
+
+# Expose ports
+EXPOSE 3000 9000 8545
+EXPOSE 54320 54321
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Set working directory  
+WORKDIR /opt/optee
+
+# Default command
+CMD ["/opt/optee/scripts/optee-startup.sh"]

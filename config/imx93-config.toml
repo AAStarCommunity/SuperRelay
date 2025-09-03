@@ -1,0 +1,379 @@
+# SuperRelay NXP i.MX 93 Production Configuration
+# Phase 3: Hardware deployment with OP-TEE TrustZone
+
+[node]
+# Production HTTP API binding
+http_api = "0.0.0.0:3000"
+
+# Mainnet configuration
+network = "mainnet"
+node_http = "${ETH_NODE_URL}"
+
+# Production memory pool configuration
+max_entries_per_chain = 2000
+max_mem_entries_per_chain = 1000
+
+[pool]
+# Extended expiration for production
+max_expire_duration_seconds = 300
+
+# Higher limits for production load
+max_ops_per_unstaked_sender = 10
+max_ops_per_paymaster = 50
+
+[paymaster_relay]
+# Enable paymaster relay service
+enabled = true
+
+# Use OP-TEE KMS backend for hardware security
+kms_backend = "optee"
+
+# Mainnet chain ID
+chain_id = 1
+
+# MainNet EntryPoint contract address
+entry_point = "${ENTRY_POINT_ADDRESS:-0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789}"
+
+[optee_kms]
+# Hardware OP-TEE device path
+device_path = "/dev/teepriv0"
+
+# SuperRelay Trusted Application UUID
+ta_uuid = "12345678-5b69-11d4-9fee-00c04f4c3456"
+
+# Hardware-specific configuration
+[optee_kms.hardware]
+# Enable EdgeLock Enclave (ELE) crypto acceleration
+use_ele_crypto = true
+
+# Enable hardware random number generator
+use_hardware_rng = true
+
+# Enable secure storage backed by hardware
+use_secure_storage = true
+
+# Enable hardware attestation
+hardware_attestation = true
+
+# Production key management
+[optee_kms.keys]
+# Primary production paymaster key
+primary_paymaster = "paymaster-key-prod-001"
+
+# Hot backup key for failover
+backup_paymaster = "paymaster-key-prod-002"
+
+# Cold storage key for critical operations
+cold_storage_key = "paymaster-key-cold-001"
+
+# Production security policies
+[optee_kms.security]
+# Extended session timeout for production
+session_timeout = 1800
+
+# Minimal retries for security
+max_retries = 1
+
+# Comprehensive audit logging
+audit_logging = true
+
+# Enable hardware tamper detection
+tamper_detection = true
+
+# Automatic key rotation (hours)
+key_rotation_interval = 24
+
+# Key escrow and recovery
+key_escrow_enabled = true
+recovery_threshold = 3
+
+# Production performance optimization
+[optee_kms.performance]
+# Larger batch size for production throughput
+batch_size = 50
+
+# Optimized batch timeout for low latency
+batch_timeout = "25ms"
+
+# Increased connection pool for high load
+connection_pool_size = 8
+
+# Aggressive caching for performance
+enable_caching = true
+cache_ttl = "300s"
+
+# Memory pool pre-allocation
+preallocate_memory = true
+memory_pool_size = "64MB"
+
+# Production HTTP server configuration
+[http_server]
+host = "0.0.0.0"
+port = 3000
+
+# Disable CORS in production
+cors_enabled = false
+
+# Production timeouts
+request_timeout = "120s"
+keepalive_timeout = "300s"
+
+# Connection limits
+max_connections = 1000
+connection_pool_size = 100
+
+# Production rate limiting
+[rate_limiting]
+enabled = true
+
+# High throughput limits
+requests_per_minute = 10000
+burst_size = 1000
+
+# IP-based limits
+per_ip_limit = 100
+per_ip_burst = 50
+
+# Enterprise client exemptions
+exempted_clients = []
+
+# Production metrics and monitoring
+[metrics]
+enabled = true
+bind_address = "0.0.0.0:8080"
+
+# Enable all metric types
+prometheus_enabled = true
+statsd_enabled = false
+influxdb_enabled = false
+
+# Production labels
+labels = { 
+    service = "superrelay", 
+    environment = "production", 
+    phase = "3",
+    hardware = "imx93",
+    security = "optee"
+}
+
+# Metric retention
+retention_days = 30
+high_resolution_retention_hours = 24
+
+# Production logging configuration
+[logging]
+level = "info"
+format = "json"
+
+# Structured logging for production
+structured_logging = true
+include_caller = true
+include_timestamp = true
+
+[logging.targets]
+# Console logging for systemd journal
+console = { enabled = true, level = "warn" }
+
+# File logging with rotation
+file = { 
+    enabled = true, 
+    path = "/var/log/superrelay/superrelay.log", 
+    level = "info",
+    max_size = "100MB",
+    max_files = 10
+}
+
+# Audit logging for compliance
+audit = { 
+    enabled = true, 
+    path = "/var/log/superrelay/audit.log", 
+    level = "info",
+    max_size = "500MB",
+    max_files = 30
+}
+
+# Security event logging
+security = {
+    enabled = true,
+    path = "/var/log/superrelay/security.log",
+    level = "warn",
+    max_size = "200MB",
+    max_files = 20
+}
+
+# Production JSON-RPC configuration
+[rpc]
+enabled = true
+
+# Production method whitelist
+allowed_methods = [
+    "pm_sponsorUserOperation",
+    "eth_supportedEntryPoints",
+    "eth_estimateUserOperationGas", 
+    "eth_sendUserOperation",
+    "eth_getUserOperationReceipt",
+    "rundler_health"
+]
+
+# Disable debug methods in production
+debug_methods_enabled = false
+
+# Method-specific timeouts for production
+method_timeouts = {
+    "pm_sponsorUserOperation" = "30s",
+    "eth_sendUserOperation" = "60s",
+    "eth_estimateUserOperationGas" = "15s",
+    "eth_getUserOperationReceipt" = "10s"
+}
+
+# Request size limits
+max_request_size = "1MB"
+max_response_size = "10MB"
+
+# Production health monitoring
+[health]
+enabled = true
+bind_address = "0.0.0.0:3000"
+path = "/health"
+
+# Frequent checks for production
+check_interval = "15s"
+timeout = "5s"
+
+# Comprehensive health checks
+[health.checks]
+# OP-TEE session health
+optee_session = { enabled = true, timeout = "2s", critical = true }
+
+# TA communication test
+ta_communication = { enabled = true, timeout = "3s", critical = true }
+
+# Ethereum node connectivity
+ethereum_node = { enabled = true, timeout = "10s", critical = true }
+
+# Key accessibility verification
+key_accessibility = { enabled = true, timeout = "1s", critical = true }
+
+# Hardware tamper check
+hardware_integrity = { enabled = true, timeout = "1s", critical = true }
+
+# Memory usage check
+memory_usage = { enabled = true, timeout = "1s", critical = false, threshold = "80%" }
+
+# Disk usage check
+disk_usage = { enabled = true, timeout = "1s", critical = false, threshold = "85%" }
+
+# Production security configuration
+[security]
+# Enable all security features
+security_hardening = true
+
+# TLS configuration (if terminating TLS)
+tls_enabled = false  # Usually handled by reverse proxy
+
+# Request validation
+validate_user_operations = true
+strict_validation = true
+
+# Anti-DoS measures
+ddos_protection = true
+connection_rate_limit = 100
+
+# Intrusion detection
+intrusion_detection = true
+anomaly_detection = true
+
+# i.MX 93 hardware-specific settings
+[hardware]
+# Platform identification
+platform = "imx93"
+board = "evk"
+
+# CPU optimization
+cpu_affinity = [0, 1]  # Bind to Cortex-A55 cores
+cpu_governor = "performance"
+
+# Memory optimization
+memory_optimization = true
+huge_pages = false  # May not be supported on i.MX 93
+
+# Interrupt handling
+interrupt_coalescing = true
+
+# Power management
+power_management = "performance"
+thermal_management = true
+
+# Production alerting configuration
+[alerting]
+enabled = true
+
+# Alert channels
+email_enabled = false
+slack_enabled = false
+webhook_enabled = true
+webhook_url = "${ALERT_WEBHOOK_URL}"
+
+# Alert thresholds
+[alerting.thresholds]
+error_rate = 0.01          # 1% error rate
+response_time_p95 = "2s"   # 95th percentile response time
+memory_usage = 0.85        # 85% memory usage
+disk_usage = 0.90          # 90% disk usage
+optee_session_errors = 5   # OP-TEE session errors per minute
+
+# Business logic configuration
+[business]
+# Gas price policies
+max_gas_price = "100000000000"  # 100 gwei
+min_gas_price = "1000000000"    # 1 gwei
+
+# Sponsorship limits
+max_sponsored_gas = "1000000"   # 1M gas
+daily_sponsor_limit = "100000000000000000"  # 0.1 ETH per day
+
+# Account management
+max_operations_per_account = 100
+account_cooldown = "60s"
+
+# Production compliance
+[compliance]
+# Enable compliance features
+enabled = true
+
+# Data retention policies
+transaction_retention_days = 365
+audit_retention_days = 2555  # 7 years
+log_retention_days = 90
+
+# Privacy settings
+log_sensitive_data = false
+anonymize_user_data = true
+
+# Regulatory compliance
+gdpr_compliant = true
+ccpa_compliant = true
+
+# Backup and disaster recovery
+[backup]
+enabled = true
+
+# Backup intervals
+config_backup_interval = "24h"
+key_backup_interval = "1h"
+log_backup_interval = "6h"
+
+# Backup destinations
+local_backup_path = "/var/backups/superrelay"
+remote_backup_enabled = false
+
+# Recovery settings
+automatic_recovery = false
+recovery_test_interval = "168h"  # Weekly
+
+# Production environment overrides
+[env_overrides]
+# Environment variable overrides for secrets
+# ETH_NODE_URL - Ethereum node endpoint
+# ENTRY_POINT_ADDRESS - EntryPoint contract address
+# ALERT_WEBHOOK_URL - Alerting webhook URL

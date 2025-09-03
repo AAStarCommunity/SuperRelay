@@ -1,0 +1,520 @@
+# SuperRelay OP-TEE Phase 2 Kubernetes Deployment
+# Cloud ARM Platform Deployment Configuration
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: superrelay-optee
+  labels:
+    name: superrelay-optee
+    phase: "2"
+    environment: "cloud"
+
+---
+# ConfigMap for SuperRelay OP-TEE configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: superrelay-optee-config
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: config
+data:
+  optee-config.toml: |
+    [node]
+    http_api = "0.0.0.0:3000"
+    network = "mainnet"
+    node_http = "${ETH_NODE_URL}"
+    max_entries_per_chain = 1000
+    max_mem_entries_per_chain = 500
+
+    [pool]
+    max_expire_duration_seconds = 300
+    max_ops_per_unstaked_sender = 5
+    max_ops_per_paymaster = 10
+
+    [paymaster_relay]
+    enabled = true
+    kms_backend = "optee"
+    chain_id = 1
+    entry_point = "${ENTRY_POINT_ADDRESS}"
+
+    [optee_kms]
+    device_path = "/dev/teepriv0"
+    ta_uuid = "12345678-5b69-11d4-9fee-00c04f4c3456"
+
+    [optee_kms.keys]
+    primary_paymaster = "paymaster-key-prod-001"
+    backup_paymaster = "paymaster-key-prod-002"
+
+    [optee_kms.security]
+    session_timeout = 1800
+    max_retries = 1
+    audit_logging = true
+    tamper_detection = true
+    key_rotation_interval = 24
+
+    [optee_kms.performance]
+    batch_size = 20
+    batch_timeout = "50ms"
+    connection_pool_size = 4
+    enable_caching = true
+    cache_ttl = "300s"
+
+    [http_server]
+    host = "0.0.0.0"
+    port = 3000
+    cors_enabled = false
+    request_timeout = "60s"
+    keepalive_timeout = "300s"
+
+    [rate_limiting]
+    enabled = true
+    requests_per_minute = 1000
+    burst_size = 100
+
+    [metrics]
+    enabled = true
+    bind_address = "0.0.0.0:8080"
+    prometheus_enabled = true
+    labels = { service = "superrelay", environment = "production", phase = "2" }
+
+    [logging]
+    level = "info"
+    format = "json"
+
+    [logging.targets]
+    console = { enabled = true, level = "warn" }
+    file = { enabled = true, path = "/opt/superrelay/logs/superrelay.log", level = "info" }
+    audit = { enabled = true, path = "/opt/superrelay/logs/audit.log", level = "info" }
+
+    [health]
+    enabled = true
+    bind_address = "0.0.0.0:3000"
+    path = "/health"
+    check_interval = "60s"
+    timeout = "10s"
+
+    [health.checks]
+    optee_session = { enabled = true, timeout = "5s" }
+    ta_communication = { enabled = true, timeout = "5s" }
+    ethereum_node = { enabled = true, timeout = "10s" }
+    key_accessibility = { enabled = true, timeout = "2s" }
+
+---
+# Secret for sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: superrelay-optee-secrets
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: secrets
+type: Opaque
+data:
+  # Base64 encoded values (replace with actual values)
+  eth-node-url: aHR0cHM6Ly9tYWluZXQuaW5mdXJhLmlvL3YzL1lPVVJfUFJPSkVDVF9JRA==
+  entry-point-address: MHg1RkYxMzdENGIwRkRDRDQ5RGNBMzBjN0NGNTdFNTc4YTAyNmQyNzg5
+
+---
+# Persistent Volume for logs and data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: superrelay-optee-data
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: ssd
+
+---
+# ServiceAccount for SuperRelay
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: superrelay-optee
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: security
+
+---
+# ClusterRole for required permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: superrelay-optee-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list", "watch"]
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: superrelay-optee-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: superrelay-optee-role
+subjects:
+- kind: ServiceAccount
+  name: superrelay-optee
+  namespace: superrelay-optee
+
+---
+# Deployment for SuperRelay OP-TEE
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superrelay-optee
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: app
+    phase: "2"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: superrelay-optee
+      component: app
+  template:
+    metadata:
+      labels:
+        app: superrelay-optee
+        component: app
+        phase: "2"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: superrelay-optee
+      
+      # Node selection for ARM64 with OP-TEE support
+      nodeSelector:
+        kubernetes.io/arch: arm64
+        superrelay.io/optee-support: "true"
+      
+      # Security context for privileged OP-TEE access
+      securityContext:
+        fsGroup: 1001
+        
+      # Init container to verify OP-TEE availability
+      initContainers:
+      - name: optee-check
+        image: superrelay-optee:phase2-cloud
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "Checking OP-TEE device availability..."
+            if [ ! -c "/dev/teepriv0" ]; then
+              echo "ERROR: OP-TEE device not found"
+              exit 1
+            fi
+            echo "OP-TEE device found"
+            ls -la /dev/tee*
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dev-tee
+          mountPath: /dev/teepriv0
+          
+      containers:
+      - name: superrelay-optee
+        image: superrelay-optee:phase2-cloud
+        imagePullPolicy: Always
+        
+        ports:
+        - name: json-rpc
+          containerPort: 3000
+          protocol: TCP
+        - name: metrics
+          containerPort: 8080
+          protocol: TCP
+        
+        env:
+        - name: ETH_NODE_URL
+          valueFrom:
+            secretKeyRef:
+              name: superrelay-optee-secrets
+              key: eth-node-url
+        - name: ENTRY_POINT_ADDRESS
+          valueFrom:
+            secretKeyRef:
+              name: superrelay-optee-secrets
+              key: entry-point-address
+        - name: RUST_LOG
+          value: "info"
+        - name: RUST_BACKTRACE
+          value: "1"
+        - name: OPTEE_DEVICE
+          value: "/dev/teepriv0"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        
+        # Security context for OP-TEE access
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: true
+          capabilities:
+            add:
+              - SYS_ADMIN
+              - DAC_OVERRIDE
+        
+        # Liveness probe
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: json-rpc
+          initialDelaySeconds: 120
+          periodSeconds: 60
+          timeoutSeconds: 10
+          failureThreshold: 3
+          
+        # Readiness probe
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: json-rpc
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          
+        # Startup probe
+        startupProbe:
+          httpGet:
+            path: /health
+            port: json-rpc
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 12
+        
+        volumeMounts:
+        - name: config
+          mountPath: /opt/superrelay/config
+          readOnly: true
+        - name: data
+          mountPath: /opt/superrelay/logs
+        - name: dev-tee
+          mountPath: /dev/teepriv0
+        - name: tmp
+          mountPath: /tmp
+          
+        # Command override for cloud deployment
+        command: ["/opt/superrelay/super-relay"]
+        args:
+          - "node"
+          - "--config"
+          - "/opt/superrelay/config/optee-config.toml"
+          - "--paymaster-relay"
+          - "--log-level"
+          - "info"
+      
+      volumes:
+      - name: config
+        configMap:
+          name: superrelay-optee-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: superrelay-optee-data
+      - name: dev-tee
+        hostPath:
+          path: /dev/teepriv0
+          type: CharDevice
+      - name: tmp
+        emptyDir: {}
+      
+      # Restart policy
+      restartPolicy: Always
+      
+      # DNS policy
+      dnsPolicy: ClusterFirst
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 60
+
+---
+# Service for SuperRelay OP-TEE
+apiVersion: v1
+kind: Service
+metadata:
+  name: superrelay-optee-service
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: service
+spec:
+  type: LoadBalancer
+  selector:
+    app: superrelay-optee
+    component: app
+  ports:
+  - name: json-rpc
+    port: 3000
+    targetPort: json-rpc
+    protocol: TCP
+  - name: metrics
+    port: 8080
+    targetPort: metrics
+    protocol: TCP
+    
+  # LoadBalancer configuration
+  loadBalancerSourceRanges:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: superrelay-optee-ingress
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - superrelay-api.yourdomain.com
+    secretName: superrelay-optee-tls
+  rules:
+  - host: superrelay-api.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: superrelay-optee-service
+            port:
+              number: 3000
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: superrelay-optee-hpa
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: superrelay-optee
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: superrelay-optee-pdb
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: superrelay-optee
+      component: app
+
+---
+# Network Policy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: superrelay-optee-netpol
+  namespace: superrelay-optee
+  labels:
+    app: superrelay-optee
+    component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: superrelay-optee
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: superrelay-optee
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 8080
+  egress:
+  - {} # Allow all outbound traffic

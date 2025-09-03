@@ -1,0 +1,248 @@
+# SuperRelay OP-TEE Configuration
+# Phase 1: Docker + QEMU + OP-TEE Development Configuration
+
+[node]
+# HTTP API binding
+http_api = "0.0.0.0:3000"
+
+# Network configuration for development
+network = "dev"
+node_http = "http://localhost:8545"  # Anvil test network
+
+# Memory pool configuration
+max_entries_per_chain = 100
+max_mem_entries_per_chain = 50
+
+[pool]
+# User operation expiration time (seconds)
+max_expire_duration_seconds = 60
+
+# Mempool limits per sender/paymaster
+max_ops_per_unstaked_sender = 1
+max_ops_per_paymaster = 3
+
+[paymaster_relay]
+# Enable paymaster relay service
+enabled = true
+
+# Use OP-TEE KMS backend for secure key management
+kms_backend = "optee"
+
+# Chain configuration
+chain_id = 31337  # Anvil default chain ID
+
+# EntryPoint contract address (deployed via scripts/deploy_entrypoint.sh)
+entry_point = "${ENTRY_POINT_ADDRESS}"
+
+[optee_kms]
+# OP-TEE device configuration
+device_path = "/dev/teepriv0"
+
+# SuperRelay Trusted Application UUID
+ta_uuid = "12345678-5b69-11d4-9fee-00c04f4c3456"
+
+# Key management configuration
+[optee_kms.keys]
+# Primary paymaster key identifier
+primary_paymaster = "paymaster-key-dev-001"
+
+# Backup paymaster key (optional)
+backup_paymaster = "paymaster-key-dev-002"
+
+# Security and operational policies
+[optee_kms.security]
+# Session timeout (seconds)
+session_timeout = 300
+
+# Maximum retry attempts for failed operations
+max_retries = 3
+
+# Enable comprehensive audit logging
+audit_logging = true
+
+# Enable tamper detection (hardware dependent)
+tamper_detection = false
+
+# Key rotation policy (hours)
+key_rotation_interval = 168  # 1 week
+
+# Performance optimization settings
+[optee_kms.performance]
+# Batch signing configuration
+batch_size = 5
+batch_timeout = "100ms"
+
+# Connection pool size for OP-TEE sessions
+connection_pool_size = 2
+
+# Enable operation caching
+enable_caching = true
+cache_ttl = "60s"
+
+# HTTP server configuration
+[http_server]
+host = "0.0.0.0"
+port = 3000
+
+# Enable CORS for development
+cors_enabled = true
+cors_allowed_origins = ["http://localhost:3000", "http://localhost:9000"]
+
+# Request timeout configuration
+request_timeout = "30s"
+keepalive_timeout = "60s"
+
+# Rate limiting configuration
+[rate_limiting]
+enabled = true
+requests_per_minute = 100
+burst_size = 10
+
+# Exempted IP addresses (for development)
+exempted_ips = ["127.0.0.1", "::1", "172.16.0.0/12"]
+
+# Metrics and monitoring
+[metrics]
+enabled = true
+bind_address = "0.0.0.0:8080"
+
+# Prometheus metrics configuration
+prometheus_enabled = true
+
+# Custom metric labels
+labels = { service = "superrelay", environment = "development", phase = "1" }
+
+# Logging configuration
+[logging]
+level = "debug"
+format = "json"
+
+# Log targets
+[logging.targets]
+console = { enabled = true, level = "info" }
+file = { enabled = true, path = "/opt/superrelay/logs/superrelay.log", level = "debug" }
+audit = { enabled = true, path = "/opt/superrelay/logs/audit.log", level = "info" }
+
+# JSON-RPC configuration
+[rpc]
+# Enable JSON-RPC API
+enabled = true
+
+# Supported methods
+allowed_methods = [
+    "pm_sponsorUserOperation",
+    "eth_supportedEntryPoints",
+    "eth_estimateUserOperationGas",
+    "eth_sendUserOperation",
+    "eth_getUserOperationReceipt",
+    "rundler_health"
+]
+
+# Method-specific timeouts
+method_timeouts = { "pm_sponsorUserOperation" = "5s", "eth_sendUserOperation" = "10s" }
+
+# Development specific settings
+[development]
+# Enable development mode features
+dev_mode = true
+
+# Auto-reload configuration on changes
+auto_reload = true
+
+# Enable detailed error messages
+verbose_errors = true
+
+# Mock external dependencies when not available
+mock_dependencies = true
+
+# Testing configuration
+[testing]
+# Enable test-only endpoints
+test_endpoints = true
+
+# Use deterministic keys for testing (INSECURE - dev only)
+deterministic_keys = true
+
+# Test account funding configuration
+test_account_funding = true
+
+# Anvil/Foundry integration
+[anvil]
+enabled = true
+host = "127.0.0.1"
+port = 8545
+chain_id = 31337
+
+# Auto-deploy test contracts
+auto_deploy = true
+
+# Test accounts configuration
+accounts = [
+    { address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", label = "dev-account-1" },
+    { address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a2440f60b6c4b9f78c2", label = "dev-account-2" }
+]
+
+# Health checks
+[health]
+enabled = true
+bind_address = "0.0.0.0:3000"
+path = "/health"
+
+# Health check intervals
+check_interval = "30s"
+timeout = "5s"
+
+# Components to monitor
+[health.checks]
+optee_session = { enabled = true, timeout = "2s" }
+ta_communication = { enabled = true, timeout = "3s" }
+ethereum_node = { enabled = true, timeout = "5s" }
+key_accessibility = { enabled = true, timeout = "1s" }
+
+# Swagger/OpenAPI configuration
+[swagger]
+enabled = true
+path = "/swagger-ui"
+spec_path = "/api-docs/openapi.json"
+
+# API documentation metadata
+title = "SuperRelay OP-TEE API"
+version = "1.0.0-dev"
+description = "TEE-secured Account Abstraction Paymaster API"
+
+# Environment-specific overrides
+[env_overrides]
+# Override configuration with environment variables
+# Format: SUPERRELAY_<SECTION>_<KEY>
+# Example: SUPERRELAY_OPTEE_KMS_DEVICE_PATH=/dev/tee0
+
+# Docker-specific settings
+[docker]
+# Container health check configuration
+health_check_enabled = true
+health_check_interval = "30s"
+health_check_timeout = "10s"
+health_check_retries = 3
+health_check_start_period = "60s"
+
+# Resource limits (for development)
+memory_limit = "1GB"
+cpu_limit = "2.0"
+
+# Phase 1 specific configuration
+[phase1]
+# QEMU-specific settings
+qemu_enabled = true
+qemu_console_port = 54320
+qemu_monitor_port = 54321
+
+# Enable OP-TEE debugging
+optee_debug = true
+optee_log_level = 2
+
+# Development shortcuts
+quick_start = true
+auto_fund_accounts = true
+
+# Integration test configuration
+integration_tests = true

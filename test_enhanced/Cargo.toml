@@ -1,0 +1,30 @@
+[package]
+name = "phase1-enhanced-test"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+tokio = { version = "1.44.2", features = ["full"] }
+reqwest = { version = "0.12.8", features = ["json"] }
+serde_json = "1.0.128"
+ethers = "2.0"
+hex = "0.4"
+base64 = "0.21"
+
+[[bin]]
+name = "test_fixed"
+path = "src/test_fixed.rs"
+
+[[bin]]
+name = "userop_hash_test"
+path = "src/userop_hash_test.rs"
+
+[[bin]]
+name = "test_tee_account"
+path = "src/test_tee_account.rs"
+
+[[bin]]
+name = "test_real_passkey"
+path = "src/test_real_passkey.rs"

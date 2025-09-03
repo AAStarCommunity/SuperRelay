@@ -1,0 +1,29 @@
+{
+  "name": "superrelay",
+  "version": "1.0.0",
+  "description": "**English** | [中文](#中文版本)",
+  "main": "debug_signature.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AAStarCommunity/SuperRelay.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AAStarCommunity/SuperRelay/issues"
+  },
+  "homepage": "https://github.com/AAStarCommunity/SuperRelay#readme",
+  "dependencies": {
+    "ethers": "^6.15.0",
+    "node-fetch": "^2.7.0"
+  }
+}
