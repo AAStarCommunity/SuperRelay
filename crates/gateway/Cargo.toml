@@ -19,6 +19,7 @@ hex = "0.4"
 num-traits = "0.2"
 
 # Rundler dependencies
+rundler-builder = { path = "../builder" }
 rundler-paymaster-relay = { path = "../paymaster-relay" }
 rundler-pool = { path = "../pool" }
 rundler-types = { path = "../types" }

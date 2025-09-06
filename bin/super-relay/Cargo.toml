@@ -15,6 +15,7 @@ eyre = { workspace = true }
 regex = { workspace = true }
 
 # Rundler components
+rundler-builder = { path = "../../crates/builder" }
 rundler-paymaster-relay = { path = "../../crates/paymaster-relay" }
 rundler-pool = { path = "../../crates/pool" }
 rundler-provider = { path = "../../crates/provider" }

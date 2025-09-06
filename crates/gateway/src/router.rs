@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use alloy_primitives::{Address, Bytes, U256};
 use ethers::types::H160;
+use rundler_builder::LocalBuilderHandle;
 use rundler_paymaster_relay::PaymasterRelayService;
 use rundler_pool::LocalPoolHandle;
 use rundler_types::{
-    chain::ChainSpec, pool::Pool, v0_6, v0_7, UserOperation, UserOperationPermissions,
-    UserOperationVariant,
+    builder::Builder, chain::ChainSpec, pool::Pool, v0_6, v0_7, UserOperation,
+    UserOperationPermissions, UserOperationVariant,
 };
 use serde_json::{json, Value};
 use tracing::{debug, error, warn};
@@ -26,6 +27,8 @@ pub struct GatewayRouter {
     supported_entry_points: Vec<Address>,
     /// Pool handle for mempool operations
     pool_handle: Option<Arc<LocalPoolHandle>>,
+    /// Builder handle for bundle operations
+    builder_handle: Option<Arc<LocalBuilderHandle>>,
     /// Chain ID for this network
     chain_id: u64,
 }
@@ -45,6 +48,7 @@ impl GatewayRouter {
         Self {
             supported_entry_points: Self::default_entry_points(),
             pool_handle: None,
+            builder_handle: None,
             chain_id: 31337, // Anvil default
         }
     }
@@ -52,6 +56,7 @@ impl GatewayRouter {
     /// Create a new router with rundler components
     pub fn with_rundler_components(
         pool_handle: Arc<LocalPoolHandle>,
+        builder_handle: Option<Arc<LocalBuilderHandle>>,
         config: EthApiConfig,
     ) -> Self {
         let chain_id = if config.chain_id == 0 {
@@ -68,6 +73,7 @@ impl GatewayRouter {
         Self {
             supported_entry_points: entry_points,
             pool_handle: Some(pool_handle),
+            builder_handle,
             chain_id,
         }
     }
@@ -81,6 +87,7 @@ impl GatewayRouter {
                 config.entry_points
             },
             pool_handle: None,
+            builder_handle: None,
             chain_id: if config.chain_id == 0 {
                 31337
             } else {
@@ -518,6 +525,22 @@ impl GatewayRouter {
         let user_op_hash = _pool.add_op(user_op_variant, perms).await.map_err(|e| {
             GatewayError::PoolError(format!("Failed to add operation to pool: {:?}", e))
         })?;
+
+        // If builder is available, trigger bundle processing
+        if let Some(builder) = &self.builder_handle {
+            debug!("🏗️ Triggering bundle processing for new UserOperation");
+
+            // Note: In the future, we might want to add direct builder integration
+            // For now, the builder will pick up operations from the pool automatically
+            match builder.get_supported_entry_points().await {
+                Ok(entry_points) => {
+                    debug!("📊 Builder supports entry points: {:?}", entry_points);
+                }
+                Err(e) => {
+                    warn!("⚠️ Could not get builder entry points: {:?}", e);
+                }
+            }
+        }
 
         // Return the real operation hash from pool
         let hash_hex = format!("0x{:x}", user_op_hash);
@@ -977,6 +1000,124 @@ impl GatewayRouter {
                 })
             }
             _ => Ok(None),
+        }
+    }
+
+    // ============================================================================
+    // Builder API Methods
+    // ============================================================================
+
+    /// Handle rundler_getBundleStats method
+    pub async fn handle_get_bundle_stats(&self, _request: &JsonRpcRequest) -> GatewayResult<Value> {
+        if let Some(builder) = &self.builder_handle {
+            debug!("📊 Getting bundle stats from builder");
+
+            match builder.get_supported_entry_points().await {
+                Ok(entry_points) => {
+                    debug!(
+                        "✅ Builder is operational, supported entry points: {:?}",
+                        entry_points
+                    );
+                    Ok(json!({
+                        "builder_status": "operational",
+                        "supported_entry_points": entry_points,
+                        "message": "Builder is running and available for bundle processing"
+                    }))
+                }
+                Err(e) => {
+                    error!("❌ Builder is not operational: {:?}", e);
+                    Err(GatewayError::BuilderError(format!(
+                        "Builder not operational: {:?}",
+                        e
+                    )))
+                }
+            }
+        } else {
+            warn!("⚠️ Builder handle not available for bundle stats");
+            Ok(json!({
+                "error": "Builder component not available",
+                "bundlesSubmitted": 0,
+                "bundlesDropped": 0,
+                "bundlesMined": 0
+            }))
+        }
+    }
+
+    /// Handle rundler_getBundleByHash method  
+    pub async fn handle_get_bundle_by_hash(
+        &self,
+        request: &JsonRpcRequest,
+    ) -> GatewayResult<Value> {
+        if request.params.is_empty() {
+            return Err(GatewayError::InvalidRequest(
+                "Missing bundle hash parameter".to_string(),
+            ));
+        }
+
+        let hash = &request.params[0];
+        debug!("🔍 Looking up bundle by hash: {:?}", hash);
+
+        if let Some(_builder) = &self.builder_handle {
+            // Parse hash from hex string
+            let hash_str = hash
+                .as_str()
+                .ok_or_else(|| GatewayError::InvalidRequest("Hash must be a string".to_string()))?;
+
+            let hash_bytes = if let Some(stripped) = hash_str.strip_prefix("0x") {
+                hex::decode(stripped)
+            } else {
+                hex::decode(hash_str)
+            }
+            .map_err(|_| GatewayError::InvalidRequest("Invalid hash format".to_string()))?;
+
+            if hash_bytes.len() != 32 {
+                return Err(GatewayError::InvalidRequest(
+                    "Hash must be 32 bytes".to_string(),
+                ));
+            }
+
+            let _hash_b256 = alloy_primitives::B256::from_slice(&hash_bytes);
+
+            // Note: get_bundle_by_hash is not available in current LocalBuilderHandle API
+            // Return not implemented error for now
+            warn!("📭 Bundle lookup by hash not implemented in current builder API");
+            Err(GatewayError::BuilderError(
+                "Bundle lookup by hash not yet implemented".to_string(),
+            ))
+        } else {
+            warn!("⚠️ Builder handle not available for bundle lookup");
+            Err(GatewayError::BuilderError(
+                "Builder component not available".to_string(),
+            ))
+        }
+    }
+
+    /// Handle rundler_sendBundleNow method
+    pub async fn handle_send_bundle_now(&self, _request: &JsonRpcRequest) -> GatewayResult<Value> {
+        if let Some(builder) = &self.builder_handle {
+            debug!("🚀 Triggering immediate bundle submission");
+
+            match builder.debug_send_bundle_now().await {
+                Ok(result) => {
+                    debug!("✅ Bundle sent immediately: {:?}", result);
+                    Ok(json!({
+                        "success": true,
+                        "result": result
+                    }))
+                }
+                Err(e) => {
+                    error!("❌ Failed to send bundle immediately: {:?}", e);
+                    Err(GatewayError::BuilderError(format!(
+                        "Failed to send bundle: {:?}",
+                        e
+                    )))
+                }
+            }
+        } else {
+            warn!("⚠️ Builder handle not available for immediate bundle send");
+            Err(GatewayError::BuilderError(
+                "Builder component not available".to_string(),
+            ))
         }
     }
 }

@@ -35,6 +35,10 @@ pub enum GatewayError {
     #[error("Pool error: {0}")]
     PoolError(String),
 
+    /// Builder operation error
+    #[error("Builder error: {0}")]
+    BuilderError(String),
+
     /// Server error
     #[error("Server error: {0}")]
     ServerError(String),

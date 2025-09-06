@@ -7,6 +7,7 @@ use std::{fs, path::Path, process::Command, sync::Arc};
 
 use clap::{Parser, Subcommand};
 use eyre::Result;
+use rundler_builder::{LocalBuilderBuilder, LocalBuilderHandle};
 use rundler_paymaster_relay::{
     policy::PolicyEngine, service::PaymasterRelayService, signer::SignerManager, start_api_server,
     PaymasterRelayApiServerImpl,
@@ -21,7 +22,7 @@ use secrecy::SecretString;
 use serde::Deserialize;
 use super_relay_gateway::{router::EthApiConfig, GatewayConfig, PaymasterGateway};
 use tokio::task::JoinHandle;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 /// 双服务共享组件架构
 /// 支持 Gateway(3000端口) + Rundler(3001端口) 双服务模式
@@ -29,6 +30,8 @@ use tracing::{error, info};
 pub struct SharedRundlerComponents {
     /// 共享的Pool组件句柄
     pub pool: Arc<LocalPoolHandle>,
+    /// 共享的Builder组件句柄 (可选)
+    pub builder: Option<Arc<LocalBuilderHandle>>,
     /// 共享的Provider配置
     pub provider_config: Arc<ProviderConfig>,
     /// 共享的配置信息
@@ -715,10 +718,20 @@ impl Cli {
         let pool_handle = Arc::new(pool_builder.get_handle());
 
         info!("✅ Pool handle created successfully");
+
+        // 9. TODO: 创建真实的Builder组件 (需要 SignerManager 和 Pool 依赖)
+        // info!("🔧 Initializing Builder component with real providers...");
+        // let builder_builder = LocalBuilderBuilder::new(100, signer_manager, pool);
+        // let builder_handle = Arc::new(builder_builder.get_handle());
+
+        // 暂时跳过 Builder 创建，等待完整的依赖注入
+        let builder_handle: Option<Arc<LocalBuilderHandle>> = None;
+        info!("⚠️ Builder handle temporarily disabled (pending dependency injection)");
         info!("✅ Complete rundler component initialization finished");
 
         Ok(SharedRundlerComponents {
             pool: pool_handle,
+            builder: builder_handle,
             provider_config,
             rundler_config,
         })
@@ -757,6 +770,11 @@ impl Cli {
             gateway_config,
             paymaster_service,
             shared_components.pool.clone(),
+            shared_components.builder.clone().unwrap_or_else(|| {
+                // Create a placeholder LocalBuilderHandle for now
+                // TODO: Fix this with proper dependency injection
+                panic!("Builder handle not available")
+            }),
             eth_config,
         );
 
@@ -830,9 +848,16 @@ impl Cli {
         info!("🔧 Initializing rundler components for Gateway mode...");
 
         // TODO: Initialize full rundler components (Pool, Builder, etc.)
-        // For now, create a minimal pool handle as placeholder
+        // For now, create minimal pool and builder handles as placeholders
         let pool_builder = LocalPoolBuilder::new(100);
         let pool_handle = Arc::new(pool_builder.get_handle());
+
+        // TODO: Create LocalBuilderBuilder with proper SignerManager and Pool dependencies
+        // let builder_builder = LocalBuilderBuilder::new(100, signer_manager, pool);
+        // let builder_handle = Arc::new(builder_builder.get_handle());
+
+        // For now, skip builder creation
+        let builder_handle: Option<Arc<LocalBuilderHandle>> = None;
 
         // TODO: In full implementation, we would:
         // 1. Parse rundler configuration
@@ -866,12 +891,20 @@ impl Cli {
         };
 
         // Create and start gateway with rundler components
-        let gateway = PaymasterGateway::with_rundler_components(
-            gateway_config,
-            paymaster_service,
-            pool_handle.clone(),
-            eth_config,
-        );
+        let gateway = if let Some(builder) = builder_handle.clone() {
+            PaymasterGateway::with_rundler_components(
+                gateway_config,
+                paymaster_service,
+                pool_handle.clone(),
+                builder,
+                eth_config,
+            )
+        } else {
+            // Create gateway without builder for now
+            // TODO: Implement builder-less gateway creation
+            warn!("⚠️ Creating gateway without builder integration");
+            PaymasterGateway::new(gateway_config, paymaster_service)
+        };
 
         info!("✨ Gateway initialization complete");
         info!("🚀 Starting SuperRelay Gateway server...");

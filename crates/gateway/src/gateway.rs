@@ -7,6 +7,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use rundler_builder::LocalBuilderHandle;
 use rundler_paymaster_relay::PaymasterRelayService;
 use rundler_pool::LocalPoolHandle;
 use serde_json::Value;
@@ -64,9 +65,11 @@ impl PaymasterGateway {
         config: GatewayConfig,
         paymaster_service: Option<Arc<PaymasterRelayService>>,
         pool_handle: Arc<LocalPoolHandle>,
+        builder_handle: Arc<LocalBuilderHandle>,
         eth_config: EthApiConfig,
     ) -> Self {
-        let router = GatewayRouter::with_rundler_components(pool_handle, eth_config);
+        let router =
+            GatewayRouter::with_rundler_components(pool_handle, Some(builder_handle), eth_config);
 
         Self {
             config,
