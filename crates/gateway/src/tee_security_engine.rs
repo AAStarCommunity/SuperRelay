@@ -277,6 +277,7 @@ pub struct SecurityMetrics {
     /// Processing time statistics
     avg_processing_time_ms: f64,
     /// Last reset timestamp
+    #[allow(dead_code)]
     metrics_reset_time: SystemTime,
 }
 

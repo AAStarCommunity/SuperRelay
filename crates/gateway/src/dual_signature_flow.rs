@@ -1,5 +1,5 @@
 /**
- * Multi-Layer Verification Flow (formerly Dual Signature)
+ * Multi-Layer Verification Flow (formerly Multi-Layer Verification)
  *
  * Orchestrates the complete multi-layer verification process:
  * 1. Gateway SBT+PNTs validation (business rules)
@@ -27,7 +27,7 @@ use crate::{
     version_selector::{EntryPointVersion, VersionSelector},
 };
 
-/// Dual signature flow orchestrator
+/// Multi-Layer Verification Flow orchestrator
 pub struct DualSignatureFlow {
     sbt_validator: SBTValidator,
     version_selector: VersionSelector,
@@ -35,7 +35,7 @@ pub struct DualSignatureFlow {
     config: DualSignatureConfig,
 }
 
-/// Configuration for dual signature flow
+/// Configuration for Multi-Layer Verification Flow
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DualSignatureConfig {
     /// Enable strict SBT validation
@@ -52,7 +52,7 @@ pub struct DualSignatureConfig {
     pub enable_audit_logging: bool,
 }
 
-/// Dual signature flow request
+/// Multi-Layer Verification Flow request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DualSignatureRequest {
     /// UserOperation data
@@ -71,7 +71,7 @@ pub struct DualSignatureRequest {
     pub metadata: HashMap<String, String>,
 }
 
-/// Dual signature flow response
+/// Multi-Layer Verification Flow response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DualSignatureResponse {
     /// Success flag
@@ -111,12 +111,12 @@ pub struct KmsSigningSummary {
 }
 
 impl DualSignatureFlow {
-    /// Create new dual signature flow orchestrator
+    /// Create new Multi-Layer Verification Flow orchestrator
     pub async fn new(
         config: DualSignatureConfig,
         key_manager: rundler_paymaster_relay::PaymasterKeyManager,
     ) -> Result<Self> {
-        info!("🔄 Initializing Dual Signature Flow");
+        info!("🔄 Initializing Multi-Layer Verification Flow");
         info!("   AirAccount KMS URL: {}", config.airaccount_kms_url);
         info!("   Strict SBT Validation: {}", config.strict_sbt_validation);
 
@@ -152,7 +152,7 @@ impl DualSignatureFlow {
         })
     }
 
-    /// Process dual signature verification flow
+    /// Process Multi-Layer Verification verification flow
     pub async fn process_dual_signature(
         &mut self,
         request: DualSignatureRequest,
@@ -160,7 +160,10 @@ impl DualSignatureFlow {
         let start_time = SystemTime::now();
         let request_id = uuid::Uuid::new_v4().to_string();
 
-        info!("🔐 Processing dual signature request: {}", request_id);
+        info!(
+            "🔐 Processing Multi-Layer Verification request: {}",
+            request_id
+        );
         info!("   Account ID: {}", request.account_id);
         info!("   Sender: {:?}", request.sender_address);
 
@@ -190,7 +193,7 @@ impl DualSignatureFlow {
             .prepare_signing_context(&request, &entry_point_version, &sbt_validation)
             .await?;
 
-        // Step 4: AirAccount KMS Dual Signature
+        // Step 4: AirAccount KMS Multi-Layer Verification
         let kms_response = self
             .airaccount_kms
             .sign_user_operation(
@@ -202,10 +205,10 @@ impl DualSignatureFlow {
             .await
             .map_err(|e| {
                 error!("❌ AirAccount KMS signing failed: {}", e);
-                anyhow!("KMS dual signature failed: {}", e)
+                anyhow!("KMS Multi-Layer Verification failed: {}", e)
             })?;
 
-        info!("✅ AirAccount KMS dual signature completed");
+        info!("✅ AirAccount KMS Multi-Layer Verification completed");
 
         // Step 5: Build Response
         let processing_time = start_time.elapsed().unwrap_or_default().as_millis() as u64;
@@ -322,13 +325,13 @@ impl DualSignatureFlow {
         })
     }
 
-    /// Log dual signature audit information
+    /// Log Multi-Layer Verification audit information
     async fn log_dual_signature_audit(
         &self,
         request: &DualSignatureRequest,
         response: &DualSignatureResponse,
     ) {
-        info!("📊 Dual Signature Audit Log");
+        info!("📊 Multi-Layer Verification Audit Log");
         info!("   Request ID: {}", response.request_id);
         info!("   Account ID: {}", request.account_id);
         info!("   Sender: {:?}", request.sender_address);
@@ -337,7 +340,7 @@ impl DualSignatureFlow {
         info!("   PNTs Balance: {}", response.sbt_validation.pnts_balance);
         info!("   TEE Device: {}", response.kms_info.tee_device_id);
         info!(
-            "   Dual Signature Verified: {}",
+            "   Multi-Layer Verification Status: {}",
             response.kms_info.dual_signature_verified
         );
         info!("   Processing Time: {}ms", response.processing_time_ms);
@@ -383,9 +386,9 @@ impl DualSignatureFlow {
         let overall_health = health_status.values().all(|&status| status);
 
         if overall_health {
-            info!("✅ Dual Signature Flow health check: ALL SYSTEMS OPERATIONAL");
+            info!("✅ Multi-Layer Verification Flow health check: ALL SYSTEMS OPERATIONAL");
         } else {
-            warn!("⚠️ Dual Signature Flow health check: SOME SYSTEMS DEGRADED");
+            warn!("⚠️ Multi-Layer Verification Flow health check: SOME SYSTEMS DEGRADED");
         }
 
         Ok(health_status)
