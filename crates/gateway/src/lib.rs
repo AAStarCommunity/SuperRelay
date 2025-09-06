@@ -6,6 +6,7 @@
 
 #![warn(missing_docs, unreachable_pub, unused_crate_dependencies)]
 #![deny(unused_must_use, rust_2018_idioms)]
+#![allow(missing_docs)] // Allow missing docs for auto-generated contract bindings
 
 //! SuperRelay Gateway - API Gateway with enterprise features
 
@@ -25,10 +26,14 @@ pub mod health;
 pub mod middleware;
 /// Request routing logic
 pub mod router;
+/// SBT + PNTs balance validation for user eligibility
+pub mod sbt_validator;
 /// Security analysis and threat detection for UserOperations
 pub mod security;
 /// Data integrity validation for UserOperations
 pub mod validation;
+/// EntryPoint version selection and routing
+pub mod version_selector;
 
 pub use authorization::{AuthorizationChecker, AuthorizationConfig, AuthorizationResult};
 pub use e2e_validator::{quick_e2e_health_check, E2EValidationResult, E2EValidator};
@@ -36,8 +41,13 @@ pub use error::{GatewayError, GatewayResult};
 pub use gateway::PaymasterGateway;
 pub use health::{HealthChecker, HealthStatus, SystemStatus};
 pub use router::GatewayRouter;
+pub use sbt_validator::{SBTValidator, SBTValidatorConfig, ValidationResult};
 pub use security::{SecurityChecker, SecurityConfig, SecurityResult};
 pub use validation::{DataIntegrityChecker, DataIntegrityResult, ValidationConfig};
+pub use version_selector::{
+    DetectionMethod, EntryPointVersion, Network, VersionSelection, VersionSelector,
+    VersionSelectorConfig,
+};
 
 /// Gateway configuration
 #[derive(Debug, Clone)]
