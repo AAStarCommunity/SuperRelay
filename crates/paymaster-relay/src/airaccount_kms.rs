@@ -1,17 +1,25 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use ethers::{
     signers::Signer,
-    types::U256,
+    types::{Address, U256},
     utils::{keccak256, to_checksum},
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
+use uuid::Uuid;
 
-use crate::key_manager::PaymasterKeyManager;
+use crate::{
+    key_manager::PaymasterKeyManager,
+    kms::{
+        KmsError, KmsKeyInfo, KmsKeyType, KmsProvider, KmsSigningRequest, KmsSigningResponse,
+        SigningAuditInfo,
+    },
+};
 
 /// AirAccount KMS 客户端
 /// 实现双重签名验证机制，与 AirAccount TEE-KMS 服务通信
@@ -401,6 +409,210 @@ impl AirAccountKmsClient {
     /// 获取 KMS 基础 URL
     pub fn base_url(&self) -> &str {
         &self.base_url
+    }
+}
+
+#[async_trait]
+impl KmsProvider for AirAccountKmsClient {
+    async fn sign(
+        &mut self,
+        request: KmsSigningRequest,
+        context: crate::kms::SigningContext,
+    ) -> Result<KmsSigningResponse, KmsError> {
+        let start_time = SystemTime::now();
+        let request_id = Uuid::new_v4().to_string();
+
+        info!("🔐 AirAccount KMS signing request: {}", request_id);
+        debug!("   Key ID: {}", request.key_id);
+        debug!("   Message hash: {:?}", request.message_hash);
+
+        // Convert SigningContext to UserOperation JSON for AirAccount KMS
+        let user_op_json = self.convert_context_to_userop(&context).map_err(|e| {
+            KmsError::InvalidConfiguration {
+                reason: format!("Failed to convert context: {}", e),
+            }
+        })?;
+
+        // Extract account_id from context metadata
+        let account_id =
+            context
+                .metadata
+                .get("account_id")
+                .ok_or_else(|| KmsError::InvalidConfiguration {
+                    reason: "Missing account_id in signing context".to_string(),
+                })?;
+
+        // Extract user signature and public key from metadata
+        let user_signature = context.metadata.get("user_signature").ok_or_else(|| {
+            KmsError::InvalidConfiguration {
+                reason: "Missing user_signature in signing context".to_string(),
+            }
+        })?;
+
+        let user_public_key = context.metadata.get("user_public_key").ok_or_else(|| {
+            KmsError::InvalidConfiguration {
+                reason: "Missing user_public_key in signing context".to_string(),
+            }
+        })?;
+
+        // Use dual-signature mechanism
+        let kms_response = self
+            .sign_user_operation(&user_op_json, account_id, user_signature, user_public_key)
+            .await
+            .map_err(|e| KmsError::SignatureFailed {
+                reason: format!("AirAccount KMS signing failed: {}", e),
+            })?;
+
+        // Parse signature from response
+        let signature_bytes = hex::decode(kms_response.signature.trim_start_matches("0x"))
+            .map_err(|e| KmsError::SignatureFailed {
+                reason: format!("Invalid signature format: {}", e),
+            })?;
+
+        let signature =
+            ethers::types::Signature::try_from(signature_bytes.as_slice()).map_err(|e| {
+                KmsError::SignatureFailed {
+                    reason: format!("Failed to parse signature: {}", e),
+                }
+            })?;
+
+        let duration_ms = start_time.elapsed().unwrap_or_default().as_millis() as u64;
+
+        // Create audit information
+        let mut service_metadata = std::collections::HashMap::new();
+        service_metadata.insert("kms_provider".to_string(), "airaccount_kms".to_string());
+        service_metadata.insert("key_id".to_string(), request.key_id.clone());
+        service_metadata.insert("tee_device_id".to_string(), kms_response.tee_device_id);
+        service_metadata.insert(
+            "dual_signature_mode".to_string(),
+            kms_response
+                .verification_proof
+                .dual_signature_mode
+                .to_string(),
+        );
+        service_metadata.insert(
+            "paymaster_verified".to_string(),
+            kms_response
+                .verification_proof
+                .paymaster_verified
+                .to_string(),
+        );
+        service_metadata.insert(
+            "user_passkey_verified".to_string(),
+            kms_response
+                .verification_proof
+                .user_passkey_verified
+                .to_string(),
+        );
+
+        let audit_info = SigningAuditInfo {
+            request_id,
+            service_metadata,
+            duration_ms,
+            hardware_validated: true, // AirAccount uses TEE hardware
+        };
+
+        info!("✅ AirAccount KMS signing completed successfully");
+
+        Ok(KmsSigningResponse {
+            signature,
+            key_id: request.key_id,
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs() as i64,
+            audit_info,
+        })
+    }
+
+    async fn get_key_address(&self, key_id: &str) -> Result<Address, KmsError> {
+        debug!("📍 Getting address for AirAccount KMS key: {}", key_id);
+
+        // For AirAccount KMS, return the paymaster address from key manager
+        let signer = self.key_manager.get_signer().await;
+        Ok(signer.address())
+    }
+
+    async fn list_keys(&self) -> Result<Vec<KmsKeyInfo>, KmsError> {
+        debug!("📋 Listing available AirAccount KMS keys");
+
+        // Get the single paymaster key info
+        let signer = self.key_manager.get_signer().await;
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("environment".to_string(), "airaccount_kms".to_string());
+        metadata.insert("service".to_string(), "super-relay-airaccount".to_string());
+
+        let key_info = KmsKeyInfo {
+            key_id: "airaccount-paymaster-key".to_string(),
+            key_type: KmsKeyType::HardwareSecurityModule, // TEE-based
+            address: signer.address(),
+            description: "AirAccount KMS Paymaster Key with TEE support".to_string(),
+            enabled: true,
+            permissions: vec!["sign".to_string(), "dual_signature".to_string()],
+            metadata,
+        };
+
+        Ok(vec![key_info])
+    }
+
+    async fn health_check(&self) -> Result<bool, KmsError> {
+        debug!("🩺 Performing AirAccount KMS health check");
+
+        match self.check_status().await {
+            Ok(status) => {
+                if status.success && status.status.tee_connection == "connected" {
+                    info!("✅ AirAccount KMS health check passed");
+                    Ok(true)
+                } else {
+                    Err(KmsError::ServiceUnavailable {
+                        reason: format!("KMS status check failed: {:?}", status),
+                    })
+                }
+            }
+            Err(e) => {
+                error!("❌ AirAccount KMS health check failed: {}", e);
+                Err(KmsError::ServiceUnavailable {
+                    reason: format!("Health check failed: {}", e),
+                })
+            }
+        }
+    }
+}
+
+impl AirAccountKmsClient {
+    /// Convert SigningContext to UserOperation JSON format
+    fn convert_context_to_userop(&self, context: &crate::kms::SigningContext) -> Result<Value> {
+        // For AirAccount KMS, we need a full UserOperation structure
+        // This is a simplified conversion - in practice, you'd need the full UserOp data
+        let user_op = serde_json::json!({
+            "sender": context.sender_address.unwrap_or_default().to_string(),
+            "nonce": "0x0", // Should come from context
+            "initCode": "0x",
+            "callData": "0x",
+            "callGasLimit": context.gas_estimates
+                .as_ref()
+                .map(|g| format!("0x{:x}", g.call_gas_limit))
+                .unwrap_or_else(|| "0x186a0".to_string()),
+            "verificationGasLimit": context.gas_estimates
+                .as_ref()
+                .map(|g| format!("0x{:x}", g.verification_gas_limit))
+                .unwrap_or_else(|| "0x186a0".to_string()),
+            "preVerificationGas": context.gas_estimates
+                .as_ref()
+                .map(|g| format!("0x{:x}", g.pre_verification_gas))
+                .unwrap_or_else(|| "0x5208".to_string()),
+            "maxFeePerGas": context.gas_estimates
+                .as_ref()
+                .map(|g| format!("0x{:x}", g.max_fee_per_gas))
+                .unwrap_or_else(|| "0x59682f00".to_string()),
+            "maxPriorityFeePerGas": context.gas_estimates
+                .as_ref()
+                .map(|g| format!("0x{:x}", g.max_priority_fee_per_gas))
+                .unwrap_or_else(|| "0x3b9aca00".to_string()),
+            "paymasterAndData": "0x"
+        });
+
+        Ok(user_op)
     }
 }
 

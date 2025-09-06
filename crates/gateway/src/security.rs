@@ -891,6 +891,18 @@ impl Default for SecurityChecker {
     }
 }
 
+impl std::fmt::Debug for SecurityChecker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SecurityChecker")
+            .field("config", &self.config)
+            .field("malicious_addresses", &self.malicious_addresses)
+            .field("phishing_patterns", &self.phishing_patterns)
+            .field("contract_reputation", &self.contract_reputation)
+            .field("suspicious_patterns_count", &self.suspicious_patterns.len())
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

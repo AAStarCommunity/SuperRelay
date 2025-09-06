@@ -34,17 +34,17 @@ log_debug() {
 # Signal handlers for graceful shutdown
 cleanup() {
     log_info "Shutting down SuperRelay OP-TEE environment..."
-    
+
     if [ ! -z "$QEMU_PID" ] && kill -0 $QEMU_PID 2>/dev/null; then
         log_info "Stopping QEMU (PID: $QEMU_PID)..."
         kill $QEMU_PID
         wait $QEMU_PID 2>/dev/null || true
     fi
-    
+
     # Clean up any remaining processes
     pkill -f "qemu-system-aarch64" || true
     pkill -f "telnet" || true
-    
+
     log_info "Cleanup completed"
     exit 0
 }
@@ -54,11 +54,11 @@ trap cleanup SIGTERM SIGINT
 # Validate environment
 validate_environment() {
     log_info "🔍 Validating environment..."
-    
+
     # Check required files
     local required_files=(
         "$OPTEE_DIR/images/bl1.bin"
-        "$OPTEE_DIR/images/bl2.bin" 
+        "$OPTEE_DIR/images/bl2.bin"
         "$OPTEE_DIR/images/bl31.bin"
         "$OPTEE_DIR/images/tee-header_v2.bin"
         "$OPTEE_DIR/images/tee-pager_v2.bin"
@@ -67,39 +67,39 @@ validate_environment() {
         "$OPTEE_DIR/images/rootfs.cpio.gz"
         "$SUPERRELAY_DIR/super-relay"
     )
-    
+
     for file in "${required_files[@]}"; do
         if [ ! -f "$file" ]; then
             log_error "Required file not found: $file"
             exit 1
         fi
     done
-    
+
     # Check TA file
     local ta_file="/lib/optee_armtz/12345678-5b69-11d4-9fee-00c04f4c3456.ta"
     if [ ! -f "$ta_file" ]; then
         log_error "SuperRelay TA not found: $ta_file"
         exit 1
     fi
-    
+
     # Check QEMU
     if ! command -v qemu-system-aarch64 >/dev/null 2>&1; then
         log_error "qemu-system-aarch64 not found!"
         exit 1
     fi
-    
+
     log_info "✅ Environment validation completed"
 }
 
 # Start QEMU with OP-TEE
 start_qemu() {
     log_info "🚀 Starting QEMU ARM64 with OP-TEE..."
-    
+
     # Create log directory
     mkdir -p "$LOG_DIR"
-    
+
     cd "$OPTEE_DIR/images"
-    
+
     # QEMU configuration
     local QEMU_ARGS=(
         -nographic
@@ -122,19 +122,19 @@ start_qemu() {
         -rtc base=utc,clock=host
         -append 'console=ttyAMA0,38400 keep_bootcon root=/dev/vda2 panic=0 rw'
     )
-    
+
     log_info "QEMU command: qemu-system-aarch64 ${QEMU_ARGS[*]}"
-    
+
     # Start QEMU in background
     qemu-system-aarch64 "${QEMU_ARGS[@]}" > "$LOG_DIR/qemu.log" 2>&1 &
     QEMU_PID=$!
-    
+
     log_info "QEMU started with PID: $QEMU_PID"
-    
+
     # Wait for QEMU to be ready
     log_info "⏳ Waiting for QEMU to initialize..."
     sleep 10
-    
+
     # Check if QEMU is still running
     if ! kill -0 $QEMU_PID 2>/dev/null; then
         log_error "QEMU failed to start!"
@@ -146,22 +146,22 @@ start_qemu() {
 # Wait for OP-TEE to be ready
 wait_for_optee() {
     log_info "⏳ Waiting for OP-TEE to be ready..."
-    
+
     local max_attempts=30
     local attempt=0
-    
+
     while [ $attempt -lt $max_attempts ]; do
         if nc -z localhost 54320 2>/dev/null; then
             log_info "✅ OP-TEE serial port is ready"
             sleep 5  # Additional wait for complete boot
             return 0
         fi
-        
+
         sleep 2
         ((attempt++))
         log_debug "Attempt $attempt/$max_attempts waiting for OP-TEE..."
     done
-    
+
     log_error "Timeout waiting for OP-TEE to be ready"
     return 1
 }
@@ -169,7 +169,7 @@ wait_for_optee() {
 # Deploy SuperRelay and TA inside the VM
 deploy_superrelay() {
     log_info "📦 Deploying SuperRelay inside OP-TEE environment..."
-    
+
     # Create deployment script
     cat << 'EOF' > /tmp/deploy_superrelay.exp
 #!/usr/bin/expect -f
@@ -196,7 +196,7 @@ send "mkdir -p /opt/superrelay/config /opt/superrelay/logs\r"
 expect "# "
 
 # Check TA installation
-send "ls -la /lib/optee_armtz/\r"  
+send "ls -la /lib/optee_armtz/\r"
 expect "# "
 
 # Check tee-supplicant
@@ -219,7 +219,7 @@ send "network = \"dev\"\r"
 send "node_http = \"http://localhost:8545\"\r"
 send "\r"
 send "[paymaster_relay]\r"
-send "enabled = true\r" 
+send "enabled = true\r"
 send "kms_backend = \"optee\"\r"
 send "\r"
 send "[optee_kms]\r"
@@ -238,22 +238,22 @@ expect "# "
 puts "SuperRelay deployment completed"
 exit 0
 EOF
-    
+
     chmod +x /tmp/deploy_superrelay.exp
-    
+
     if ! /tmp/deploy_superrelay.exp; then
         log_error "Failed to deploy SuperRelay inside VM"
         return 1
     fi
-    
+
     log_info "✅ SuperRelay deployment completed"
 }
 
 # Start SuperRelay inside the VM
 start_superrelay() {
     log_info "🏁 Starting SuperRelay with OP-TEE backend..."
-    
-    # Create startup script  
+
+    # Create startup script
     cat << 'EOF' > /tmp/start_superrelay.exp
 #!/usr/bin/expect -f
 
@@ -279,7 +279,7 @@ send "sleep 3\r"
 expect "# "
 
 # Check if it's running
-send "ps aux | grep super-relay | grep -v grep\r" 
+send "ps aux | grep super-relay | grep -v grep\r"
 expect "# "
 
 # Test health endpoint
@@ -291,7 +291,7 @@ exit 0
 EOF
 
     chmod +x /tmp/start_superrelay.exp
-    
+
     if ! /tmp/start_superrelay.exp; then
         log_warn "SuperRelay startup script completed with warnings"
     else
@@ -302,14 +302,14 @@ EOF
 # Monitor services
 monitor_services() {
     log_info "📊 Starting service monitoring..."
-    
+
     while true; do
         # Check QEMU process
         if ! kill -0 $QEMU_PID 2>/dev/null; then
             log_error "QEMU process died unexpectedly"
             exit 1
         fi
-        
+
         # Check SuperRelay health (every 30 seconds)
         if (( $(date +%s) % 30 == 0 )); then
             if ! curl -s -f http://localhost:3000/health >/dev/null 2>&1; then
@@ -318,7 +318,7 @@ monitor_services() {
                 log_debug "SuperRelay health check passed"
             fi
         fi
-        
+
         sleep 5
     done
 }
@@ -328,10 +328,10 @@ show_service_info() {
     log_info "🌐 SuperRelay with OP-TEE is running!"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  🔒 TEE-Secured SuperRelay Service Information"  
+    echo "  🔒 TEE-Secured SuperRelay Service Information"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  📊 JSON-RPC API:     http://localhost:3000"
-    echo "  🌐 HTTP REST API:    http://localhost:9000"  
+    echo "  🌐 HTTP REST API:    http://localhost:9000"
     echo "  🏥 Health Check:     http://localhost:3000/health"
     echo "  📈 Metrics:          http://localhost:3000/metrics"
     echo "  🔧 QEMU Console:     telnet localhost 54320"
@@ -346,31 +346,31 @@ show_service_info() {
 # Main execution
 main() {
     log_info "🔐 Starting SuperRelay with OP-TEE on QEMU ARM64..."
-    
+
     # Validate environment
     validate_environment
-    
+
     # Start QEMU
     start_qemu
-    
+
     # Wait for OP-TEE
     if ! wait_for_optee; then
         log_error "Failed to start OP-TEE environment"
         exit 1
     fi
-    
+
     # Deploy SuperRelay
     if ! deploy_superrelay; then
         log_error "Failed to deploy SuperRelay"
         exit 1
     fi
-    
+
     # Start SuperRelay
     start_superrelay
-    
+
     # Show service information
     show_service_info
-    
+
     # Monitor services
     monitor_services
 }

@@ -148,9 +148,9 @@ statsd_enabled = false
 influxdb_enabled = false
 
 # Production labels
-labels = { 
-    service = "superrelay", 
-    environment = "production", 
+labels = {
+    service = "superrelay",
+    environment = "production",
     phase = "3",
     hardware = "imx93",
     security = "optee"
@@ -175,18 +175,18 @@ include_timestamp = true
 console = { enabled = true, level = "warn" }
 
 # File logging with rotation
-file = { 
-    enabled = true, 
-    path = "/var/log/superrelay/superrelay.log", 
+file = {
+    enabled = true,
+    path = "/var/log/superrelay/superrelay.log",
     level = "info",
     max_size = "100MB",
     max_files = 10
 }
 
 # Audit logging for compliance
-audit = { 
-    enabled = true, 
-    path = "/var/log/superrelay/audit.log", 
+audit = {
+    enabled = true,
+    path = "/var/log/superrelay/audit.log",
     level = "info",
     max_size = "500MB",
     max_files = 30
@@ -209,7 +209,7 @@ enabled = true
 allowed_methods = [
     "pm_sponsorUserOperation",
     "eth_supportedEntryPoints",
-    "eth_estimateUserOperationGas", 
+    "eth_estimateUserOperationGas",
     "eth_sendUserOperation",
     "eth_getUserOperationReceipt",
     "rundler_health"

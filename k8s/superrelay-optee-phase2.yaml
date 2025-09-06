@@ -207,16 +207,16 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: superrelay-optee
-      
+
       # Node selection for ARM64 with OP-TEE support
       nodeSelector:
         kubernetes.io/arch: arm64
         superrelay.io/optee-support: "true"
-      
+
       # Security context for privileged OP-TEE access
       securityContext:
         fsGroup: 1001
-        
+
       # Init container to verify OP-TEE availability
       initContainers:
       - name: optee-check
@@ -237,12 +237,12 @@ spec:
         volumeMounts:
         - name: dev-tee
           mountPath: /dev/teepriv0
-          
+
       containers:
       - name: superrelay-optee
         image: superrelay-optee:phase2-cloud
         imagePullPolicy: Always
-        
+
         ports:
         - name: json-rpc
           containerPort: 3000
@@ -250,7 +250,7 @@ spec:
         - name: metrics
           containerPort: 8080
           protocol: TCP
-        
+
         env:
         - name: ETH_NODE_URL
           valueFrom:
@@ -280,7 +280,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        
+
         resources:
           requests:
             cpu: "500m"
@@ -288,7 +288,7 @@ spec:
           limits:
             cpu: "2000m"
             memory: "4Gi"
-        
+
         # Security context for OP-TEE access
         securityContext:
           privileged: true
@@ -297,7 +297,7 @@ spec:
             add:
               - SYS_ADMIN
               - DAC_OVERRIDE
-        
+
         # Liveness probe
         livenessProbe:
           httpGet:
@@ -307,7 +307,7 @@ spec:
           periodSeconds: 60
           timeoutSeconds: 10
           failureThreshold: 3
-          
+
         # Readiness probe
         readinessProbe:
           httpGet:
@@ -317,7 +317,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 3
-          
+
         # Startup probe
         startupProbe:
           httpGet:
@@ -327,7 +327,7 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 12
-        
+
         volumeMounts:
         - name: config
           mountPath: /opt/superrelay/config
@@ -338,7 +338,7 @@ spec:
           mountPath: /dev/teepriv0
         - name: tmp
           mountPath: /tmp
-          
+
         # Command override for cloud deployment
         command: ["/opt/superrelay/super-relay"]
         args:
@@ -348,7 +348,7 @@ spec:
           - "--paymaster-relay"
           - "--log-level"
           - "info"
-      
+
       volumes:
       - name: config
         configMap:
@@ -362,13 +362,13 @@ spec:
           type: CharDevice
       - name: tmp
         emptyDir: {}
-      
+
       # Restart policy
       restartPolicy: Always
-      
+
       # DNS policy
       dnsPolicy: ClusterFirst
-      
+
       # Termination grace period
       terminationGracePeriodSeconds: 60
 
@@ -396,7 +396,7 @@ spec:
     port: 8080
     targetPort: metrics
     protocol: TCP
-    
+
   # LoadBalancer configuration
   loadBalancerSourceRanges:
     - 10.0.0.0/8

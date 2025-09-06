@@ -2,6 +2,147 @@
 
 本文档记录 SuperPaymaster 项目的开发历程和版本变更。
 
+## v0.1.13 - 2025-09-06 📋
+
+### 统一架构规划和文档重构
+
+#### 🎯 核心成果
+
+**文档体系重构**:
+- ✅ **创建独立todo.md文件** - 重新组织两级优先级结构
+  - Phase 1 (Standalone模式): 高优先级核心任务 (H1.1-H3.1)
+  - Phase 2 (Integrated模式): 中优先级增强任务 (M1-M4)
+  - Future Roadmap: BLS聚合签名和合约安全规则预留
+
+- ✅ **更新flow.md架构设计** - 从双分支转向统一架构
+  - 确认配置驱动的KMS切换方案为主要实施方案
+  - 明确Phase 1: AWS KMS + Remote AirAccount 混合模式
+  - 明确Phase 2: 完全TEE集成模式
+  - 移除双分支维护复杂性，采用单一代码库
+
+#### 📊 架构决策确认
+
+**统一分支策略** (`feature/super-relay`):
+- 🔄 **从概念升级**: "双重签名验证" → "多重验证架构"
+- 🔄 **从双分支** → **统一配置驱动架构**
+- 🔄 **KmsProvider抽象层**: AwsKms + RemoteAirAccount + IntegratedAirAccount
+- 🔄 **分阶段实施**: 先验证Standalone稳定性，再扩展Integrated模式
+
+#### 🎯 下一步行动计划
+
+**立即执行 (Phase 1)**:
+1. **H1.1**: 实现TEE安全引擎核心功能 (黑名单、钓鱼检测、异常检测)
+2. **H2.1**: 优化Gateway-Pool-Bundler完整链路
+3. **H2.2**: 修复硬编码RPC URL问题 (统一使用.env配置)
+4. **H2.3**: 标准化ECDSA签名格式 (确保ERC-4337兼容性)
+5. **H3.1**: 扩展PackedUserOperation v0.7/v0.8支持
+
+**技术债务清理**:
+- 移除过时的双分支架构设计概念
+- 统一配置管理和部署流程
+- 简化维护和测试复杂度
+
+#### 📋 文档一致性更新
+
+**版本同步**:
+- `docs/todo.md`: v0.1.12 → v0.1.13 架构确认
+- `docs/flow.md`: v1.1 → v1.2 统一架构设计
+- `docs/Changes.md`: 新增版本记录
+
+---
+
+## v0.1.8 - 2025-09-06 🎯
+
+### 双重签名验证流程核心实现
+
+#### 🔐 完成的核心任务
+
+**双重签名协调器** (`crates/gateway/src/dual_signature_flow.rs`):
+- ✅ **DualSignatureFlow 主协调器**
+  - Gateway SBT+PNTs 业务规则验证
+  - AirAccount KMS 用户 Passkey + Paymaster 双重签名
+  - EntryPoint 版本检测和路由
+  - 完整审计日志记录
+
+- ✅ **6步骤双重签名流程**:
+  1. EntryPoint 版本自动检测 (v0.6/v0.7/v0.8)
+  2. SBT + PNTs 业务规则验证
+  3. KMS 签名上下文准备
+  4. AirAccount KMS 双重签名执行
+  5. 响应数据整合和格式化
+  6. 详细审计日志记录
+
+- ✅ **KMS 集成与状态监控**:
+  - AirAccount KMS 客户端集成
+  - TEE 设备状态检查
+  - 健康检查系统 (SBT验证器 + KMS + 版本选择器)
+  - 处理时间和性能指标跟踪
+
+- ✅ **安全和审计**:
+  - 完整请求-响应审计链路
+  - 用户签名和公钥验证
+  - Gas 估算和费用计算
+  - 严格 SBT 验证模式支持
+
+#### 🔧 技术实现细节
+
+**数据结构**:
+- `DualSignatureRequest`: 用户操作请求 (UserOperation + 用户签名 + 元数据)
+- `DualSignatureResponse`: 完整验证响应 (Paymaster签名 + SBT状态 + KMS信息)
+- `ValidationSummary`: SBT验证结果汇总
+- `KmsSigningSummary`: TEE签名验证详情
+
+**编译和质量保证**:
+- ✅ 全工作区编译通过 (`cargo check --workspace`)
+- ✅ 代码格式化和 Clippy 检查通过
+- ✅ 单元测试覆盖 (配置序列化、UserOperation验证)
+
+## v0.1.7 - 2025-09-06 🏗️
+
+### 架构Phase: SuperRelay 双分支Gateway核心实现
+
+#### 📂 完成的核心任务
+
+**分支架构创建**:
+- ✅ 创建 `relay-standalone` 分支 (AWS KMS Paymaster 版本)
+- ✅ 创建 `relay-airaccount` 分支 (AirAccount KMS 集成版本)
+- ✅ 基于 `feature/super-relay` 分支建立两个并行开发分支
+
+**Gateway 模块核心功能实现**:
+
+1. **SBT + PNTs 验证器** (`crates/gateway/src/sbt_validator.rs`):
+   - ✅ 使用 Rust `ethers-rs` 实现链上 SBT 持有验证
+   - ✅ 实现 PNTs ERC20 代币余额检查
+   - ✅ Gas 费用计算和 PNTs 转换逻辑 (1000 PNTs = 1 ETH)
+   - ✅ 20% Gas 价格缓冲机制
+   - ✅ 异步健康检查和错误处理
+
+2. **EntryPoint 版本选择器** (`crates/gateway/src/version_selector.rs`):
+   - ✅ 支持 ERC-4337 v0.6, v0.7, v0.8 多版本自动检测
+   - ✅ 基于 UserOperation 结构自动识别版本
+   - ✅ 跨链 EntryPoint 地址配置管理 (Ethereum, Optimism)
+   - ✅ v0.6 传统结构 vs v0.7/v0.8 PackedUserOperation 智能识别
+
+#### 🔧 技术实现细节
+- 使用 `docs/config.md` 中定义的跨链 EntryPoint 地址
+- Sepolia 测试网完整配置 (SBT + PNTs 合约地址)
+- 通过 Clippy 静态分析和 rustfmt 格式化
+- 完整的文档注释和单元测试覆盖
+
+3. **AWS KMS Paymaster 签名器** (`crates/paymaster-relay/src/aws_kms.rs`):
+   - ✅ 实现完整的 AWS KMS Provider 适配器
+   - ✅ 符合 `KmsProvider` trait 标准接口
+   - ✅ Mock 客户端用于开发和测试环境
+   - ✅ 硬件级签名验证和审计日志
+   - ✅ 多区域支持和备用密钥故障转移
+   - ✅ 环境变量配置和参数验证
+
+#### 🎯 当前开发状态
+- **Relay-Standalone 分支**: Gateway + AWS KMS 核心模块完成
+- **下一步**: AirAccount KMS 集成实现
+
+---
+
 ## v2.0.0-phase1 (2025-09-03) 🎯
 
 ### 🏆 Phase 1 双重签名架构全面完成 ✅
@@ -10,7 +151,7 @@
 
 #### 🔐 双重签名安全架构实现
 - **SuperPaymaster 业务验证**: 用户余额、会员等级、风险评分验证
-- **用户 Passkey 真实性验证**: WebAuthn 生物识别确保用户真实意图  
+- **用户 Passkey 真实性验证**: WebAuthn 生物识别确保用户真实意图
 - **TEE TA 硬件级签名**: QEMU OP-TEE 环境中真实密钥生成和签名
 - **防单点故障设计**: 双重验证通过才能获得最终签名
 
@@ -33,7 +174,7 @@
 
 #### 📊 完整数据流程演示
 1. **前端 JavaScript** → UserOperation 构造和 Hash 计算
-2. **用户 Passkey 认证** → WebAuthn 生物识别签名  
+2. **用户 Passkey 认证** → WebAuthn 生物识别签名
 3. **Paymaster 业务验证** → solidityPackedKeccak256 签名
 4. **AirAccount CA 双重验证** → Passkey + Paymaster 验证
 5. **TEE TA 硬件签名** → ECDSA 安全密钥签名

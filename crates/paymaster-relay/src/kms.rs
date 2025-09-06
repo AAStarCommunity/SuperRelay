@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use async_trait::async_trait;
 use ethers::{
     signers::Signer,
     types::{Address, Signature, H256},
@@ -155,6 +156,26 @@ pub struct KmsCredentials {
     pub region_or_tenant: String,
     /// Additional auth parameters
     pub additional_params: HashMap<String, String>,
+}
+
+/// KMS provider trait for different implementations
+#[async_trait]
+pub trait KmsProvider {
+    /// Sign a message hash with the specified key
+    async fn sign(
+        &mut self,
+        request: KmsSigningRequest,
+        context: SigningContext,
+    ) -> Result<KmsSigningResponse, KmsError>;
+
+    /// Get the Ethereum address for a KMS key
+    async fn get_key_address(&self, key_id: &str) -> Result<Address, KmsError>;
+
+    /// List available keys
+    async fn list_keys(&self) -> Result<Vec<KmsKeyInfo>, KmsError>;
+
+    /// Perform health check on KMS provider
+    async fn health_check(&self) -> Result<bool, KmsError>;
 }
 
 /// Mock KMS implementation for testing and development

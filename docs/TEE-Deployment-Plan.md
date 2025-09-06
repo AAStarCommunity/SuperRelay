@@ -1,8 +1,8 @@
 # SuperRelay TEE安全部署方案
 ## Docker + QEMU + OP-TEE 三阶段部署计划
 
-> **版本**: v1.0  
-> **创建日期**: 2025-01-25  
+> **版本**: v1.0
+> **创建日期**: 2025-01-25
 > **目标**: 将SuperRelay部署到基于OP-TEE的可信执行环境，实现硬件级私钥保护
 
 ## 🔒 安全目标
@@ -38,7 +38,7 @@ graph TB
 
     A -.-> E
     E -.-> I
-    
+
     style C fill:#e1f5fe
     style G fill:#e8f5e8
     style K fill:#fff3e0
@@ -223,7 +223,7 @@ extern "C" {
         name: *const c_char,
         context: *mut TEECContext,
     ) -> c_int;
-    
+
     fn TEEC_OpenSession(
         context: *mut TEECContext,
         session: *mut TEECSession,
@@ -233,7 +233,7 @@ extern "C" {
         operation: *mut TEECOperation,
         return_origin: *mut u32,
     ) -> c_int;
-    
+
     fn TEEC_InvokeCommand(
         session: *mut TEECSession,
         command_id: u32,
@@ -304,7 +304,7 @@ impl OpteKmsProvider {
                 &mut provider.context,
             )
         };
-        
+
         if ret != 0 {
             return Err(eyre!("Failed to initialize TEE context: {}", ret));
         }
@@ -353,7 +353,7 @@ impl OpteKmsProvider {
 
         // TODO: 从operation中获取生成的公钥地址
         let address = Address::zero(); // 临时实现
-        
+
         info!("Successfully generated key {} in TEE", key_id);
         Ok(address)
     }
@@ -369,7 +369,7 @@ impl OpteKmsProvider {
         let ret = unsafe {
             TEEC_InvokeCommand(
                 &mut self.session,
-                2, // TA_SUPER_RELAY_CMD_SIGN_MESSAGE  
+                2, // TA_SUPER_RELAY_CMD_SIGN_MESSAGE
                 &mut operation,
                 std::ptr::null_mut(),
             )
@@ -391,7 +391,7 @@ impl OpteKmsProvider {
 impl KmsProvider for OpteKmsProvider {
     async fn sign(&self, request: KmsSigningRequest) -> Result<Signature, KmsError> {
         let mut provider = self.clone(); // TODO: 移除clone，改为内部可变性
-        
+
         provider
             .sign_message(&request.key_id, request.message_hash)
             .map_err(|e| KmsError::SignatureFailed {
@@ -423,7 +423,7 @@ enabled = true
 kms_backend = "optee"
 
 [optee_kms]
-# OP-TEE设备路径  
+# OP-TEE设备路径
 device_path = "/dev/teepriv0"
 
 # TA配置
@@ -573,35 +573,35 @@ spec:
       # 使用ARM64节点
       nodeSelector:
         kubernetes.io/arch: arm64
-        
+
       # 特权模式运行OP-TEE
       securityContext:
         privileged: true
-        
+
       containers:
       - name: superrelay-optee
         image: superrelay-optee:cloud
         ports:
         - containerPort: 3000
           name: json-rpc
-        - containerPort: 9000  
+        - containerPort: 9000
           name: http-api
-        
+
         resources:
           requests:
             cpu: "1000m"
             memory: "2Gi"
           limits:
-            cpu: "2000m" 
+            cpu: "2000m"
             memory: "4Gi"
-            
+
         # 环境变量
         env:
         - name: OPTEE_DEVICE
           value: "/dev/teepriv0"
         - name: LOG_LEVEL
           value: "info"
-          
+
         # 健康检查
         livenessProbe:
           httpGet:
@@ -609,7 +609,7 @@ spec:
             port: 3000
           initialDelaySeconds: 60
           periodSeconds: 30
-          
+
         readinessProbe:
           httpGet:
             path: /health
@@ -623,7 +623,7 @@ spec:
           mountPath: /opt/superrelay/config
         - name: dev-tee
           mountPath: /dev/teepriv0
-          
+
       volumes:
       - name: optee-config
         configMap:
@@ -735,18 +735,18 @@ impl TeeBatchSigner {
 
         tokio::spawn(async move {
             let mut interval = interval(batch_timeout);
-            
+
             loop {
                 interval.tick().await;
-                
+
                 let batch = {
                     let mut queue_guard = queue.lock().unwrap();
                     let batch_len = std::cmp::min(batch_size, queue_guard.len());
-                    
+
                     if batch_len == 0 {
                         continue;
                     }
-                    
+
                     queue_guard.drain(0..batch_len).collect::<Vec<_>>()
                 };
 
@@ -762,9 +762,9 @@ impl TeeBatchSigner {
         batch: Vec<BatchSignRequest>,
     ) {
         debug!("Processing batch of {} signing requests", batch.len());
-        
+
         let start_time = Instant::now();
-        
+
         for request in batch {
             let result = {
                 let mut provider_guard = provider.lock().unwrap();
@@ -778,7 +778,7 @@ impl TeeBatchSigner {
         }
 
         info!(
-            "Processed batch in {:?} ms", 
+            "Processed batch in {:?} ms",
             start_time.elapsed().as_millis()
         );
     }
@@ -790,7 +790,7 @@ impl TeeBatchSigner {
         message_hash: H256,
     ) -> Result<Signature, String> {
         let (tx, rx) = tokio::sync::oneshot::channel();
-        
+
         let request = BatchSignRequest {
             request_id: rand::random(),
             key_id,
@@ -839,10 +839,10 @@ EXTRA_CARGO_FLAGS = "--features imx93-hardware --target aarch64-unknown-linux-gn
 do_compile() {
     export CROSS_COMPILE="aarch64-none-linux-gnu-"
     export CC="${CROSS_COMPILE}gcc"
-    
+
     # 构建TA
     oe_runmake -C ${S}/ta/super_relay_ta PLATFORM=imx-mx8mqevk
-    
+
     # 构建SuperRelay
     cargo build ${EXTRA_CARGO_FLAGS}
 }
@@ -853,7 +853,7 @@ do_install() {
 
     install -d ${D}${nonarch_base_libdir}/optee_armtz/
     install -m 444 ${S}/ta/super_relay_ta/out/12345678-5b69-11d4-9fee-00c04f4c3456.ta ${D}${nonarch_base_libdir}/optee_armtz/
-    
+
     install -d ${D}${sysconfdir}/superrelay/
     install -m 644 ${S}/config/imx93-config.toml ${D}${sysconfdir}/superrelay/config.toml
 }
@@ -971,22 +971,22 @@ impl OpteeMetrics {
                 "superrelay_optee_operations_total",
                 "Total number of OP-TEE operations"
             ).unwrap(),
-            
+
             tee_operation_duration: register_histogram!(
                 "superrelay_optee_operation_duration_seconds",
                 "Duration of OP-TEE operations in seconds"
             ).unwrap(),
-            
+
             tee_sessions_active: register_gauge!(
                 "superrelay_optee_sessions_active",
                 "Number of active OP-TEE sessions"
             ).unwrap(),
-            
+
             tee_errors_total: register_counter!(
-                "superrelay_optee_errors_total", 
+                "superrelay_optee_errors_total",
                 "Total number of OP-TEE errors"
             ).unwrap(),
-            
+
             key_operations_total: register_counter!(
                 "superrelay_optee_key_operations_total",
                 "Total number of key operations"
@@ -1006,57 +1006,57 @@ impl OpteeMetrics {
 mod optee_tests {
     use super::*;
     use ethers::types::H256;
-    
+
     #[tokio::test]
     async fn test_optee_key_generation() {
         let mut kms = OpteKmsProvider::new()
             .expect("Failed to initialize OP-TEE KMS");
-            
+
         let key_id = "test-key-001";
         let address = kms.generate_key(key_id)
             .expect("Failed to generate key in TEE");
-            
+
         assert_ne!(address, Address::zero());
     }
-    
-    #[tokio::test]  
+
+    #[tokio::test]
     async fn test_optee_signing() {
         let mut kms = OpteKmsProvider::new()
             .expect("Failed to initialize OP-TEE KMS");
-            
+
         let key_id = "test-key-002";
         let _ = kms.generate_key(key_id).expect("Key generation failed");
-        
+
         let message_hash = H256::random();
         let signature = kms.sign_message(key_id, message_hash)
             .expect("Failed to sign in TEE");
-            
+
         // 验证签名格式
         assert_eq!(signature.v, 27 || signature.v == 28);
         assert_ne!(signature.r, H256::zero());
         assert_ne!(signature.s, H256::zero());
     }
-    
+
     #[tokio::test]
     async fn test_optee_performance() {
         let mut kms = OpteKmsProvider::new()
             .expect("Failed to initialize OP-TEE KMS");
-            
+
         let key_id = "perf-test-key";
         let _ = kms.generate_key(key_id).expect("Key generation failed");
-        
+
         let start = std::time::Instant::now();
         let iterations = 100;
-        
+
         for _ in 0..iterations {
             let message_hash = H256::random();
             let _ = kms.sign_message(key_id, message_hash)
                 .expect("Signing failed");
         }
-        
+
         let duration = start.elapsed();
         let avg_time = duration / iterations;
-        
+
         println!("Average TEE signing time: {:?}", avg_time);
         assert!(avg_time < std::time::Duration::from_millis(100));
     }

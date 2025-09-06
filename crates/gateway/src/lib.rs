@@ -14,6 +14,8 @@
 pub mod api_docs;
 /// Authorization and eligibility checking for UserOperations
 pub mod authorization;
+/// Dual signature flow orchestration (Gateway -> AirAccount KMS)
+pub mod dual_signature_flow;
 /// End-to-end transaction validation
 pub mod e2e_validator;
 /// Error types and result helpers
@@ -30,12 +32,18 @@ pub mod router;
 pub mod sbt_validator;
 /// Security analysis and threat detection for UserOperations
 pub mod security;
+/// TEE Security Engine - Advanced security validation within TEE environment
+pub mod tee_security_engine;
 /// Data integrity validation for UserOperations
 pub mod validation;
 /// EntryPoint version selection and routing
 pub mod version_selector;
 
 pub use authorization::{AuthorizationChecker, AuthorizationConfig, AuthorizationResult};
+pub use dual_signature_flow::{
+    DualSignatureConfig, DualSignatureFlow, DualSignatureRequest, DualSignatureResponse,
+    KmsSigningSummary, ValidationSummary,
+};
 pub use e2e_validator::{quick_e2e_health_check, E2EValidationResult, E2EValidator};
 pub use error::{GatewayError, GatewayResult};
 pub use gateway::PaymasterGateway;
@@ -43,6 +51,9 @@ pub use health::{HealthChecker, HealthStatus, SystemStatus};
 pub use router::GatewayRouter;
 pub use sbt_validator::{SBTValidator, SBTValidatorConfig, ValidationResult};
 pub use security::{SecurityChecker, SecurityConfig, SecurityResult};
+pub use tee_security_engine::{
+    TeeSecurityConfig, TeeSecurityEngine, TeeSecurityResult, ThreatIntelligence,
+};
 pub use validation::{DataIntegrityChecker, DataIntegrityResult, ValidationConfig};
 pub use version_selector::{
     DetectionMethod, EntryPointVersion, Network, VersionSelection, VersionSelector,

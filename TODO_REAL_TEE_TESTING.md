@@ -15,7 +15,7 @@ Required Hardware:
   - ARM TrustZone enabled device (e.g., Raspberry Pi 4)
   - OP-TEE OS installation
   - TEE Trusted Application (TA) deployment
-  
+
 Network Setup:
   - SuperRelay service (Rust)
   - AirAccount KMS service (Node.js + OP-TEE)
@@ -30,25 +30,25 @@ impl DualSignatureIntegrationTest {
     /// 真实 TEE 环境集成测试
     pub async fn test_real_tee_integration(&self) -> Result<()> {
         // TODO: 实现以下测试步骤
-        
+
         // 1. 验证 AirAccount KMS 服务可用性
         self.verify_airaccount_kms_connectivity().await?;
-        
+
         // 2. 测试真实 TEE 签名响应
         self.test_real_tee_signature_generation().await?;
-        
+
         // 3. 验证硬件证明 (Hardware Attestation)
         self.verify_hardware_attestation().await?;
-        
+
         // 4. 测试密钥轮换通知到真实 TEE
         self.test_key_rotation_with_real_tee().await?;
-        
+
         // 5. 性能基准测试
         self.run_performance_benchmarks().await?;
-        
+
         Ok(())
     }
-    
+
     async fn verify_airaccount_kms_connectivity(&self) -> Result<()> {
         // TODO: 检查 AirAccount KMS 服务状态
         // - HTTP 连接测试
@@ -56,7 +56,7 @@ impl DualSignatureIntegrationTest {
         // - 授权验证
         Ok(())
     }
-    
+
     async fn test_real_tee_signature_generation(&self) -> Result<()> {
         // TODO: 测试真实 TEE 签名
         // - 构建真实双重签名请求
@@ -65,7 +65,7 @@ impl DualSignatureIntegrationTest {
         // - 确认签名可以被 ethers.js 验证
         Ok(())
     }
-    
+
     async fn verify_hardware_attestation(&self) -> Result<()> {
         // TODO: 验证硬件证明
         // - 检查 TEE 设备 ID 真实性
@@ -73,7 +73,7 @@ impl DualSignatureIntegrationTest {
         // - 确认签名来源于真实硬件
         Ok(())
     }
-    
+
     async fn test_key_rotation_with_real_tee(&self) -> Result<()> {
         // TODO: 测试与真实 TEE 的密钥轮换
         // - 触发 PaymasterKeyManager 密钥轮换
@@ -81,7 +81,7 @@ impl DualSignatureIntegrationTest {
         // - 确认 TEE 端接收并处理轮换通知
         Ok(())
     }
-    
+
     async fn run_performance_benchmarks(&self) -> Result<()> {
         // TODO: 性能基准测试
         // - 测量签名延迟 (目标: <500ms)

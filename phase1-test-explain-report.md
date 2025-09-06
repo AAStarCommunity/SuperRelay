@@ -25,7 +25,7 @@
 ### **关键测试指标:**
 - **端到端响应时间**: < 2 秒 (包含 TEE 初始化)
 - **Hash 计算一致性**: 100% 匹配
-- **双重签名成功率**: 100% 
+- **双重签名成功率**: 100%
 - **TEE TA 签名成功率**: 100%
 
 ---
@@ -78,7 +78,7 @@ const userOperation = {
 
 ---
 
-## **步骤 2: UserOperation Hash 计算** 
+## **步骤 2: UserOperation Hash 计算**
 
 ### 🔐 **标准 ABI 编码流程**
 
@@ -188,7 +188,7 @@ ETH Address: "0x000000000000000000000000000de954d5f0f194"
 ```json
 {
   "balance": "2.5",
-  "membershipLevel": "platinum", 
+  "membershipLevel": "platinum",
   "approvedAt": 1756866323,
   "riskScore": 0.1
 }
@@ -279,7 +279,7 @@ const isValidUserSignature = await verifyPasskeySignature(
 
 **3. 测试模式处理 (kms.ts:334-340):**
 ```typescript
-if (process.env.NODE_ENV !== 'production' && 
+if (process.env.NODE_ENV !== 'production' &&
     accountId === 'passkey_user_test-phase1_airaccount_dev' &&
     signature.startsWith('passkey_signature_')) {
   console.log('🧪 Test mode: Allowing test Passkey signature');
@@ -301,11 +301,11 @@ if (process.env.NODE_ENV !== 'production' &&
 **1. 系统边界跨越:**
 ```
 Node.js CA (Normal World)
-      ↓ ioctl(/dev/teepriv0)  
-Linux Kernel 
+      ↓ ioctl(/dev/teepriv0)
+Linux Kernel
       ↓ SMC 调用
 ARM TrustZone (Secure World)
-      ↓ 
+      ↓
 OP-TEE OS
       ↓
 TA (Trusted Application)
@@ -317,11 +317,11 @@ TA (Trusted Application)
 TEE_Result create_account_keypair(uint32_t account_id) {
     // 1. 硬件随机数生成
     TEE_GenerateRandom(&random_seed, 32);
-    
-    // 2. ECDSA 密钥对生成  
+
+    // 2. ECDSA 密钥对生成
     TEE_AllocateTransientObject(TEE_TYPE_ECDSA_KEYPAIR, 256, &key_object);
     TEE_GenerateKey(key_object, 256, &key_params, 0);
-    
+
     // 3. 私钥安全存储
     TEE_CreatePersistentObject(
         TEE_STORAGE_PRIVATE,
@@ -334,14 +334,14 @@ TEE_Result create_account_keypair(uint32_t account_id) {
 TEE_Result sign_message(bytes32 message_hash) {
     // 1. 恢复私钥
     TEE_OpenPersistentObject(/* ... */);
-    
+
     // 2. ECDSA 签名
     TEE_AsymmetricSignDigest(
         sign_operation,
         &message_hash, 32,
         signature_buffer, &signature_len
     );
-    
+
     return TEE_SUCCESS;
 }
 ```
@@ -392,7 +392,7 @@ TEE 签名: "0xdff3306b2f538"
 ### **多层安全边界:**
 
 1. **前端边界**: 浏览器 ↔ 设备 Secure Enclave (WebAuthn)
-2. **网络边界**: TLS 1.3 加密 + Paymaster 签名防篡改  
+2. **网络边界**: TLS 1.3 加密 + Paymaster 签名防篡改
 3. **系统边界**: Node.js 用户空间 ↔ Linux 内核空间
 4. **硬件边界**: ARM Normal World ↔ ARM Secure World (TrustZone)
 5. **TEE 边界**: OP-TEE OS ↔ TA 应用沙盒

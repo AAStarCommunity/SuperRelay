@@ -75,19 +75,19 @@ EOF
 # Validation functions
 check_dependencies() {
     log_info "🔍 Checking dependencies..."
-    
+
     local missing_deps=()
-    
+
     # Check Docker
     if ! command -v docker >/dev/null 2>&1; then
         missing_deps+=("docker")
     fi
-    
+
     # Check Docker Compose (optional but recommended)
     if ! command -v docker-compose >/dev/null 2>&1; then
         log_warn "Docker Compose not found (optional)"
     fi
-    
+
     # Check system requirements
     if [[ "$(uname)" == "Darwin" ]]; then
         # macOS specific checks
@@ -100,13 +100,13 @@ check_dependencies() {
             log_warn "Current user not in docker group. You may need to use sudo or add user to docker group."
         fi
     fi
-    
+
     if [ ${#missing_deps[@]} -ne 0 ]; then
         log_error "Missing dependencies: ${missing_deps[*]}"
         log_error "Please install missing dependencies and try again"
         exit 1
     fi
-    
+
     log_info "✅ Dependencies check passed"
 }
 
@@ -114,24 +114,24 @@ check_dependencies() {
 build_optee_image() {
     local no_cache=""
     local verbose=""
-    
+
     if [[ "$1" == "--no-cache" ]]; then
         no_cache="--no-cache"
         log_info "Building without cache"
     fi
-    
+
     if [[ "$VERBOSE" == "true" ]]; then
         verbose="--progress=plain"
     fi
-    
+
     log_info "🏗️ Building SuperRelay OP-TEE Docker image..."
     log_info "Image: ${DOCKER_IMAGE_NAME}:${DOCKER_TAG}"
-    
+
     cd "$PROJECT_ROOT"
-    
+
     # Enable BuildKit for better performance
     export DOCKER_BUILDKIT=1
-    
+
     # Build arguments
     local build_args=(
         --file docker/Dockerfile.optee-qemu
@@ -145,14 +145,14 @@ build_optee_image() {
         --build-arg VCS_REF="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
         .
     )
-    
+
     if ! docker build "${build_args[@]}"; then
         log_error "Docker build failed!"
         exit 1
     fi
-    
+
     log_info "✅ Docker image built successfully"
-    
+
     # Show image information
     docker images "${DOCKER_IMAGE_NAME}" --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
 }
@@ -161,7 +161,7 @@ build_optee_image() {
 start_container() {
     local detach_mode=""
     local dev_mode="false"
-    
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             -d|--detach)
@@ -177,21 +177,21 @@ start_container() {
                 ;;
         esac
     done
-    
+
     log_info "🚀 Starting SuperRelay OP-TEE container..."
-    
+
     # Stop existing container if running
     if docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q .; then
         log_info "Stopping existing container..."
         docker stop "${CONTAINER_NAME}" >/dev/null
     fi
-    
+
     # Remove existing container if exists
     if docker ps -aq --filter "name=${CONTAINER_NAME}" | grep -q .; then
         log_info "Removing existing container..."
         docker rm "${CONTAINER_NAME}" >/dev/null
     fi
-    
+
     # Container run arguments
     local run_args=(
         ${detach_mode}
@@ -204,7 +204,7 @@ start_container() {
         -p 54320:54320      # QEMU console
         -p 54321:54321      # QEMU monitor
     )
-    
+
     # Development mode bind mounts
     if [[ "$dev_mode" == "true" ]]; then
         log_info "Enabling development mode with bind mounts"
@@ -214,20 +214,20 @@ start_container() {
             -v "${PROJECT_ROOT}/ta:/opt/ta:ro"
         )
     fi
-    
+
     # Environment variables
     run_args+=(
         -e "OPTEE_DEBUG_LEVEL=${OPTEE_DEBUG_LEVEL:-2}"
         -e "RUST_LOG=${RUST_LOG:-info}"
         -e "RUST_BACKTRACE=1"
     )
-    
+
     # Start container
     if ! docker run "${run_args[@]}" "${DOCKER_IMAGE_NAME}:${DOCKER_TAG}"; then
         log_error "Failed to start container"
         exit 1
     fi
-    
+
     if [[ -z "$detach_mode" ]]; then
         log_info "✅ Container started in interactive mode"
     else
@@ -240,10 +240,10 @@ show_container_info() {
     log_info "📊 Container Information:"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  🔒 SuperRelay OP-TEE Development Environment"  
+    echo "  🔒 SuperRelay OP-TEE Development Environment"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  📊 JSON-RPC API:     http://localhost:3000"
-    echo "  🌐 HTTP REST API:    http://localhost:9000"  
+    echo "  🌐 HTTP REST API:    http://localhost:9000"
     echo "  🏥 Health Check:     http://localhost:3000/health"
     echo "  📈 Metrics:          http://localhost:3000/metrics"
     echo "  🔧 QEMU Console:     telnet localhost 54320"
@@ -253,27 +253,27 @@ show_container_info() {
     echo "🔑 Private keys are secured in OP-TEE environment"
     echo "🛡️ All signing operations executed in Secure World"
     echo ""
-    
+
     # Show container status
     docker ps --filter "name=${CONTAINER_NAME}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 }
 
 enter_shell() {
     log_info "🐚 Entering container shell..."
-    
+
     if ! docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" -q | grep -q .; then
         log_error "Container ${CONTAINER_NAME} is not running"
         log_info "Start the container first with: $0 run"
         exit 1
     fi
-    
+
     docker exec -it "${CONTAINER_NAME}" /bin/bash
 }
 
 show_logs() {
     local follow=""
     local lines="100"
-    
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             -f|--follow)
@@ -289,34 +289,34 @@ show_logs() {
                 ;;
         esac
     done
-    
+
     log_info "📋 Showing container logs (last ${lines} lines)..."
-    
+
     if ! docker ps -a --filter "name=${CONTAINER_NAME}" -q | grep -q .; then
         log_error "Container ${CONTAINER_NAME} does not exist"
         exit 1
     fi
-    
+
     docker logs ${follow} --tail "${lines}" "${CONTAINER_NAME}"
 }
 
 show_status() {
     log_info "📊 Container Status:"
-    
+
     if docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" -q | grep -q .; then
         echo "🟢 Container is running"
         show_container_info
-        
+
         # Test connectivity
         echo ""
         log_info "🔗 Testing connectivity..."
-        
+
         if curl -s -f http://localhost:3000/health >/dev/null 2>&1; then
             echo "✅ SuperRelay API is responding"
         else
             echo "❌ SuperRelay API is not responding"
         fi
-        
+
     elif docker ps -a --filter "name=${CONTAINER_NAME}" -q | grep -q .; then
         echo "🟡 Container exists but is not running"
         docker ps -a --filter "name=${CONTAINER_NAME}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
@@ -328,18 +328,18 @@ show_status() {
 
 clean_environment() {
     log_info "🧹 Cleaning SuperRelay OP-TEE environment..."
-    
+
     # Stop and remove container
     if docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q .; then
         log_info "Stopping container..."
         docker stop "${CONTAINER_NAME}" >/dev/null
     fi
-    
+
     if docker ps -aq --filter "name=${CONTAINER_NAME}" | grep -q .; then
         log_info "Removing container..."
         docker rm "${CONTAINER_NAME}" >/dev/null
     fi
-    
+
     # Remove images
     local remove_images="false"
     read -p "Remove Docker images? [y/N]: " -n 1 -r
@@ -347,13 +347,13 @@ clean_environment() {
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         remove_images="true"
     fi
-    
+
     if [[ "$remove_images" == "true" ]]; then
         log_info "Removing Docker images..."
         docker rmi "${DOCKER_IMAGE_NAME}:${DOCKER_TAG}" 2>/dev/null || true
         docker rmi "${DOCKER_IMAGE_NAME}:latest" 2>/dev/null || true
     fi
-    
+
     # Clean dangling images
     local dangling_images
     dangling_images=$(docker images -f "dangling=true" -q)
@@ -361,7 +361,7 @@ clean_environment() {
         log_info "Cleaning dangling images..."
         docker rmi $dangling_images 2>/dev/null || true
     fi
-    
+
     log_info "✅ Environment cleaned"
 }
 
@@ -372,7 +372,7 @@ main() {
     local no_cache=""
     local dev_mode=""
     local detach=""
-    
+
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -407,17 +407,17 @@ main() {
                 ;;
         esac
     done
-    
+
     export VERBOSE="$verbose"
-    
+
     # Default command
     if [[ -z "$command" ]]; then
         command="build"
     fi
-    
+
     # Check dependencies
     check_dependencies
-    
+
     # Execute command
     case "$command" in
         build)

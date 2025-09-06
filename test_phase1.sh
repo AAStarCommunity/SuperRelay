@@ -56,7 +56,7 @@ request_body=$(cat <<EOF
     "paymasterAndData": "0x"
   },
   "accountId": "test-account-phase1",
-  "signatureFormat": "erc4337", 
+  "signatureFormat": "erc4337",
   "userSignature": "0x1234567890abcdef",
   "userPublicKey": "0xdeadbeefcafebabe",
   "businessValidation": {

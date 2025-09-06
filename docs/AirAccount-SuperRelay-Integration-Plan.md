@@ -1,8 +1,8 @@
 # AirAccount KMS 模块与 SuperRelay 集成方案
 
-**版本**: 1.0  
-**日期**: 2024-12  
-**目标**: 将 AirAccount 剥离为独立的 KMS 服务模块，供 SuperRelay Paymaster 调用  
+**版本**: 1.0
+**日期**: 2024-12
+**目标**: 将 AirAccount 剥离为独立的 KMS 服务模块，供 SuperRelay Paymaster 调用
 
 ---
 
@@ -103,7 +103,7 @@ fn invoke_command(command: proto::Command, input: &[u8]) -> Result<Vec<u8>> {
 packages/airaccount-ta-simple/src/main.rs  (主要 TA)
 ├── 基础命令支持:
 │   ├── CMD_HELLO_WORLD: 0          (连接测试)
-│   ├── CMD_ECHO: 1                 (通信测试)  
+│   ├── CMD_ECHO: 1                 (通信测试)
 │   ├── CMD_GET_VERSION: 2          (版本信息)
 ├── 钱包核心命令:
 │   ├── CMD_CREATE_WALLET: 10       (创建钱包)
@@ -147,7 +147,7 @@ mod security {
 export class AirAccountKmsClient {
   private baseUrl: string;  // AirAccount KMS 服务地址
   private signerPrivateKey: string; // SuperRelay 的签名私钥
-  
+
   async signUserOperation(
     userOp: UserOperation,
     accountId: string,
@@ -159,7 +159,7 @@ export class AirAccountKmsClient {
     if (!businessCheck.approved) {
       throw new Error(`Business validation failed: ${businessCheck.reason}`);
     }
-    
+
     // 2. 构建请求数据（包含用户签名）
     const requestData = {
       userOperation: userOp,
@@ -175,7 +175,7 @@ export class AirAccountKmsClient {
       nonce: Date.now(), // 防重放攻击
       timestamp: Math.floor(Date.now() / 1000)
     };
-    
+
     // 3. SuperPaymaster 对请求签名（包含用户签名的哈希）
     const messageToSign = ethers.utils.solidityKeccak256(
       ['bytes32', 'string', 'bytes32', 'uint256', 'uint256'],
@@ -187,24 +187,24 @@ export class AirAccountKmsClient {
         requestData.timestamp
       ]
     );
-    
+
     const signer = new ethers.Wallet(this.signerPrivateKey);
     const paymasterSignature = await signer.signMessage(ethers.utils.arrayify(messageToSign));
-    
+
     // 4. 发送双重签名请求
     const response = await fetch(`${this.baseUrl}/kms/sign-user-operation`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'X-Paymaster-Signature': paymasterSignature,  // Paymaster 签名
         'X-Paymaster-Address': signer.address,  // Paymaster 公钥地址
       },
       body: JSON.stringify(requestData)
     });
-    
+
     return response.json();
   }
-  
+
   // 业务规则验证
   async validateBusinessRules(accountId: string) {
     // 检查账户余额、会员状态、限额等
@@ -221,35 +221,35 @@ export class AirAccountKmsClient {
 ```
 
 **AirAccount KMS 双重签名验证端点**:
-```typescript  
+```typescript
 // 在 airaccount-ca-nodejs 中新增路由
 app.post('/kms/sign-user-operation', async (req, res) => {
-  const { 
-    userOperation, 
-    accountId, 
-    signatureFormat, 
+  const {
+    userOperation,
+    accountId,
+    signatureFormat,
     userSignature,  // 用户 Passkey 签名
     userPublicKey,  // 用户公钥
     businessValidation,  // 业务验证信息
-    nonce, 
-    timestamp 
+    nonce,
+    timestamp
   } = req.body;
-  
+
   const paymasterSignature = req.headers['x-paymaster-signature'];
   const paymasterAddress = req.headers['x-paymaster-address'];
-  
+
   // 1. 验证时间戳（防重放，5分钟有效期）
   const currentTime = Math.floor(Date.now() / 1000);
   if (Math.abs(currentTime - timestamp) > 300) {
     return res.status(401).json({ error: 'Request expired' });
   }
-  
+
   // 2. 验证 nonce 唯一性（防重放）
   if (await nonceStore.exists(nonce)) {
     return res.status(401).json({ error: 'Nonce already used' });
   }
   await nonceStore.add(nonce, { ttl: 600 }); // 10分钟过期
-  
+
   // 3. 验证 Paymaster 签名（第一层验证）
   const paymasterMessage = ethers.utils.solidityKeccak256(
     ['bytes32', 'string', 'bytes32', 'uint256', 'uint256'],
@@ -261,29 +261,29 @@ app.post('/kms/sign-user-operation', async (req, res) => {
       timestamp
     ]
   );
-  
+
   const recoveredPaymasterAddress = ethers.utils.verifyMessage(
     ethers.utils.arrayify(paymasterMessage),
     paymasterSignature
   );
-  
+
   if (recoveredPaymasterAddress.toLowerCase() !== paymasterAddress.toLowerCase()) {
     return res.status(401).json({ error: 'Invalid Paymaster signature' });
   }
-  
+
   // 4. 验证 Paymaster 是否被授权
   const authorizedPaymasters = await getAuthorizedPaymasters();
   if (!authorizedPaymasters.includes(paymasterAddress.toLowerCase())) {
     return res.status(403).json({ error: 'Paymaster not authorized' });
   }
-  
+
   // 5. 验证用户 Passkey 签名（第二层验证）
   const userOpHash = getUserOperationHash(userOperation);
   const userMessageHash = ethers.utils.solidityKeccak256(
     ['bytes32', 'string'],
     [userOpHash, accountId]
   );
-  
+
   // 验证用户的 Passkey 签名
   const isValidUserSignature = await verifyPasskeySignature(
     userSignature,
@@ -291,11 +291,11 @@ app.post('/kms/sign-user-operation', async (req, res) => {
     userMessageHash,
     accountId
   );
-  
+
   if (!isValidUserSignature) {
     return res.status(401).json({ error: 'Invalid user Passkey signature' });
   }
-  
+
   // 6. 记录业务验证信息（审计日志）
   await auditLog.record({
     type: 'DUAL_SIGNATURE_SPONSORSHIP',
@@ -305,7 +305,7 @@ app.post('/kms/sign-user-operation', async (req, res) => {
     businessValidation,
     timestamp: new Date()
   });
-  
+
   // 7. 通过 TEE TA 签名（最终签名）
   const teeResult = await teeClient.signWithTEE({
     accountId,
@@ -317,7 +317,7 @@ app.post('/kms/sign-user-operation', async (req, res) => {
       userPublicKey
     }
   });
-  
+
   // 8. 返回标准格式
   res.json({
     success: true,
@@ -341,11 +341,11 @@ async function verifyPasskeySignature(
 ): Promise<boolean> {
   // 从数据库获取账户绑定的 Passkey 凭证
   const credential = await database.getPasskeyCredential(accountId);
-  
+
   if (!credential || credential.publicKey !== publicKey) {
     return false;
   }
-  
+
   // 使用 WebAuthn 验证逻辑
   return webauthnService.verifySignature(
     signature,
@@ -376,39 +376,39 @@ impl PaymasterKeyManager {
     pub fn new() -> Self {
         // 初始化时生成新密钥
         let wallet = LocalWallet::new(&mut rand::thread_rng());
-        
+
         Self {
             current_wallet: Arc::new(RwLock::new(wallet)),
             rotation_interval: Duration::from_secs(86400), // 24小时轮换
             last_rotation: Instant::now(),
         }
     }
-    
+
     pub async fn get_signer(&self) -> LocalWallet {
         // 检查是否需要轮换
         if self.last_rotation.elapsed() > self.rotation_interval {
             self.rotate_key().await;
         }
-        
+
         self.current_wallet.read().await.clone()
     }
-    
+
     async fn rotate_key(&self) {
         let new_wallet = LocalWallet::new(&mut rand::thread_rng());
         let mut wallet_guard = self.current_wallet.write().await;
-        
+
         // 通知 AirAccount 新的公钥
         self.notify_key_rotation(
             wallet_guard.address(),  // 旧地址
             new_wallet.address()      // 新地址
         ).await;
-        
+
         *wallet_guard = new_wallet;
         self.last_rotation = Instant::now();
-        
+
         info!("Rotated Paymaster signing key");
     }
-    
+
     async fn notify_key_rotation(&self, old_address: Address, new_address: Address) {
         // 发送密钥轮换通知给 AirAccount KMS
         // 可以使用双签名（新旧密钥都签名）来验证轮换合法性
@@ -423,7 +423,7 @@ impl PaymasterKeyManager {
 // airaccount-ca-nodejs/src/services/signer-authorization.ts
 export class SignerAuthorizationService {
   private authorizedSigners: Map<string, SignerInfo> = new Map();
-  
+
   interface SignerInfo {
     address: string;
     name: string;
@@ -431,35 +431,35 @@ export class SignerAuthorizationService {
     expiresAt?: Date;
     permissions: string[];
   }
-  
+
   // 添加授权签名者
   async addAuthorizedSigner(signerAddress: string, info: SignerInfo) {
     // 只有管理员可以添加
     this.authorizedSigners.set(signerAddress.toLowerCase(), info);
     await this.persistToDatabase();
   }
-  
+
   // 验证签名者授权
   async isAuthorized(signerAddress: string): Promise<boolean> {
     const signer = this.authorizedSigners.get(signerAddress.toLowerCase());
     if (!signer) return false;
-    
+
     // 检查是否过期
     if (signer.expiresAt && signer.expiresAt < new Date()) {
       this.authorizedSigners.delete(signerAddress.toLowerCase());
       return false;
     }
-    
+
     return true;
   }
-  
+
   // 密钥轮换处理
   async handleKeyRotation(oldAddress: string, newAddress: string, proof: string) {
     // 验证轮换证明（双签名验证）
     if (!await this.verifyRotationProof(oldAddress, newAddress, proof)) {
       throw new Error('Invalid key rotation proof');
     }
-    
+
     // 移除旧密钥，添加新密钥
     const oldSigner = this.authorizedSigners.get(oldAddress.toLowerCase());
     if (oldSigner) {
@@ -492,17 +492,17 @@ export class SignerAuthorizationService {
    ```typescript
    // 新增 src/routes/kms.ts
    export const kmsRoutes = Router();
-   
+
    // SuperRelay 专用签名接口
    kmsRoutes.post('/sign-user-operation', requireAuth, async (req, res) => {
      // ERC-4337 UserOperation 签名逻辑
    });
-   
+
    // 账户创建接口 (支持确定性地址)
    kmsRoutes.post('/create-deterministic-account', async (req, res) => {
      // 基于 WebAuthn Credential ID 创建账户
    });
-   
+
    // 健康检查和状态接口
    kmsRoutes.get('/health', (req, res) => {
      // TEE 状态检查
@@ -527,9 +527,9 @@ export class SignerAuthorizationService {
    function getUserOperationHash(userOp: UserOperation): string {
      const entryPointAddress = '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789';
      const chainId = 1; // 主网
-     
+
      const encoded = ethers.AbiCoder.defaultAbiCoder().encode([
-       'address', 'uint256', 'bytes32', 'bytes32', 
+       'address', 'uint256', 'bytes32', 'bytes32',
        'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'bytes32'
      ], [
        userOp.sender, userOp.nonce,
@@ -540,7 +540,7 @@ export class SignerAuthorizationService {
        userOp.maxPriorityFeePerGas,
        ethers.keccak256(userOp.paymasterAndData)
      ]);
-     
+
      return ethers.keccak256(
        ethers.AbiCoder.defaultAbiCoder().encode(
          ['bytes32', 'address', 'uint256'],
@@ -568,33 +568,33 @@ export class SignerAuthorizationService {
    ```dockerfile
    # 新增 docker/Dockerfile.kms-service
    FROM node:18-alpine
-   
+
    # 安装 AirAccount KMS 服务
    COPY packages/airaccount-ca-nodejs /app
    WORKDIR /app
-   
+
    RUN npm install
-   
+
    # 确保 TEE 设备访问
    RUN apk add --no-cache qemu-system-aarch64
-   
+
    EXPOSE 3002
    CMD ["npm", "start"]
    ```
 
 2. **环境变量配置**:
    ```bash
-   # .env.kms-service  
+   # .env.kms-service
    PORT=3002
    NODE_ENV=production
-   
+
    # TEE 环境配置
    TEE_DEVICE_PATH=/dev/teepriv0
    QEMU_TEE_ENABLED=true
-   
+
    # 数据库配置
    DATABASE_PATH=/data/airaccount-kms.sqlite
-   
+
    # 安全配置
    JWT_SECRET=your-secret-key
    CORS_ORIGIN=https://superrelay.yourdomain.com
@@ -612,14 +612,14 @@ export class SignerAuthorizationService {
    use reqwest::Client;
    use serde::{Deserialize, Serialize};
    use anyhow::Result;
-   
+
    #[derive(Serialize)]
    pub struct KmsSignRequest {
        user_operation: serde_json::Value,
        account_id: String,
        signature_format: String,
    }
-   
+
    #[derive(Deserialize)]
    pub struct KmsSignResponse {
        success: bool,
@@ -627,13 +627,13 @@ export class SignerAuthorizationService {
        user_op_hash: String,
        tee_device_id: String,
    }
-   
+
    pub struct AirAccountKmsProvider {
        client: Client,
        base_url: String,
        auth_token: Option<String>,
    }
-   
+
    impl AirAccountKmsProvider {
        pub fn new(base_url: String) -> Self {
            Self {
@@ -642,7 +642,7 @@ export class SignerAuthorizationService {
                auth_token: None,
            }
        }
-       
+
        pub async fn sign_user_operation(
            &self,
            user_op: &serde_json::Value,
@@ -653,13 +653,13 @@ export class SignerAuthorizationService {
                account_id: account_id.to_string(),
                signature_format: "erc4337".to_string(),
            };
-           
+
            let response = self.client
                .post(&format!("{}/kms/sign-user-operation", self.base_url))
                .json(&request)
                .send()
                .await?;
-               
+
            Ok(response.json().await?)
        }
    }
@@ -676,24 +676,24 @@ export class SignerAuthorizationService {
        ) -> Result<UserOperation, PaymasterError> {
            // 1. 使用密钥管理器获取当前签名密钥
            let signer = self.key_manager.get_signer().await;
-           
+
            // 2. 调用 AirAccount KMS 签名（包含请求签名）
            let kms_response = self.airaccount_kms
                .sign_user_operation_with_signature(
-                   &serde_json::to_value(user_op)?, 
+                   &serde_json::to_value(user_op)?,
                    account_id,
                    &signer
                )
                .await?;
-           
+
            // 3. 验证返回的签名
            self.validate_signature(&kms_response.signature, &kms_response.user_op_hash)?;
-           
+
            // 4. 添加 Paymaster 数据并返回完整 UserOperation
            let mut sponsored_user_op = user_op;
            sponsored_user_op.signature = kms_response.signature;
            sponsored_user_op.paymaster_and_data = self.build_paymaster_data()?;
-           
+
            Ok(sponsored_user_op)
        }
    }
@@ -710,7 +710,7 @@ export class SignerAuthorizationService {
    impl PaymasterRelayApiServer for PaymasterRelayApiServerImpl {
        // 现有方法
        async fn pm_sponsor_user_operation(&self, ...) -> Result<...> { ... }
-       
+
        // 新增：AirAccount 集成方法（使用签名认证）
        async fn pm_sponsor_with_tee(
            &self,
@@ -724,7 +724,7 @@ export class SignerAuthorizationService {
            .map(|result| serde_json::to_value(result).unwrap())
            .map_err(|e| ErrorObjectOwned::owned(-32000, e.to_string(), None::<()>))
        }
-       
+
        // 新增：账户信息查询
        async fn pm_get_account_info(
            &self,
@@ -741,15 +741,15 @@ export class SignerAuthorizationService {
    # config/config.toml
    [paymaster_relay]
    enabled = true
-   
+
    # AirAccount KMS 集成
    airaccount_kms_enabled = true
    airaccount_kms_url = "http://localhost:3002"
-   
+
    # SuperRelay 签名密钥配置
    signer_private_key = "${PAYMASTER_SIGNER_KEY}"  # 从环境变量读取
    key_rotation_interval_hours = 24  # 密钥轮换间隔
-   
+
    # 故障切换配置
    fallback_to_local_signer = true
    kms_timeout_seconds = 30
@@ -763,24 +763,24 @@ export class SignerAuthorizationService {
    ```bash
    #!/bin/bash
    # scripts/test_airaccount_integration.sh
-   
+
    echo "🧪 Testing SuperRelay + AirAccount Integration"
-   
+
    # 1. 启动 AirAccount KMS 服务
    echo "📡 Starting AirAccount KMS Service..."
    cd packages/airaccount-ca-nodejs && npm start &
    KMS_PID=$!
    sleep 5
-   
+
    # 2. 启动 SuperRelay 服务
    echo "🚀 Starting SuperRelay Service..."
    ./target/debug/super-relay node --config config/config.toml &
    RELAY_PID=$!
    sleep 10
-   
+
    # 3. 测试端到端流程
    echo "🔧 Testing E2E UserOperation Flow..."
-   
+
    # 先授权 SuperRelay 的签名地址
    echo "📝 Authorizing SuperRelay signer..."
    SIGNER_ADDRESS=$(./target/debug/super-relay get-signer-address)
@@ -792,7 +792,7 @@ export class SignerAuthorizationService {
        \"name\": \"SuperRelay Paymaster\",
        \"permissions\": [\"sign_user_operation\"]
      }"
-   
+
    # 创建测试 UserOperation（现在不需要传递认证信息）
    curl -X POST http://localhost:3000 \
      -H "Content-Type: application/json" \
@@ -806,14 +806,14 @@ export class SignerAuthorizationService {
          "initCode": "0x",
          "callData": "0x",
          "callGasLimit": "0x186a0",
-         "verificationGasLimit": "0x186a0", 
+         "verificationGasLimit": "0x186a0",
          "preVerificationGas": "0x5208",
          "maxFeePerGas": "0x59682f00",
          "maxPriorityFeePerGas": "0x3b9aca00",
          "paymasterAndData": "0x"
        }, "test-account-123"]
      }'
-   
+
    # 清理
    kill $KMS_PID $RELAY_PID
    echo "✅ Integration test completed"
@@ -829,7 +829,7 @@ export class SignerAuthorizationService {
    ```bash
    # 使用已有的 SuperRelay TEE 部署脚本
    cp scripts/build_optee_env.sh scripts/build_airaccount_kms.sh
-   
+
    # 修改构建目标
    sed -i 's/super-relay/airaccount-kms/g' scripts/build_airaccount_kms.sh
    ```
@@ -880,13 +880,13 @@ export class SignerAuthorizationService {
    ```typescript
    // 在 AirAccount KMS 中添加指标收集
    import { register, Counter, Histogram } from 'prom-client';
-   
+
    const signatureRequests = new Counter({
      name: 'airaccount_signature_requests_total',
      help: 'Total signature requests',
      labelNames: ['account_id', 'status'],
    });
-   
+
    const signatureLatency = new Histogram({
      name: 'airaccount_signature_duration_seconds',
      help: 'Signature operation latency',
@@ -919,10 +919,10 @@ export class SignerAuthorizationService {
      try {
        // 检查 TEE 连接
        await teeClient.healthCheck();
-       
+
        // 检查数据库连接
        await database.ping();
-       
+
        res.json({
          status: 'healthy',
          timestamp: new Date().toISOString(),
@@ -954,7 +954,7 @@ export class SignerAuthorizationService {
                Ok(response) => Ok(response),
                Err(e) => {
                    warn!("AirAccount KMS failed: {}, falling back to local signer", e);
-                   
+
                    // 故障切换到本地签名器
                    self.fallback_to_local_signer(user_op, account_id).await
                }
@@ -985,7 +985,7 @@ export class SignerAuthorizationService {
 - 📈 并发支持 100+ 请求/分钟
 - 📈 系统可用性 > 99.9%
 
-### 安全验收  
+### 安全验收
 - 🔒 私钥永不离开 TEE Secure World
 - 🔒 所有 API 调用都需要有效认证
 - 🔒 签名操作有完整审计日志
@@ -1000,7 +1000,7 @@ export class SignerAuthorizationService {
    - **第三层**：TEE 硬件保护（私钥安全）
 
 2. **攻击场景防护**：
-   
+
    | 攻击场景 | 防护机制 | 结果 |
    |---------|---------|------|
    | Paymaster 私钥泄露 | 需要用户 Passkey 签名 | ❌ 无法伪造用户签名 |
@@ -1037,7 +1037,7 @@ export class SignerAuthorizationService {
 ### 风险1: TEE 环境兼容性
 **缓解**: 复用 SuperRelay 已验证的 OP-TEE 环境配置
 
-### 风险2: 性能瓶颈  
+### 风险2: 性能瓶颈
 **缓解**: 实现批量签名和签名缓存机制
 
 ### 风险3: 网络通信延迟
@@ -1065,7 +1065,7 @@ export class SignerAuthorizationService {
 
 ### 实施计划：
 - **Phase 1**：KMS API 标准化，支持双重签名验证（1周）
-- **Phase 2**：SuperRelay 集成，实现业务规则验证（1周）  
+- **Phase 2**：SuperRelay 集成，实现业务规则验证（1周）
 - **Phase 3**：生产部署，ARM TEE 环境优化（1周）
 
 预计 **3周时间** 完成集成，实现：

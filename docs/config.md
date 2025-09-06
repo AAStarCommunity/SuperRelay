@@ -1,7 +1,7 @@
 # SuperRelay + AirAccount 项目配置文档
 
-**版本**: v1.0  
-**更新日期**: 2025-09-06  
+**版本**: v1.0
+**更新日期**: 2025-09-06
 **状态**: Active Configuration
 
 ## 🌐 跨链EntryPoint合约地址
@@ -100,10 +100,10 @@ OP Sepolia: 0.05 ETH (Layer 2测试)
 pub struct TAGlobalConfig {
     // 支持的EntryPoint版本
     pub supported_versions: Vec<&'static str> = vec!["0.6", "0.7", "0.8"];
-    
+
     // 默认使用版本
     pub default_version: &'static str = "0.7";
-    
+
     // 安全参数
     pub max_nonce_window: u64 = 1000;
     pub signature_timeout: u64 = 300; // 5分钟
@@ -161,7 +161,7 @@ contract SuperRelayConfigRegistry {
     address public constant SEPOLIA_TESTNET = 0x[TBD];
     address public constant OP_MAINNET = 0x[TBD];
     address public constant OP_SEPOLIA = 0x[TBD];
-    
+
     mapping(bytes32 => bool) public validConfigHashes;
 }
 ```
@@ -198,6 +198,6 @@ contract SuperRelayConfigRegistry {
 
 ---
 
-**配置维护者**: SuperRelay 开发团队  
-**最后更新**: 2025-09-06  
+**配置维护者**: SuperRelay 开发团队
+**最后更新**: 2025-09-06
 **下次审查**: 2025-10-06
