@@ -4,7 +4,7 @@
 
 ## v0.1.13 - 2025-09-06 📋
 
-### 统一架构规划和文档重构
+### 架构概念迁移和跨项目同步
 
 #### 🎯 核心成果
 
@@ -41,6 +41,26 @@
 - 移除过时的双分支架构设计概念
 - 统一配置管理和部署流程
 - 简化维护和测试复杂度
+
+#### 🔄 架构概念同步更新
+
+**SuperRelay项目**:
+- ✅ **文件重命名**: `dual_signature_flow.rs` → `multi_layer_verification_flow.rs`
+- ✅ **术语统一**: "双重签名验证" → "多层验证 (Multi-Layer Verification)"
+- ✅ **TEE安全引擎**: 完整威胁检测和防护机制实现
+- ✅ **多层验证概念**: Layer 1-5 验证流程明确定义
+  - Layer 1: 用户意图 → Passkey 授权
+  - Layer 2: 安全规则验证 (黑名单、钓鱼、异常检测)
+  - Layer 3: Gas赞助 (SBT+PNTs验证 + Paymaster签名)
+  - Layer 4: TEE私钥签名
+  - Layer 5: 链上合约账户安全规则
+
+**AirAccount项目同步**:
+- ✅ **跨项目一致性**: 创建AirAccount/dev分支配合开发
+- ✅ **文件重命名**: `dual_signature.rs` → `multi_layer_verification.rs`
+- ✅ **API更新**: `/verify-dual-signature` → `/verify-multi-layer`
+- ✅ **数据结构**: `DualSignatureRequest/Response` → `MultiLayerVerificationRequest/Response`
+- ✅ **函数重命名**: 所有相关函数和常量保持架构一致性
 
 #### 📋 文档一致性更新
 
