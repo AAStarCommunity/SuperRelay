@@ -169,9 +169,9 @@ impl DualSignatureIntegrationTest {
         Ok(())
     }
 
-    /// 模拟完整的双重签名流程（不实际连接 AirAccount KMS）
-    pub async fn test_complete_dual_signature_flow_simulation(&self) -> Result<()> {
-        info!("🎭 Testing complete dual signature flow simulation");
+    /// 模拟完整的多重验证流程（不实际连接 AirAccount KMS）
+    pub async fn test_complete_multi_layer_verification_flow_simulation(&self) -> Result<()> {
+        info!("🎭 Testing complete multi-layer verification flow simulation");
 
         let _kms_client = self
             .kms_client
@@ -266,7 +266,8 @@ impl DualSignatureIntegrationTest {
             }),
             ("Key Rotation", { self.test_key_rotation().await }),
             ("Complete Dual Signature Flow Simulation", {
-                self.test_complete_dual_signature_flow_simulation().await
+                self.test_complete_multi_layer_verification_flow_simulation()
+                    .await
             }),
         ];
 

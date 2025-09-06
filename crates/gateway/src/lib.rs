@@ -14,8 +14,6 @@
 pub mod api_docs;
 /// Authorization and eligibility checking for UserOperations
 pub mod authorization;
-/// Dual signature flow orchestration (Gateway -> AirAccount KMS)
-pub mod dual_signature_flow;
 /// End-to-end transaction validation
 pub mod e2e_validator;
 /// Error types and result helpers
@@ -26,6 +24,8 @@ pub mod gateway;
 pub mod health;
 /// HTTP middleware for enterprise features
 pub mod middleware;
+/// Multi-Layer Verification Flow orchestration (Gateway -> AirAccount KMS)
+pub mod multi_layer_verification_flow;
 /// Request routing logic
 pub mod router;
 /// SBT + PNTs balance validation for user eligibility
@@ -40,14 +40,14 @@ pub mod validation;
 pub mod version_selector;
 
 pub use authorization::{AuthorizationChecker, AuthorizationConfig, AuthorizationResult};
-pub use dual_signature_flow::{
-    DualSignatureConfig, DualSignatureFlow, DualSignatureRequest, DualSignatureResponse,
-    KmsSigningSummary, ValidationSummary,
-};
 pub use e2e_validator::{quick_e2e_health_check, E2EValidationResult, E2EValidator};
 pub use error::{GatewayError, GatewayResult};
 pub use gateway::PaymasterGateway;
 pub use health::{HealthChecker, HealthStatus, SystemStatus};
+pub use multi_layer_verification_flow::{
+    DualSignatureConfig, DualSignatureFlow, DualSignatureRequest, DualSignatureResponse,
+    KmsSigningSummary, ValidationSummary,
+};
 pub use router::GatewayRouter;
 pub use sbt_validator::{SBTValidator, SBTValidatorConfig, ValidationResult};
 pub use security::{SecurityChecker, SecurityConfig, SecurityResult};
