@@ -12,6 +12,7 @@ serde_json = "1.0.128"
 ethers = "2.0"
 hex = "0.4"
 base64 = "0.21"
+chrono = "0.4"
 
 [[bin]]
 name = "test_fixed"
@@ -28,3 +29,11 @@ path = "src/test_tee_account.rs"
 [[bin]]
 name = "test_real_passkey"
 path = "src/test_real_passkey.rs"
+
+[[bin]]
+name = "test_ta_dual_signature"
+path = "test_ta_dual_signature.rs"
+
+[[bin]]
+name = "test_erc4337_v06_standard"
+path = "test_erc4337_v06_standard.rs"
