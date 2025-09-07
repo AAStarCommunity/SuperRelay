@@ -14,10 +14,22 @@ use std::{
 use serde_json::{json, Value};
 use tokio::time::sleep;
 
-/// 测试配置
-const ANVIL_URL: &str = "http://localhost:8545";
-const RUNDLER_URL: &str = "http://localhost:3000";
-const DASHBOARD_URL: &str = "http://localhost:8082";
+/// 测试配置 - 使用环境变量或默认值
+fn get_anvil_url() -> String {
+    std::env::var("ANVIL_URL")
+        .or_else(|_| std::env::var("NODE_HTTP"))
+        .unwrap_or_else(|_| "http://localhost:8545".to_string())
+}
+
+fn get_rundler_url() -> String {
+    std::env::var("RUNDLER_URL")
+        .or_else(|_| std::env::var("SUPER_RELAY_URL"))
+        .unwrap_or_else(|_| "http://localhost:3000".to_string())
+}
+
+fn get_dashboard_url() -> String {
+    std::env::var("DASHBOARD_URL").unwrap_or_else(|_| "http://localhost:8082".to_string())
+}
 const ENTRYPOINT_ADDRESS: &str = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
 
 /// 测试结果统计
@@ -78,17 +90,17 @@ fn test_basic_connectivity() -> TestResult {
         println!("🔗 Testing basic connectivity...");
 
         // Test Anvil
-        let anvil_response = make_rpc_call(ANVIL_URL, "eth_chainId", json!([]), 1).await?;
+        let anvil_response = make_rpc_call(&get_anvil_url(), "eth_chainId", json!([]), 1).await?;
         assert!(anvil_response.get("result").is_some());
         println!("  ✅ Anvil connection OK");
 
         // Test Rundler health
-        let health_response = reqwest::get(&format!("{}/health", RUNDLER_URL)).await?;
+        let health_response = reqwest::get(&format!("{}/health", get_rundler_url())).await?;
         assert!(health_response.status().is_success());
         println!("  ✅ Rundler health OK");
 
         // Test Dashboard
-        let dashboard_response = reqwest::get(DASHBOARD_URL).await?;
+        let dashboard_response = reqwest::get(&get_dashboard_url()).await?;
         assert!(dashboard_response.status().is_success());
         println!("  ✅ Dashboard accessibility OK");
 
@@ -111,7 +123,7 @@ fn test_supported_rpc_methods() -> TestResult {
         ];
 
         for (method, params) in methods_to_test {
-            let response = make_rpc_call(RUNDLER_URL, method, params, 1).await?;
+            let response = make_rpc_call(&get_rundler_url(), method, params, 1).await?;
 
             if response.get("error").is_some() {
                 if method == "pm_sponsorUserOperation" {
@@ -142,7 +154,8 @@ fn test_entrypoint_configuration() -> TestResult {
     Box::pin(async move {
         println!("🎯 Testing EntryPoint configuration...");
 
-        let response = make_rpc_call(RUNDLER_URL, "eth_supportedEntryPoints", json!([]), 1).await?;
+        let response =
+            make_rpc_call(&get_rundler_url(), "eth_supportedEntryPoints", json!([]), 1).await?;
 
         let supported_entries = response["result"]
             .as_array()
@@ -217,7 +230,7 @@ fn test_api_performance() -> TestResult {
             let start = Instant::now();
 
             let _response = make_rpc_call(
-                RUNDLER_URL,
+                &get_rundler_url(),
                 "pm_sponsorUserOperation",
                 json!([create_test_user_operation(), ENTRYPOINT_ADDRESS]),
                 i + 1,
@@ -258,7 +271,7 @@ fn test_dashboard_functionality() -> TestResult {
         let client = reqwest::Client::new();
 
         // 测试主页面
-        let main_page = client.get(DASHBOARD_URL).send().await?;
+        let main_page = client.get(get_dashboard_url()).send().await?;
         assert!(main_page.status().is_success());
 
         let content = main_page.text().await?;
@@ -275,7 +288,7 @@ fn test_dashboard_functionality() -> TestResult {
         ];
 
         for endpoint in api_endpoints {
-            let url = format!("{}{}", DASHBOARD_URL, endpoint);
+            let url = format!("{}{}", get_dashboard_url(), endpoint);
             let response = client.get(&url).send().await;
 
             if let Ok(resp) = response {

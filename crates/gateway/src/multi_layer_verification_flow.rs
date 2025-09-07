@@ -120,9 +120,14 @@ impl DualSignatureFlow {
         info!("   AirAccount KMS URL: {}", config.airaccount_kms_url);
         info!("   Strict SBT Validation: {}", config.strict_sbt_validation);
 
-        // Create provider for blockchain interactions
-        let rpc_url = "https://rpc.sepolia.org"; // Default to Sepolia testnet
-        let _provider = Arc::new(Provider::<Http>::try_from(rpc_url)?);
+        // Create provider for blockchain interactions - use configurable RPC URL
+        let rpc_url = std::env::var("NODE_HTTP")
+            .or_else(|_| std::env::var("RPC_URL"))
+            .unwrap_or_else(|_| {
+                warn!("⚠️  NODE_HTTP/RPC_URL not set, using Sepolia testnet");
+                "https://rpc.sepolia.org".to_string()
+            });
+        let _provider = Arc::new(Provider::<Http>::try_from(rpc_url.as_str())?);
 
         // Initialize SBT validator
         let sbt_config = crate::sbt_validator::SBTValidatorConfig {
@@ -401,7 +406,8 @@ impl Default for DualSignatureConfig {
             strict_sbt_validation: true,
             min_pnts_balance: "1000000000000000000000".to_string(), // 1000 PNTs
             max_gas_limit: 5000000,                                 // 5M gas
-            airaccount_kms_url: "http://localhost:3002".to_string(),
+            airaccount_kms_url: std::env::var("AIRACCOUNT_KMS_URL")
+                .unwrap_or_else(|_| "http://localhost:3002".to_string()),
             request_timeout_seconds: 30,
             enable_audit_logging: true,
         }

@@ -347,19 +347,27 @@ mod tests {
         assert!(result.is_err() || result.is_ok());
     }
 
+    /// Get test RPC URL from environment variable or default
+    fn get_test_rpc_url() -> String {
+        std::env::var("TEST_RPC_URL")
+            .or_else(|_| std::env::var("NODE_HTTP"))
+            .unwrap_or_else(|_| "http://localhost:8545".to_string())
+    }
+
     #[test]
     fn test_gas_calculation() {
         let config = SBTValidatorConfig::default();
+        let rpc_url = get_test_rpc_url();
         let validator = SBTValidator {
             config: config.clone(),
-            rpc_client: Arc::new(Provider::<Http>::try_from("http://localhost:8545").unwrap()),
+            rpc_client: Arc::new(Provider::<Http>::try_from(rpc_url.as_str()).unwrap()),
             sbt_contract: SBTContract::new(
                 config.sbt_contract,
-                Arc::new(Provider::<Http>::try_from("http://localhost:8545").unwrap()),
+                Arc::new(Provider::<Http>::try_from(rpc_url.as_str()).unwrap()),
             ),
             pnts_contract: PNTSContract::new(
                 config.pnts_contract,
-                Arc::new(Provider::<Http>::try_from("http://localhost:8545").unwrap()),
+                Arc::new(Provider::<Http>::try_from(rpc_url.as_str()).unwrap()),
             ),
         };
 

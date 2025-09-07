@@ -626,7 +626,14 @@ impl Cli {
             .unwrap_or_else(|_| "dev".to_string());
         let node_http = std::env::var("NODE_HTTP")
             .or_else(|_| std::env::var("ETH_NODE_HTTP"))
-            .unwrap_or_else(|_| "http://localhost:8545".to_string());
+            .or_else(|_| {
+                warn!("⚠️  NODE_HTTP not set, using config file or fallback");
+                Err(std::env::VarError::NotPresent)
+            })
+            .unwrap_or_else(|_| {
+                warn!("⚠️  Using fallback RPC URL for development - set NODE_HTTP env var for production");
+                "http://localhost:8545".to_string()
+            });
 
         let provider_config = Arc::new(ProviderConfig {
             network: network.clone(),
@@ -999,7 +1006,10 @@ impl Cli {
 
         let node_http = std::env::var("RPC_URL")
             .or_else(|_| std::env::var("NODE_HTTP"))
-            .unwrap_or_else(|_| "http://localhost:8545".to_string());
+            .unwrap_or_else(|_| {
+                warn!("⚠️  RPC_URL/NODE_HTTP not set, using development fallback - set these env vars for production");
+                "http://localhost:8545".to_string()
+            });
 
         // Smart private key management: prioritize environment variables, support .env files for testing
         let signer_keys = std::env::var("SIGNER_PRIVATE_KEYS")
