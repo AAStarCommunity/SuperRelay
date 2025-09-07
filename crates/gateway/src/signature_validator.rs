@@ -11,8 +11,7 @@ use alloy_primitives::U256;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
 
-use crate::error::GatewayResult;
-use crate::validation::ValidationSeverity;
+use crate::{error::GatewayResult, validation::ValidationSeverity};
 
 /// ECDSA签名验证结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,18 +94,27 @@ impl SignatureValidator {
     }
 
     /// 验证ECDSA签名格式和安全性
-    pub async fn validate_signature(&self, signature: &[u8]) -> GatewayResult<SignatureValidationResult> {
-        debug!("🔐 Validating ECDSA signature format (length: {})", signature.len());
+    pub async fn validate_signature(
+        &self,
+        signature: &[u8],
+    ) -> GatewayResult<SignatureValidationResult> {
+        debug!(
+            "🔐 Validating ECDSA signature format (length: {})",
+            signature.len()
+        );
 
         let mut security_issues = Vec::new();
-        
+
         // 1. 基础长度检查
         let signature_format = self.determine_signature_format(signature);
         if signature_format == SignatureFormat::Invalid {
             return Ok(SignatureValidationResult {
                 is_valid: false,
                 signature_format,
-                message: format!("Invalid signature length: {} bytes (expected 64 or 65)", signature.len()),
+                message: format!(
+                    "Invalid signature length: {} bytes (expected 64 or 65)",
+                    signature.len()
+                ),
                 severity: ValidationSeverity::Critical,
                 components: None,
                 security_issues,
@@ -130,31 +138,38 @@ impl SignatureValidator {
 
         // 3. 验证r组件
         if !self.is_valid_r_component(components.r) {
-            security_issues.push("Invalid r component: must be in range [1, secp256k1_order)".to_string());
+            security_issues
+                .push("Invalid r component: must be in range [1, secp256k1_order)".to_string());
         }
 
         // 4. 验证s组件和malleable检查
         if !self.is_valid_s_component(components.s) {
-            security_issues.push("Invalid s component: must be in range [1, secp256k1_order)".to_string());
+            security_issues
+                .push("Invalid s component: must be in range [1, secp256k1_order)".to_string());
         }
 
         if components.is_high_s {
             if !self.allow_malleable {
                 security_issues.push("High s value detected: signature is malleable (vulnerability to signature replay attacks)".to_string());
             } else {
-                warn!("⚠️ High s value in signature - malleable signature allowed by configuration");
+                warn!(
+                    "⚠️ High s value in signature - malleable signature allowed by configuration"
+                );
             }
         }
 
         // 5. 验证v组件
         if !self.is_valid_v_component(components.v) {
-            security_issues.push(format!("Invalid recovery id (v): {} (expected 27/28 or 0/1)", components.v));
+            security_issues.push(format!(
+                "Invalid recovery id (v): {} (expected 27/28 or 0/1)",
+                components.v
+            ));
         }
 
         // 6. 确定最终验证结果
         let has_critical_issues = !security_issues.is_empty() && self.strict_format;
         let is_valid = !has_critical_issues;
-        
+
         let severity = if has_critical_issues {
             ValidationSeverity::Critical
         } else if !security_issues.is_empty() {
@@ -167,10 +182,16 @@ impl SignatureValidator {
             if security_issues.is_empty() {
                 "✅ Signature format is valid and secure".to_string()
             } else {
-                format!("⚠️ Signature valid but has {} security warnings", security_issues.len())
+                format!(
+                    "⚠️ Signature valid but has {} security warnings",
+                    security_issues.len()
+                )
             }
         } else {
-            format!("❌ Signature validation failed: {} security issues", security_issues.len())
+            format!(
+                "❌ Signature validation failed: {} security issues",
+                security_issues.len()
+            )
         };
 
         debug!("Signature validation completed: {}", message);
@@ -249,43 +270,40 @@ impl SignatureValidator {
     /// 验证r组件是否有效
     fn is_valid_r_component(&self, r: U256) -> bool {
         // r must be in range [1, secp256k1_order)
-        // secp256k1 curve order: n = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141  
+        // secp256k1 curve order: n = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
         let secp256k1_order = U256::from_be_bytes([
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-            0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B,
-            0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x41
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFE, 0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B, 0xBF, 0xD2, 0x5E, 0x8C,
+            0xD0, 0x36, 0x41, 0x41,
         ]);
-        
+
         r != U256::ZERO && r < secp256k1_order
     }
 
     /// 验证s组件是否有效
     fn is_valid_s_component(&self, s: U256) -> bool {
         // s must be in range [1, secp256k1_order)
-        // secp256k1 curve order: n = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141  
+        // secp256k1 curve order: n = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
         let secp256k1_order = U256::from_be_bytes([
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-            0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B,
-            0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x41
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFE, 0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B, 0xBF, 0xD2, 0x5E, 0x8C,
+            0xD0, 0x36, 0x41, 0x41,
         ]);
-        
+
         s != U256::ZERO && s < secp256k1_order
     }
 
     /// 检查s值是否为高值（malleable）
     fn is_high_s_value(&self, s: U256) -> bool {
         // s is "high" if s > secp256k1_order / 2
-        // secp256k1 curve order: n = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141  
+        // secp256k1 curve order: n = FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
         let secp256k1_order = U256::from_be_bytes([
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-            0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B,
-            0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x41
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFE, 0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B, 0xBF, 0xD2, 0x5E, 0x8C,
+            0xD0, 0x36, 0x41, 0x41,
         ]);
         let half_order = secp256k1_order / U256::from(2u32);
-        
+
         s > half_order
     }
 
@@ -293,9 +311,10 @@ impl SignatureValidator {
     fn is_valid_v_component(&self, v: u8) -> bool {
         // 标准recovery id值
         match v {
-            0 | 1 => true,         // 原始格式
-            27 | 28 => true,       // 以太坊格式
-            v if v >= 37 => {      // EIP-155格式 (chain_id * 2 + 35 + recovery_id)
+            0 | 1 => true,   // 原始格式
+            27 | 28 => true, // 以太坊格式
+            v if v >= 37 => {
+                // EIP-155格式 (chain_id * 2 + 35 + recovery_id)
                 (v - 35) % 2 <= 1
             }
             _ => false,
@@ -308,15 +327,17 @@ impl SignatureValidator {
             return Err(anyhow::anyhow!("Can only normalize 65-byte signatures").into());
         }
 
-        let components = self.parse_signature_components(signature)
+        let components = self
+            .parse_signature_components(signature)
             .map_err(|e| anyhow::anyhow!("Failed to parse signature: {}", e))?;
 
         // 如果s值过高，将其规范化
         let normalized_s = if components.is_high_s && self.require_low_s {
             let secp256k1_order = U256::from_str_radix(
-                "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 
-                16
-            ).unwrap();
+                "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
+                16,
+            )
+            .unwrap();
             secp256k1_order - components.s
         } else {
             components.s
@@ -326,7 +347,7 @@ impl SignatureValidator {
         let mut normalized = Vec::with_capacity(65);
         normalized.extend_from_slice(&components.r.to_be_bytes::<32>());
         normalized.extend_from_slice(&normalized_s.to_be_bytes::<32>());
-        
+
         // 如果s被规范化了，v值也需要调整
         let normalized_v = if components.is_high_s && self.require_low_s {
             match components.v {
@@ -348,8 +369,11 @@ impl SignatureValidator {
 
         normalized.push(normalized_v);
 
-        debug!("🔧 Signature normalized: high_s={}, v_changed={}", 
-               components.is_high_s, normalized_v != components.v);
+        debug!(
+            "🔧 Signature normalized: high_s={}, v_changed={}",
+            components.is_high_s,
+            normalized_v != components.v
+        );
 
         Ok(normalized)
     }
@@ -362,12 +386,12 @@ mod tests {
     #[tokio::test]
     async fn test_valid_65_byte_signature() {
         let validator = SignatureValidator::new();
-        
+
         // 创建一个模拟的65字节签名 (r + s + v)
         let mut signature = vec![0u8; 65];
         // 设置有效的r值 (非零，小于secp256k1 order)
         signature[31] = 1; // r = 1
-        // 设置有效的s值 (非零，小于order/2以避免malleable)
+                           // 设置有效的s值 (非零，小于order/2以避免malleable)
         signature[63] = 1; // s = 1
         signature[64] = 27; // v = 27 (标准以太坊格式)
 
@@ -375,7 +399,7 @@ mod tests {
         assert!(result.is_valid);
         assert_eq!(result.signature_format, SignatureFormat::Standard65Bytes);
         assert!(result.components.is_some());
-        
+
         let components = result.components.unwrap();
         assert_eq!(components.r, U256::from(1u32));
         assert_eq!(components.s, U256::from(1u32));
@@ -388,7 +412,10 @@ mod tests {
         let validator = SignatureValidator::new();
         let invalid_signature = vec![0u8; 32]; // 太短
 
-        let result = validator.validate_signature(&invalid_signature).await.unwrap();
+        let result = validator
+            .validate_signature(&invalid_signature)
+            .await
+            .unwrap();
         assert!(!result.is_valid);
         assert_eq!(result.signature_format, SignatureFormat::Invalid);
         assert_eq!(result.severity, ValidationSeverity::Critical);
@@ -397,13 +424,15 @@ mod tests {
     #[tokio::test]
     async fn test_malleable_signature_detection() {
         let validator = SignatureValidator::new();
-        
+
         // 创建一个high s值的签名
         let mut signature = vec![0u8; 65];
         signature[31] = 1; // r = 1
-        
+
         // 设置高s值 (> secp256k1_order/2)
-        let high_s_bytes = hex::decode("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A1").unwrap();
+        let high_s_bytes =
+            hex::decode("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A1")
+                .unwrap();
         signature[32..64].copy_from_slice(&high_s_bytes);
         signature[64] = 27; // v = 27
 
@@ -417,30 +446,35 @@ mod tests {
     #[tokio::test]
     async fn test_signature_normalization() {
         let validator = SignatureValidator::new();
-        
+
         // 创建一个high s值的签名
         let mut signature = vec![0u8; 65];
         signature[31] = 1; // r = 1
-        
+
         // 设置高s值
-        let high_s_bytes = hex::decode("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A1").unwrap();
+        let high_s_bytes =
+            hex::decode("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A1")
+                .unwrap();
         signature[32..64].copy_from_slice(&high_s_bytes);
         signature[64] = 27; // v = 27
 
         let normalized = validator.normalize_signature(&signature).unwrap();
         assert_eq!(normalized.len(), 65);
-        
+
         // 验证规范化后的签名
         let result = validator.validate_signature(&normalized).await.unwrap();
         if let Some(components) = result.components {
-            assert!(!components.is_high_s, "Normalized signature should have low s");
+            assert!(
+                !components.is_high_s,
+                "Normalized signature should have low s"
+            );
         }
     }
 
     #[tokio::test]
     async fn test_invalid_v_component() {
         let validator = SignatureValidator::new();
-        
+
         let mut signature = vec![0u8; 65];
         signature[31] = 1; // r = 1
         signature[63] = 1; // s = 1
@@ -448,6 +482,9 @@ mod tests {
 
         let result = validator.validate_signature(&signature).await.unwrap();
         assert!(!result.is_valid);
-        assert!(result.security_issues.iter().any(|issue| issue.contains("Invalid recovery id")));
+        assert!(result
+            .security_issues
+            .iter()
+            .any(|issue| issue.contains("Invalid recovery id")));
     }
 }

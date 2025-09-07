@@ -6,8 +6,7 @@ use rundler_types::{v0_6, v0_7, UserOperation, UserOperationVariant};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-use crate::error::GatewayResult;
-use crate::signature_validator::{SignatureValidator, SignatureValidationResult};
+use crate::{error::GatewayResult, signature_validator::SignatureValidator};
 
 /// Data integrity validation result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,7 +106,7 @@ impl DataIntegrityChecker {
 
     /// Create a new data integrity checker with custom configuration
     pub fn with_config(config: ValidationConfig) -> Self {
-        Self { 
+        Self {
             config,
             signature_validator: SignatureValidator::new(),
         }
@@ -120,8 +119,8 @@ impl DataIntegrityChecker {
         } else {
             SignatureValidator::new()
         };
-        
-        Self { 
+
+        Self {
             config,
             signature_validator,
         }
@@ -975,19 +974,17 @@ impl DataIntegrityChecker {
                     severity: result.severity,
                 }
             }
-            Err(e) => {
-                FieldValidation {
-                    field: "signature".to_string(),
-                    is_valid: false,
-                    value: format!(
-                        "0x{}... ({} bytes)",
-                        hex::encode(&signature[..10.min(signature.len())]),
-                        signature.len()
-                    ),
-                    message: format!("Signature validation failed: {}", e),
-                    severity: ValidationSeverity::Critical,
-                }
-            }
+            Err(e) => FieldValidation {
+                field: "signature".to_string(),
+                is_valid: false,
+                value: format!(
+                    "0x{}... ({} bytes)",
+                    hex::encode(&signature[..10.min(signature.len())]),
+                    signature.len()
+                ),
+                message: format!("Signature validation failed: {}", e),
+                severity: ValidationSeverity::Critical,
+            },
         }
     }
 

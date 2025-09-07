@@ -25,6 +25,8 @@ pub use permissions::{BundlerSponsorship, UserOperationPermissions};
 pub mod v0_6;
 /// User Operation types for Entry Point v0.7
 pub mod v0_7;
+/// User Operation types for Entry Point v0.8
+pub mod v0_8;
 
 use crate::{aggregator::AggregatorCosts, authorization::Eip7702Auth, chain::ChainSpec, Entity};
 
@@ -53,6 +55,8 @@ pub enum EntryPointVersion {
     V0_6,
     /// Version 0.7
     V0_7,
+    /// Version 0.8
+    V0_8,
 }
 
 /// Unique identifier for a user operation from a given sender
@@ -478,6 +482,8 @@ pub enum UserOperationVariant {
     V0_6(v0_6::UserOperation),
     /// User operation version 0.7
     V0_7(v0_7::UserOperation),
+    /// User operation version 0.8
+    V0_8(v0_8::UserOperation),
 }
 
 impl UserOperation for UserOperationVariant {
@@ -491,6 +497,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.entry_point(),
             UserOperationVariant::V0_7(op) => op.entry_point(),
+            UserOperationVariant::V0_8(op) => op.entry_point(),
         }
     }
 
@@ -498,6 +505,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.chain_id(),
             UserOperationVariant::V0_7(op) => op.chain_id(),
+            UserOperationVariant::V0_8(op) => op.chain_id(),
         }
     }
 
@@ -505,6 +513,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.hash(),
             UserOperationVariant::V0_7(op) => op.hash(),
+            UserOperationVariant::V0_8(op) => op.hash(),
         }
     }
 
@@ -512,6 +521,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.id(),
             UserOperationVariant::V0_7(op) => op.id(),
+            UserOperationVariant::V0_8(op) => op.id(),
         }
     }
 
@@ -519,6 +529,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.sender(),
             UserOperationVariant::V0_7(op) => op.sender(),
+            UserOperationVariant::V0_8(op) => op.sender(),
         }
     }
 
@@ -526,6 +537,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.nonce(),
             UserOperationVariant::V0_7(op) => op.nonce(),
+            UserOperationVariant::V0_8(op) => op.nonce(),
         }
     }
 
@@ -533,6 +545,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.paymaster(),
             UserOperationVariant::V0_7(op) => op.paymaster(),
+            UserOperationVariant::V0_8(op) => op.paymaster(),
         }
     }
 
@@ -540,6 +553,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.factory(),
             UserOperationVariant::V0_7(op) => op.factory(),
+            UserOperationVariant::V0_8(op) => op.factory(),
         }
     }
 
@@ -547,6 +561,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.aggregator(),
             UserOperationVariant::V0_7(op) => op.aggregator(),
+            UserOperationVariant::V0_8(op) => op.aggregator(),
         }
     }
 
@@ -554,6 +569,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.call_data(),
             UserOperationVariant::V0_7(op) => op.call_data(),
+            UserOperationVariant::V0_8(op) => op.call_data(),
         }
     }
 
@@ -561,6 +577,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.max_gas_cost(),
             UserOperationVariant::V0_7(op) => op.max_gas_cost(),
+            UserOperationVariant::V0_8(op) => op.max_gas_cost(),
         }
     }
 
@@ -568,6 +585,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.entities(),
             UserOperationVariant::V0_7(op) => op.entities(),
+            UserOperationVariant::V0_8(op) => op.entities(),
         }
     }
 
@@ -575,6 +593,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.heap_size(),
             UserOperationVariant::V0_7(op) => op.heap_size(),
+            UserOperationVariant::V0_8(op) => op.heap_size(),
         }
     }
 
@@ -582,6 +601,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.call_gas_limit(),
             UserOperationVariant::V0_7(op) => op.call_gas_limit(),
+            UserOperationVariant::V0_8(op) => op.call_gas_limit(),
         }
     }
 
@@ -589,6 +609,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.verification_gas_limit(),
             UserOperationVariant::V0_7(op) => op.verification_gas_limit(),
+            UserOperationVariant::V0_8(op) => op.verification_gas_limit(),
         }
     }
 
@@ -596,6 +617,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.total_verification_gas_limit(),
             UserOperationVariant::V0_7(op) => op.total_verification_gas_limit(),
+            UserOperationVariant::V0_8(op) => op.total_verification_gas_limit(),
         }
     }
 
@@ -603,6 +625,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.paymaster_post_op_gas_limit(),
             UserOperationVariant::V0_7(op) => op.paymaster_post_op_gas_limit(),
+            UserOperationVariant::V0_8(op) => op.paymaster_post_op_gas_limit(),
         }
     }
 
@@ -610,6 +633,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.required_pre_execution_buffer(),
             UserOperationVariant::V0_7(op) => op.required_pre_execution_buffer(),
+            UserOperationVariant::V0_8(op) => op.required_pre_execution_buffer(),
         }
     }
 
@@ -617,6 +641,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.pre_verification_gas(),
             UserOperationVariant::V0_7(op) => op.pre_verification_gas(),
+            UserOperationVariant::V0_8(op) => op.pre_verification_gas(),
         }
     }
 
@@ -624,6 +649,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.static_pre_verification_gas(chain_spec),
             UserOperationVariant::V0_7(op) => op.static_pre_verification_gas(chain_spec),
+            UserOperationVariant::V0_8(op) => op.static_pre_verification_gas(chain_spec),
         }
     }
 
@@ -631,6 +657,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.calldata_floor_gas_limit(),
             UserOperationVariant::V0_7(op) => op.calldata_floor_gas_limit(),
+            UserOperationVariant::V0_8(op) => op.calldata_floor_gas_limit(),
         }
     }
 
@@ -638,6 +665,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.max_fee_per_gas(),
             UserOperationVariant::V0_7(op) => op.max_fee_per_gas(),
+            UserOperationVariant::V0_8(op) => op.max_fee_per_gas(),
         }
     }
 
@@ -645,6 +673,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.max_priority_fee_per_gas(),
             UserOperationVariant::V0_7(op) => op.max_priority_fee_per_gas(),
+            UserOperationVariant::V0_8(op) => op.max_priority_fee_per_gas(),
         }
     }
 
@@ -652,6 +681,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.signature(),
             UserOperationVariant::V0_7(op) => op.signature(),
+            UserOperationVariant::V0_8(op) => op.signature(),
         }
     }
 
@@ -659,6 +689,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.aggregator_gas_limit(chain_spec, bundle_size),
             UserOperationVariant::V0_7(op) => op.aggregator_gas_limit(chain_spec, bundle_size),
+            UserOperationVariant::V0_8(op) => op.aggregator_gas_limit(chain_spec, bundle_size),
         }
     }
 
@@ -686,6 +717,14 @@ impl UserOperation for UserOperationVariant {
                     new_signature,
                 ))
             }
+            UserOperationVariant::V0_8(op) => {
+                UserOperationVariant::V0_8(op.transform_for_aggregator(
+                    chain_spec,
+                    aggregator,
+                    aggregator_costs,
+                    new_signature,
+                ))
+            }
         }
     }
 
@@ -693,6 +732,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.original_signature(),
             UserOperationVariant::V0_7(op) => op.original_signature(),
+            UserOperationVariant::V0_8(op) => op.original_signature(),
         }
     }
 
@@ -704,6 +744,9 @@ impl UserOperation for UserOperationVariant {
             UserOperationVariant::V0_7(op) => {
                 UserOperationVariant::V0_7(op.with_original_signature())
             }
+            UserOperationVariant::V0_8(op) => {
+                UserOperationVariant::V0_8(op.with_original_signature())
+            }
         }
     }
 
@@ -711,6 +754,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.extra_data_len(bundle_size),
             UserOperationVariant::V0_7(op) => op.extra_data_len(bundle_size),
+            UserOperationVariant::V0_8(op) => op.extra_data_len(bundle_size),
         }
     }
 
@@ -718,6 +762,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.abi_encoded_size(),
             UserOperationVariant::V0_7(op) => op.abi_encoded_size(),
+            UserOperationVariant::V0_8(op) => op.abi_encoded_size(),
         }
     }
 
@@ -725,6 +770,7 @@ impl UserOperation for UserOperationVariant {
         match self {
             UserOperationVariant::V0_6(op) => op.authorization_tuple(),
             UserOperationVariant::V0_7(op) => op.authorization_tuple(),
+            UserOperationVariant::V0_8(op) => op.authorization_tuple(),
         }
     }
 
@@ -738,6 +784,10 @@ impl UserOperation for UserOperationVariant {
                     verification_gas_limit_efficiency_reject_threshold,
                 ),
             UserOperationVariant::V0_7(op) => op
+                .effective_verification_gas_limit_efficiency_reject_threshold(
+                    verification_gas_limit_efficiency_reject_threshold,
+                ),
+            UserOperationVariant::V0_8(op) => op
                 .effective_verification_gas_limit_efficiency_reject_threshold(
                     verification_gas_limit_efficiency_reject_threshold,
                 ),
@@ -760,11 +810,20 @@ impl UserOperationVariant {
         }
     }
 
+    /// Convert to v0.8 UserOperation if possible
+    pub fn into_v0_8(self) -> Option<v0_8::UserOperation> {
+        match self {
+            UserOperationVariant::V0_8(op) => Some(op),
+            _ => None,
+        }
+    }
+
     /// Returns the user operation type
     pub fn uo_type(&self) -> EntryPointVersion {
         match self {
             UserOperationVariant::V0_6(_) => EntryPointVersion::V0_6,
             UserOperationVariant::V0_7(_) => EntryPointVersion::V0_7,
+            UserOperationVariant::V0_8(_) => EntryPointVersion::V0_8,
         }
     }
 
@@ -777,6 +836,11 @@ impl UserOperationVariant {
     pub fn is_v0_6(&self) -> bool {
         matches!(self, UserOperationVariant::V0_6(_))
     }
+
+    /// True if the UO is v0.8 type
+    pub fn is_v0_8(&self) -> bool {
+        matches!(self, UserOperationVariant::V0_8(_))
+    }
 }
 
 /// User operation optional gas enum
@@ -786,6 +850,8 @@ pub enum UserOperationOptionalGas {
     V0_6(v0_6::UserOperationOptionalGas),
     /// User operation optional gas for version 0.7
     V0_7(v0_7::UserOperationOptionalGas),
+    /// User operation optional gas for version 0.8
+    V0_8(v0_8::UserOperationOptionalGas),
 }
 
 impl UserOperationOptionalGas {
@@ -794,6 +860,7 @@ impl UserOperationOptionalGas {
         let abi_size = match self {
             UserOperationOptionalGas::V0_6(op) => op.abi_encoded_size(),
             UserOperationOptionalGas::V0_7(op) => op.abi_encoded_size(),
+            UserOperationOptionalGas::V0_8(op) => op.abi_encoded_size(),
         };
         abi_size + BUNDLE_BYTE_OVERHEAD + USER_OP_OFFSET_WORD_SIZE
     }
@@ -803,6 +870,7 @@ impl UserOperationOptionalGas {
         match self {
             UserOperationOptionalGas::V0_6(op) => op.eip7702_auth_address,
             UserOperationOptionalGas::V0_7(op) => op.eip7702_auth_address,
+            UserOperationOptionalGas::V0_8(op) => op.eip7702_auth_address,
         }
     }
 }

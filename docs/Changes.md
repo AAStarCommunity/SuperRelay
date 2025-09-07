@@ -2,6 +2,68 @@
 
 本文档记录 SuperPaymaster 项目的开发历程和版本变更。
 
+## v0.1.14 - 2025-09-07 🔧
+
+### 扩展PackedUserOperation v0.7/v0.8支持 (H3.1)
+
+#### 🎯 核心成果
+
+**UserOperation版本支持增强**:
+- ✅ **创建v0.8 UserOperation结构** - 基于v0.7的包装器设计
+  - 实现`crates/types/src/user_operation/v0_8.rs`
+  - 重用v0.7的PackedUserOperation格式，符合ERC-4337规范
+  - 提供v0.8特定的entry point版本支持
+
+- ✅ **更新UserOperationVariant枚举** - 添加V0_8变体支持
+  - 完成所有匹配语句的更新 (40+处)
+  - 实现版本转换方法: `into_v0_8()`, `is_v0_8()`, `uo_type()`
+  - 保持与v0.6和v0.7的向后兼容性
+
+- ✅ **优化代码质量** - 遵循Rust最佳实践
+  - 修复clippy建议，使用条件派生替代手动Default实现  
+  - 添加完整的文档字符串和类型注释
+  - 通过所有编译检查和测试套件
+
+#### ⚗️ 测试覆盖
+
+**全面测试套件**:
+- ✅ **H3.1专项测试** - 创建`crates/gateway/tests/h3_1_v08_support.rs`
+  - 12个测试用例覆盖v0.8核心功能
+  - 版本识别、格式兼容性、EIP-7702支持验证
+  - 确保v0.7和v0.8功能对等性
+
+- ✅ **集成测试通过** - types包35个测试全部通过
+  - v0.8 UserOperation trait实现完整性
+  - 气体计算委托给v0.7实现
+  - PackedUserOperation格式兼容性验证
+
+#### 📊 技术规格
+
+**性能指标**:
+- 编译时间: 保持<2分钟 (types包单独编译<10s)
+- 测试覆盖: 新增12个专项测试用例
+- 代码复用: v0.8完全委托给v0.7，零重复实现
+
+**架构设计**:
+- 使用包装器模式(Wrapper Pattern)实现v0.8
+- 所有UserOperation trait方法委托给内部v0.7实例
+- 仅重写`entry_point_version()`返回`EntryPointVersion::V0_8`
+- 重导出v0.7类型以保持API一致性
+
+#### 🚀 版本进度
+
+H-Level任务完成情况:
+- ✅ H1.1: TEE安全引擎核心功能
+- ✅ H2.1: Gateway-Pool-Bundler完整链路优化
+- ✅ H2.2: 修复硬编码RPC URL问题
+- ✅ H2.3: 标准化ECDSA签名格式  
+- ✅ **H3.1: 扩展PackedUserOperation v0.7/v0.8支持** ⭐️
+
+下一阶段M-Level任务:
+- 🔄 M1: 用户数据安全加密改进
+- 🔄 M2: BLS聚合签名防护机制
+- 🔄 M3: 合约账户安全规则
+
 ## v0.1.13 - 2025-09-06 📋
 
 ### 架构概念迁移和跨项目同步

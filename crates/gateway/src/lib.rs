@@ -53,7 +53,9 @@ pub use multi_layer_verification_flow::{
 pub use router::GatewayRouter;
 pub use sbt_validator::{SBTValidator, SBTValidatorConfig, ValidationResult};
 pub use security::{SecurityChecker, SecurityConfig, SecurityResult};
-pub use signature_validator::{SignatureValidator, SignatureValidationResult, SignatureFormat, SignatureComponents};
+pub use signature_validator::{
+    SignatureComponents, SignatureFormat, SignatureValidationResult, SignatureValidator,
+};
 pub use tee_security_engine::{
     TeeSecurityConfig, TeeSecurityEngine, TeeSecurityResult, ThreatIntelligence,
 };
