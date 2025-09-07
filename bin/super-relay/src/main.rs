@@ -626,9 +626,9 @@ impl Cli {
             .unwrap_or_else(|_| "dev".to_string());
         let node_http = std::env::var("NODE_HTTP")
             .or_else(|_| std::env::var("ETH_NODE_HTTP"))
-            .or_else(|_| {
+            .map_err(|_| {
                 warn!("⚠️  NODE_HTTP not set, using config file or fallback");
-                Err(std::env::VarError::NotPresent)
+                std::env::VarError::NotPresent
             })
             .unwrap_or_else(|_| {
                 warn!("⚠️  Using fallback RPC URL for development - set NODE_HTTP env var for production");

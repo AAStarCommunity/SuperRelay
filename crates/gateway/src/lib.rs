@@ -32,6 +32,8 @@ pub mod router;
 pub mod sbt_validator;
 /// Security analysis and threat detection for UserOperations
 pub mod security;
+/// ECDSA signature format validation and standardization
+pub mod signature_validator;
 /// TEE Security Engine - Advanced security validation within TEE environment
 pub mod tee_security_engine;
 /// Data integrity validation for UserOperations
@@ -51,6 +53,7 @@ pub use multi_layer_verification_flow::{
 pub use router::GatewayRouter;
 pub use sbt_validator::{SBTValidator, SBTValidatorConfig, ValidationResult};
 pub use security::{SecurityChecker, SecurityConfig, SecurityResult};
+pub use signature_validator::{SignatureValidator, SignatureValidationResult, SignatureFormat, SignatureComponents};
 pub use tee_security_engine::{
     TeeSecurityConfig, TeeSecurityEngine, TeeSecurityResult, ThreatIntelligence,
 };

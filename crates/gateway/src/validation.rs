@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::error::GatewayResult;
+use crate::signature_validator::{SignatureValidator, SignatureValidationResult};
 
 /// Data integrity validation result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,6 +59,8 @@ pub enum ValidationSeverity {
 pub struct DataIntegrityChecker {
     /// Configuration for validation rules
     config: ValidationConfig,
+    /// ECDSA signature validator
+    signature_validator: SignatureValidator,
 }
 
 /// Configuration for data integrity validation
@@ -98,12 +101,30 @@ impl DataIntegrityChecker {
     pub fn new() -> Self {
         Self {
             config: ValidationConfig::default(),
+            signature_validator: SignatureValidator::new(),
         }
     }
 
     /// Create a new data integrity checker with custom configuration
     pub fn with_config(config: ValidationConfig) -> Self {
-        Self { config }
+        Self { 
+            config,
+            signature_validator: SignatureValidator::new(),
+        }
+    }
+
+    /// Create a new data integrity checker with custom signature validation settings
+    pub fn with_signature_validation(config: ValidationConfig, lenient_signatures: bool) -> Self {
+        let signature_validator = if lenient_signatures {
+            SignatureValidator::lenient()
+        } else {
+            SignatureValidator::new()
+        };
+        
+        Self { 
+            config,
+            signature_validator,
+        }
     }
 
     /// Perform comprehensive data integrity validation on UserOperation
@@ -319,7 +340,7 @@ impl DataIntegrityChecker {
         );
 
         // Validate signature
-        let signature_validation = self.validate_signature_field(&op.signature().0);
+        let signature_validation = self.validate_signature_field(&op.signature().0).await;
         self.process_field_validation(
             signature_validation,
             field_validations,
@@ -430,7 +451,7 @@ impl DataIntegrityChecker {
         }
 
         // Validate signature
-        let signature_validation = self.validate_signature_field(&op.signature().0);
+        let signature_validation = self.validate_signature_field(&op.signature().0).await;
         self.process_field_validation(
             signature_validation,
             field_validations,
@@ -906,8 +927,8 @@ impl DataIntegrityChecker {
         }
     }
 
-    /// Validate signature field
-    fn validate_signature_field(&self, signature: &[u8]) -> FieldValidation {
+    /// Validate signature field using enhanced ECDSA validation
+    async fn validate_signature_field(&self, signature: &[u8]) -> FieldValidation {
         if self.config.require_signature && signature.is_empty() {
             return FieldValidation {
                 field: "signature".to_string(),
@@ -918,38 +939,55 @@ impl DataIntegrityChecker {
             };
         }
 
-        // Standard Ethereum signature is 65 bytes (r + s + v)
-        if !signature.is_empty() && signature.len() != 65 && signature.len() != 64 {
+        if signature.is_empty() {
             return FieldValidation {
                 field: "signature".to_string(),
                 is_valid: true,
-                value: format!(
-                    "0x{}... ({} bytes)",
-                    hex::encode(&signature[..10.min(signature.len())]),
-                    signature.len()
-                ),
-                message: format!(
-                    "Signature length {} is non-standard (expected 64 or 65 bytes)",
-                    signature.len()
-                ),
-                severity: ValidationSeverity::Warning,
+                value: "0x".to_string(),
+                message: "Empty signature (acceptable for certain UserOperation types)".to_string(),
+                severity: ValidationSeverity::Info,
             };
         }
 
-        FieldValidation {
-            field: "signature".to_string(),
-            is_valid: true,
-            value: if signature.is_empty() {
-                "0x".to_string()
-            } else {
-                format!(
-                    "0x{}... ({} bytes)",
+        // Use enhanced ECDSA signature validation
+        match self.signature_validator.validate_signature(signature).await {
+            Ok(result) => {
+                let value = format!(
+                    "0x{}... ({} bytes, format: {:?})",
                     hex::encode(&signature[..10.min(signature.len())]),
-                    signature.len()
-                )
-            },
-            message: format!("Signature format is acceptable ({} bytes)", signature.len()),
-            severity: ValidationSeverity::Info,
+                    signature.len(),
+                    result.signature_format
+                );
+
+                let mut message = result.message.clone();
+                if !result.security_issues.is_empty() {
+                    message.push_str(&format!(
+                        " | Security issues: {}",
+                        result.security_issues.join("; ")
+                    ));
+                }
+
+                FieldValidation {
+                    field: "signature".to_string(),
+                    is_valid: result.is_valid,
+                    value,
+                    message,
+                    severity: result.severity,
+                }
+            }
+            Err(e) => {
+                FieldValidation {
+                    field: "signature".to_string(),
+                    is_valid: false,
+                    value: format!(
+                        "0x{}... ({} bytes)",
+                        hex::encode(&signature[..10.min(signature.len())]),
+                        signature.len()
+                    ),
+                    message: format!("Signature validation failed: {}", e),
+                    severity: ValidationSeverity::Critical,
+                }
+            }
         }
     }
 
