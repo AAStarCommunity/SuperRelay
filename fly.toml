@@ -1,0 +1,119 @@
+# Fly.io configuration for Rundler ERC-4337 Bundler
+# This configures deployment of a complete Rundler node on Fly.io
+
+app = "rundler-superrelay"
+primary_region = "sea"  # Seattle - good for crypto/blockchain workloads
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Logging configuration
+  RUST_LOG = "info"
+  LOG_JSON = "true"
+  
+  # Network defaults (can be overridden by secrets)
+  NETWORK = "ethereum_sepolia"
+  
+  # Server configuration
+  METRICS_HOST = "0.0.0.0"
+  METRICS_PORT = "8080"
+  
+  # Performance tuning for Fly.io
+  MAX_VERIFICATION_GAS = "5000000"
+  TARGET_BUNDLE_TRANSACTION_GAS_LIMIT_RATIO = "0.5"
+  MAX_BUNDLE_TRANSACTION_GAS_LIMIT_RATIO = "0.9"
+  
+  # Connection timeouts optimized for cloud deployment
+  PROVIDER_CLIENT_TIMEOUT_SECONDS = "30"
+  TRACER_TIMEOUT = "15s"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 200
+    soft_limit = 100
+
+# Metrics endpoint for monitoring
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  
+  [[services.ports]]
+    port = 8080
+    handlers = ["http"]
+  
+  [services.concurrency]
+    type = "requests"
+    hard_limit = 50
+    soft_limit = 25
+
+# Resource allocation
+[vm]
+  memory = "2gb"
+  cpu_kind = "shared"
+  cpus = 2
+
+# Health checks
+[checks]
+  [checks.rundler_health]
+    port = 8080
+    type = "http"
+    interval = "15s"
+    timeout = "10s"
+    grace_period = "30s"
+    path = "/health"
+
+  [checks.rpc_ready]
+    port = 3000
+    type = "http"
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "60s"
+    path = "/"
+    method = "POST"
+    headers = {"Content-Type" = "application/json"}
+    body = '{"jsonrpc":"2.0","method":"web3_clientVersion","params":[],"id":1}'
+
+# Auto-scaling configuration
+[scaling]
+  min_machines_running = 1
+  max_machines_running = 3
+
+# Restart policy
+[restart]
+  policy = "always"
+
+# Process groups for different Rundler components (optional split deployment)
+[processes]
+  app = "node --rpc.port 3000 --rpc.host 0.0.0.0 --metrics.port 8080 --metrics.host 0.0.0.0"
+
+# Alternative: Split into separate services (uncomment if needed)
+# [processes]
+#   rpc = "rpc --port 3000 --host 0.0.0.0"
+#   pool = "pool"
+#   builder = "builder"
+
+# Volume for persistent data (optional)
+# [[mounts]]
+#   source = "rundler_data"
+#   destination = "/data"
+
+# Machine configuration for different regions (if multi-region deployment needed)
+# [[vm]]
+#   region = "sea"
+#   memory = "2gb"
+#   cpu_kind = "shared"
+#   cpus = 2
+
+# [[vm]]
+#   region = "ewr"
+#   memory = "2gb"
+#   cpu_kind = "shared"
+#   cpus = 2

@@ -1,3 +1,4 @@
+# Optimized multi-stage Dockerfile for Rundler deployment on Fly.io
 # Adapted from https://github.com/paradigmxyz/reth/blob/main/Dockerfile
 # syntax=docker/dockerfile:1.4
 
@@ -43,16 +44,49 @@ RUN rm -r recipe-original
 
 RUN cargo build --profile $BUILD_PROFILE --locked --bin rundler
 
-# Use Ubuntu as the release image
-FROM ubuntu AS runtime
+# Use Ubuntu as the release image optimized for Fly.io
+FROM ubuntu:22.04 AS runtime
 WORKDIR /app
+
 # Install system dependencies for the runtime
-# install curl for healthcheck
-RUN apt-get -y update; apt-get -y install curl ca-certificates
-RUN update-ca-certificates
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
 
-# Copy rundler over from the build stage
-COPY --from=builder /app/target/release/rundler /usr/local/bin
+# Create non-root user for security
+RUN useradd -r -s /bin/false -u 1001 rundler
 
+# Copy rundler binary from the build stage
+COPY --from=builder /app/target/release/rundler /usr/local/bin/rundler
+
+# Copy chain specifications for various networks
+COPY --from=builder /app/bin/rundler/chain_specs ./chain_specs
+
+# Create data directory for logs and potential state
+RUN mkdir -p /data && chown rundler:rundler /data
+
+# Set environment variables with defaults for Fly.io
+ENV RUST_LOG=info
+ENV METRICS_HOST=0.0.0.0
+ENV METRICS_PORT=8080
+
+# Health check for Fly.io monitoring
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Switch to non-root user
+USER rundler
+
+# Expose ports: 3000 for RPC, 8080 for metrics
 EXPOSE 3000 8080
+
+# Default command runs node mode (all services)
+# Can be overridden with fly.toml or fly deploy --dockerfile-args
 ENTRYPOINT ["/usr/local/bin/rundler"]
+CMD ["node", \
+     "--rpc.port", "3000", \
+     "--rpc.host", "0.0.0.0", \
+     "--metrics.port", "8080", \
+     "--metrics.host", "0.0.0.0"]
