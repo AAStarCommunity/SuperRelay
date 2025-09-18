@@ -14,8 +14,18 @@
 pub mod api_docs;
 /// Authorization and eligibility checking for UserOperations
 pub mod authorization;
+/// BLS聚合签名防护机制
+pub mod bls_protection;
+/// BLS聚合签名防护服务
+pub mod bls_protection_service;
+/// Configuration system for modular architecture
+pub mod config_system;
+/// 合约账户安全规则验证
+pub mod contract_account_security;
 /// End-to-end transaction validation
 pub mod e2e_validator;
+/// User data encryption middleware for automatic data protection
+pub mod encryption_middleware;
 /// Error types and result helpers
 pub mod error;
 /// Main gateway implementation
@@ -24,10 +34,14 @@ pub mod gateway;
 pub mod health;
 /// HTTP middleware for enterprise features
 pub mod middleware;
+/// Module system for pipeline-based request processing
+pub mod module_system;
 /// Multi-Layer Verification Flow orchestration (Gateway -> AirAccount KMS)
 pub mod multi_layer_verification_flow;
 /// Request routing logic
 pub mod router;
+/// Rundler integration module for pipeline
+pub mod rundler_integration_module;
 /// SBT + PNTs balance validation for user eligibility
 pub mod sbt_validator;
 /// Security analysis and threat detection for UserOperations
@@ -36,21 +50,46 @@ pub mod security;
 pub mod signature_validator;
 /// TEE Security Engine - Advanced security validation within TEE environment
 pub mod tee_security_engine;
+/// User data encryption for enhanced security protection
+pub mod user_data_encryption;
 /// Data integrity validation for UserOperations
 pub mod validation;
 /// EntryPoint version selection and routing
 pub mod version_selector;
 
 pub use authorization::{AuthorizationChecker, AuthorizationConfig, AuthorizationResult};
+pub use bls_protection::{
+    AggregatorPerformanceStats, BlacklistEntry, BlsProtectionConfig, BlsProtectionStatus,
+    BlsProtectionSystem, BlsValidationResult,
+};
+pub use bls_protection_service::{
+    ApiResponse, BlsAggregationRequest, BlsProtectionService, BlsValidationRequest,
+};
+pub use config_system::{
+    ConfigurationManager, GatewayConfiguration, MonitoringConfig, RundlerConfig, SecurityConfig,
+    ServerConfig,
+};
+pub use contract_account_security::{
+    ContractAccountSecurityConfig, ContractAccountSecurityValidator, ContractSecurityAnalysis,
+    SecurityRisk, SecurityRiskType, SecuritySystemStatus,
+};
 pub use e2e_validator::{quick_e2e_health_check, E2EValidationResult, E2EValidator};
+pub use encryption_middleware::{
+    EncryptedUserOperationData, EncryptionMiddleware, EncryptionService,
+};
 pub use error::{GatewayError, GatewayResult};
 pub use gateway::PaymasterGateway;
 pub use health::{HealthChecker, HealthStatus, SystemStatus};
+pub use module_system::{
+    ModuleConfig, ModulePipeline, ModuleResult, PipelineConfig, PipelineStats, ProcessingContext,
+    RequestMetadata, SecurityModule,
+};
 pub use multi_layer_verification_flow::{
     DualSignatureConfig, DualSignatureFlow, DualSignatureRequest, DualSignatureResponse,
     KmsSigningSummary, ValidationSummary,
 };
 pub use router::GatewayRouter;
+pub use rundler_integration_module::RundlerIntegrationModule;
 pub use sbt_validator::{SBTValidator, SBTValidatorConfig, ValidationResult};
 pub use security::{SecurityChecker, SecurityConfig, SecurityResult};
 pub use signature_validator::{
@@ -58,6 +97,9 @@ pub use signature_validator::{
 };
 pub use tee_security_engine::{
     TeeSecurityConfig, TeeSecurityEngine, TeeSecurityResult, ThreatIntelligence,
+};
+pub use user_data_encryption::{
+    EncryptedData, EncryptionConfig, EncryptionStatus, UserDataEncryption,
 };
 pub use validation::{DataIntegrityChecker, DataIntegrityResult, ValidationConfig};
 pub use version_selector::{

@@ -19,19 +19,29 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     api_docs::CompleteApiDoc,
+    bls_protection_service::BlsProtectionService,
+    config_system::{ConfigurationManager, GatewayConfiguration},
+    contract_account_security::ContractAccountSecurityValidator,
     e2e_validator::quick_e2e_health_check,
     error::{GatewayError, GatewayResult},
     health::health_routes,
+    module_system::{ModulePipeline, ProcessingContext, RequestMetadata, SecurityModule},
     router::{EthApiConfig, GatewayRouter},
+    rundler_integration_module::RundlerIntegrationModule,
     GatewayConfig,
 };
 
-/// Main gateway service that orchestrates requests between clients and rundler components
+/// Main gateway service that orchestrates requests through a modular pipeline
 #[derive(Clone)]
 pub struct PaymasterGateway {
     config: GatewayConfig,
     paymaster_service: Option<Arc<PaymasterRelayService>>,
     router: GatewayRouter,
+    pipeline: ModulePipeline,
+    config_manager: Arc<ConfigurationManager>,
+    // Legacy compatibility fields (deprecated)
+    bls_protection_service: Option<Arc<BlsProtectionService>>,
+    contract_security_validator: Option<Arc<ContractAccountSecurityValidator>>,
 }
 
 /// Gateway state shared across requests
@@ -43,39 +53,116 @@ pub struct GatewayState {
     pub router: GatewayRouter,
     /// Gateway configuration
     pub config: GatewayConfig,
+    /// Module pipeline for request processing
+    pub pipeline: ModulePipeline,
+    /// Configuration manager
+    pub config_manager: Arc<ConfigurationManager>,
+    /// Legacy compatibility fields (deprecated)
+    pub bls_protection_service: Option<Arc<BlsProtectionService>>,
+    pub contract_security_validator: Option<Arc<ContractAccountSecurityValidator>>,
 }
 
 impl PaymasterGateway {
-    /// Create a new gateway instance
-    pub fn new(
+    /// Create a new gateway instance with configuration-driven pipeline
+    pub async fn new(
         config: GatewayConfig,
         paymaster_service: Option<Arc<PaymasterRelayService>>,
-    ) -> Self {
+        config_path: Option<&str>,
+    ) -> GatewayResult<Self> {
         let router = GatewayRouter::new();
 
-        Self {
+        // Initialize configuration manager
+        let config_manager = Arc::new(
+            ConfigurationManager::from_file(config_path.unwrap_or("config/gateway.toml")).await?,
+        );
+
+        // Create module pipeline from configuration
+        let gateway_config = config_manager.get_config().clone();
+        let mut pipeline = ModulePipeline::new(gateway_config.pipeline);
+
+        // Always register the Rundler integration module as the final module
+        let rundler_module =
+            RundlerIntegrationModule::new(router.clone(), paymaster_service.clone());
+        pipeline.register_module(Box::new(rundler_module)).await?;
+
+        Ok(Self {
             config,
             paymaster_service,
             router,
-        }
+            pipeline,
+            config_manager,
+            bls_protection_service: None,
+            contract_security_validator: None,
+        })
     }
 
-    /// Create a new gateway instance with rundler components
-    pub fn with_rundler_components(
+    /// Create a new gateway instance with rundler components and configuration-driven pipeline
+    pub async fn with_rundler_components(
         config: GatewayConfig,
         paymaster_service: Option<Arc<PaymasterRelayService>>,
         pool_handle: Arc<LocalPoolHandle>,
         builder_handle: Arc<LocalBuilderHandle>,
         eth_config: EthApiConfig,
-    ) -> Self {
+        config_path: Option<&str>,
+    ) -> GatewayResult<Self> {
         let router =
             GatewayRouter::with_rundler_components(pool_handle, Some(builder_handle), eth_config);
 
-        Self {
+        // Initialize configuration manager
+        let config_manager = Arc::new(
+            ConfigurationManager::from_file(config_path.unwrap_or("config/gateway.toml")).await?,
+        );
+
+        // Create module pipeline from configuration
+        let gateway_config = config_manager.get_config().clone();
+        let mut pipeline = ModulePipeline::new(gateway_config.pipeline);
+
+        // Always register the Rundler integration module as the final module
+        let rundler_module =
+            RundlerIntegrationModule::new(router.clone(), paymaster_service.clone());
+        pipeline.register_module(Box::new(rundler_module)).await?;
+
+        Ok(Self {
             config,
             paymaster_service,
             router,
-        }
+            pipeline,
+            config_manager,
+            bls_protection_service: None,
+            contract_security_validator: None,
+        })
+    }
+
+    /// Register a security module with the pipeline
+    pub async fn register_module(&mut self, module: Box<dyn SecurityModule>) -> GatewayResult<()> {
+        self.pipeline.register_module(module).await
+    }
+
+    /// Legacy compatibility: Set the BLS protection service (deprecated)
+    pub fn with_bls_protection_service(mut self, service: Arc<BlsProtectionService>) -> Self {
+        warn!(
+            "🔄 Using deprecated with_bls_protection_service - consider migrating to module system"
+        );
+        // Set the service on both gateway and router for backward compatibility
+        self.router = self
+            .router
+            .with_bls_protection_service(Arc::clone(&service));
+        self.bls_protection_service = Some(service);
+        self
+    }
+
+    /// Legacy compatibility: Set the contract account security validator (deprecated)
+    pub fn with_contract_security_validator(
+        mut self,
+        validator: Arc<ContractAccountSecurityValidator>,
+    ) -> Self {
+        warn!("🔄 Using deprecated with_contract_security_validator - consider migrating to module system");
+        // Set the validator on both gateway and router for backward compatibility
+        self.router = self
+            .router
+            .with_contract_security_validator(Arc::clone(&validator));
+        self.contract_security_validator = Some(validator);
+        self
     }
 
     /// Start the gateway server
@@ -83,10 +170,23 @@ impl PaymasterGateway {
         let addr = format!("{}:{}", self.config.host, self.config.port);
         info!("🌐 Starting SuperRelay Gateway on {}", addr);
 
+        // Start BLS protection cleanup tasks if service is available
+        if let Some(ref bls_service) = self.bls_protection_service {
+            if let Err(e) = Arc::clone(bls_service).start_cleanup_tasks().await {
+                warn!("⚠️ Failed to start BLS protection cleanup tasks: {}", e);
+            } else {
+                info!("🛡️ BLS protection system activated with background cleanup");
+            }
+        }
+
         let state = GatewayState {
             paymaster_service: self.paymaster_service.clone(),
             router: self.router.clone(),
             config: self.config.clone(),
+            pipeline: self.pipeline.clone(),
+            config_manager: Arc::clone(&self.config_manager),
+            bls_protection_service: self.bls_protection_service.clone(),
+            contract_security_validator: self.contract_security_validator.clone(),
         };
 
         let app = self.create_router(state);
@@ -104,8 +204,24 @@ impl PaymasterGateway {
         info!("  • GET /live           - Liveness check");
         info!("  • GET /e2e            - End-to-end validation");
         info!("  • GET /metrics        - Prometheus metrics");
+
+        // Add BLS protection endpoints if available
+        if self.bls_protection_service.is_some() {
+            info!("  • POST /bls/validate  - BLS signature validation");
+            info!("  • POST /bls/aggregate - BLS aggregation validation");
+            info!("  • GET /bls/status     - BLS protection system status");
+            info!("  • POST /bls/blacklist - Blacklist aggregator");
+            info!("  • GET /bls/blacklist/:address - Check blacklist status");
+            info!("  • POST /bls/trusted   - Add trusted aggregator");
+            info!("  • DELETE /bls/trusted/:address - Remove trusted aggregator");
+            info!("  • GET /bls/stats/:address - Get aggregator performance stats");
+        }
+
         info!("");
         info!("🌐 Swagger UI: http://{}/swagger-ui/", addr);
+        if self.bls_protection_service.is_some() {
+            info!("🛡️ BLS Protection API: http://{}/bls/", addr);
+        }
         info!("🔥 Complete SuperRelay API Documentation Available!");
 
         axum::serve(listener, app)
@@ -127,8 +243,15 @@ impl PaymasterGateway {
             .merge(
                 SwaggerUi::new("/swagger-ui")
                     .url("/api-docs/openapi.json", CompleteApiDoc::openapi()),
-            )
-            .with_state(state);
+            );
+
+        // Add BLS protection API routes if service is available
+        if let Some(ref bls_service) = self.bls_protection_service {
+            info!("🔐 Adding BLS protection API endpoints");
+            router = router.merge(bls_service.create_api_routes());
+        }
+
+        router = router.with_state(state);
 
         // Add middleware layers
         if self.config.enable_cors {
@@ -142,9 +265,9 @@ impl PaymasterGateway {
     }
 }
 
-/// Handle JSON-RPC requests with enterprise features
+/// Handle JSON-RPC requests through modular pipeline
 async fn handle_jsonrpc(
-    State(state): State<GatewayState>,
+    State(mut state): State<GatewayState>,
     Json(payload): Json<Value>,
 ) -> Result<Json<Value>, StatusCode> {
     // Parse JSON-RPC request
@@ -156,30 +279,62 @@ async fn handle_jsonrpc(
         }
     };
 
-    // Route request based on method
-    let response = match request.method.as_str() {
-        // Paymaster methods
-        "pm_sponsorUserOperation" => handle_paymaster_request(&state, &request).await,
+    let request_id = uuid::Uuid::new_v4().to_string();
+    debug!(
+        "🔄 Processing JSON-RPC request: {} (method: {})",
+        request_id, request.method
+    );
 
-        // Standard eth methods - forward to rundler
-        method if method.starts_with("eth_") => handle_rundler_request(&state, &request).await,
+    // Create processing context
+    let context = ProcessingContext::new(request.clone(), request_id.clone());
 
-        // Rundler-specific methods
-        method if method.starts_with("rundler_") => handle_rundler_request(&state, &request).await,
-
-        // Debug methods
-        method if method.starts_with("debug_") => handle_rundler_request(&state, &request).await,
-
-        // Admin methods
-        method if method.starts_with("admin_") => handle_rundler_request(&state, &request).await,
-
-        _ => {
-            warn!("Unknown method: {}", request.method);
-            jsonrpc_error(-32601, "Method not found", Some(request.id))
+    // Process through module pipeline
+    let response = match state.pipeline.process_request(context).await {
+        Ok(result) => {
+            info!(
+                "✅ Pipeline processing successful for request: {}",
+                request_id
+            );
+            jsonrpc_success(result, request.id)
+        }
+        Err(e) => {
+            error!(
+                "❌ Pipeline processing failed for request {}: {}",
+                request_id, e
+            );
+            // Fallback to legacy routing for compatibility
+            handle_legacy_routing(&state, &request).await
         }
     };
 
     Ok(Json(response))
+}
+
+/// Legacy routing fallback for backward compatibility
+async fn handle_legacy_routing(state: &GatewayState, request: &JsonRpcRequest) -> Value {
+    debug!("🔄 Using legacy routing for method: {}", request.method);
+
+    match request.method.as_str() {
+        // Paymaster methods
+        "pm_sponsorUserOperation" => handle_paymaster_request(state, request).await,
+
+        // Standard eth methods - forward to rundler
+        method if method.starts_with("eth_") => handle_rundler_request(state, request).await,
+
+        // Rundler-specific methods
+        method if method.starts_with("rundler_") => handle_rundler_request(state, request).await,
+
+        // Debug methods
+        method if method.starts_with("debug_") => handle_rundler_request(state, request).await,
+
+        // Admin methods
+        method if method.starts_with("admin_") => handle_rundler_request(state, request).await,
+
+        _ => {
+            warn!("Unknown method: {}", request.method);
+            jsonrpc_error(-32601, "Method not found", Some(request.id.clone()))
+        }
+    }
 }
 
 /// Handle paymaster-specific requests

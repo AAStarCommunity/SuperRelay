@@ -1,0 +1,94 @@
+# SuperRelay Gateway Configuration
+# Configuration-driven modular architecture for enterprise-grade security
+
+[server]
+host = "127.0.0.1"
+port = 3000
+enable_cors = true
+enable_logging = true
+max_connections = 1000
+request_timeout = 30
+
+[pipeline]
+# Enable parallel processing where modules support it
+enable_parallel_processing = false
+# Timeout per module (milliseconds)
+module_timeout_ms = 5000
+# Total pipeline timeout (milliseconds)
+pipeline_timeout_ms = 30000
+
+# Module Configuration
+# Modules are processed in priority order (lower numbers first)
+# Each module can be enabled/disabled and configured independently
+
+[pipeline.modules.authorization]
+enabled = true
+priority = 100
+# Authorization module runs first to validate basic request structure
+
+[pipeline.modules.user_data_encryption]
+enabled = false  # Disabled by default for performance - enable in production
+priority = 200
+# AES-256-GCM encryption for sensitive UserOperation data
+
+[pipeline.modules.bls_protection]
+enabled = true
+priority = 300
+# BLS aggregated signature protection against malicious aggregators
+
+[pipeline.modules.contract_security]
+enabled = true
+priority = 400
+# Smart contract security analysis and risk assessment
+
+[pipeline.modules.rundler_integration]
+enabled = true
+priority = 1000  # Always runs last - mandatory module
+# Integration with Rundler pool and builder components
+
+[security]
+enable_rate_limiting = true
+rate_limit_per_ip = 60  # requests per minute
+enable_request_validation = true
+enable_security_headers = true
+trusted_ips = ["127.0.0.1", "::1"]
+
+[rundler]
+# Supported EntryPoint contract addresses
+entry_points = [
+    "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",  # ERC-4337 v0.6
+    "0x0000000071727De22E5E9d8BAf0edAc6f37da032"   # ERC-4337 v0.7
+]
+chain_id = 31337  # Anvil local testnet
+# rpc_url = "http://localhost:8545"  # Optional - uses internal RPC if not set
+enable_pool_integration = true
+enable_builder_integration = true
+
+[monitoring]
+enable_metrics = true
+enable_health_checks = true
+enable_tracing = true
+log_level = "info"
+enable_performance_monitoring = true
+
+# Environment-specific overrides
+# Production example:
+# [pipeline.modules.user_data_encryption]
+# enabled = true  # Enable encryption in production
+#
+# [server]
+# host = "0.0.0.0"
+# port = 8080
+#
+# [security]
+# rate_limit_per_ip = 120
+# trusted_ips = []  # No trusted IPs in production
+
+# Development example:
+# [monitoring]
+# log_level = "debug"
+# enable_performance_monitoring = false
+#
+# [pipeline]
+# enable_parallel_processing = false  # Easier debugging
+# module_timeout_ms = 10000  # Longer timeout for debugging

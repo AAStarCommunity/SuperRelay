@@ -14,6 +14,8 @@ use tracing::{debug, error, warn};
 
 use crate::{
     authorization::AuthorizationChecker,
+    bls_protection_service::BlsProtectionService,
+    contract_account_security::ContractAccountSecurityValidator,
     error::{GatewayError, GatewayResult},
     gateway::JsonRpcRequest,
     security::SecurityChecker,
@@ -31,6 +33,10 @@ pub struct GatewayRouter {
     builder_handle: Option<Arc<LocalBuilderHandle>>,
     /// Chain ID for this network
     chain_id: u64,
+    /// BLS protection service for aggregated signatures
+    bls_protection_service: Option<Arc<BlsProtectionService>>,
+    /// Contract account security validator
+    contract_security_validator: Option<Arc<ContractAccountSecurityValidator>>,
 }
 
 /// Configuration for the Gateway's ETH API
@@ -50,6 +56,8 @@ impl GatewayRouter {
             pool_handle: None,
             builder_handle: None,
             chain_id: 31337, // Anvil default
+            bls_protection_service: None,
+            contract_security_validator: None,
         }
     }
 
@@ -75,6 +83,8 @@ impl GatewayRouter {
             pool_handle: Some(pool_handle),
             builder_handle,
             chain_id,
+            bls_protection_service: None,
+            contract_security_validator: None,
         }
     }
 
@@ -93,7 +103,24 @@ impl GatewayRouter {
             } else {
                 config.chain_id
             },
+            bls_protection_service: None,
+            contract_security_validator: None,
         }
+    }
+
+    /// Set the BLS protection service
+    pub fn with_bls_protection_service(mut self, service: Arc<BlsProtectionService>) -> Self {
+        self.bls_protection_service = Some(service);
+        self
+    }
+
+    /// Set the contract account security validator
+    pub fn with_contract_security_validator(
+        mut self,
+        validator: Arc<ContractAccountSecurityValidator>,
+    ) -> Self {
+        self.contract_security_validator = Some(validator);
+        self
     }
 
     /// Default EntryPoint addresses (commonly used ones)
@@ -512,6 +539,96 @@ impl GatewayRouter {
             user_op_variant.entry_point()
         );
 
+        // BLS Protection Check (新增: BLS聚合签名防护检查)
+        if let Some(ref bls_service) = self.bls_protection_service {
+            // Check if this UserOperation uses an aggregator from request parameters
+            let aggregator_address = self.extract_aggregator_from_request(user_op);
+
+            debug!(
+                "🔐 Starting BLS protection validation for aggregator: {:?}",
+                aggregator_address
+            );
+
+            match bls_service
+                .validate_user_operation_bls(&user_op_variant, aggregator_address)
+                .await
+            {
+                Ok(bls_result) => {
+                    if !bls_result.is_valid {
+                        error!("❌ BLS validation failed: {}", bls_result.message);
+                        return Err(GatewayError::ValidationError(format!(
+                            "BLS signature validation failed: {} (Security issues: {})",
+                            bls_result.message,
+                            bls_result.security_issues.join(", ")
+                        )));
+                    } else if !bls_result.security_issues.is_empty() {
+                        warn!(
+                            "⚠️ BLS validation passed with security warnings: {}",
+                            bls_result.security_issues.join(", ")
+                        );
+                    }
+                    debug!(
+                        "✅ BLS validation passed (validation_time: {}ms): {}",
+                        bls_result.validation_time_ms, bls_result.message
+                    );
+                }
+                Err(e) => {
+                    error!("💥 BLS validation system error: {}", e);
+                    return Err(GatewayError::InternalError(format!(
+                        "BLS validation system error: {}",
+                        e
+                    )));
+                }
+            }
+        }
+
+        // Contract Account Security Validation (新增: 合约账户安全规则检查)
+        if let Some(ref security_validator) = self.contract_security_validator {
+            debug!("🔒 Starting contract account security validation...");
+
+            match security_validator
+                .validate_user_operation_security(&user_op_variant)
+                .await
+            {
+                Ok(security_analysis) => {
+                    if !security_analysis.is_secure {
+                        error!(
+                            "❌ Contract security validation failed for {:#x}: {}",
+                            security_analysis.contract_address, security_analysis.summary
+                        );
+                        return Err(GatewayError::ValidationError(format!(
+                            "Contract security validation failed (risk score: {}): {} Detected {} security issues",
+                            security_analysis.risk_score,
+                            security_analysis.summary,
+                            security_analysis.security_risks.len()
+                        )));
+                    } else if !security_analysis.security_risks.is_empty() {
+                        warn!(
+                            "⚠️ Contract security validation passed with {} warnings for {:#x}",
+                            security_analysis.security_risks.len(),
+                            security_analysis.contract_address
+                        );
+                        for risk in &security_analysis.security_risks {
+                            if risk.severity >= 2 {
+                                warn!("  • {}: {}", risk.description, risk.recommendation);
+                            }
+                        }
+                    }
+                    debug!(
+                        "✅ Contract security validation passed (risk score: {}, analysis time: {}ms): {}",
+                        security_analysis.risk_score, security_analysis.analysis_time_ms, security_analysis.summary
+                    );
+                }
+                Err(e) => {
+                    error!("💥 Contract security validation system error: {}", e);
+                    return Err(GatewayError::InternalError(format!(
+                        "Contract security validation system error: {}",
+                        e
+                    )));
+                }
+            }
+        }
+
         // Set appropriate permissions for user operations
         let perms = UserOperationPermissions {
             trusted: false,
@@ -908,6 +1025,28 @@ impl GatewayRouter {
                 "signature": format!("0x{}", hex::encode(op.signature()))
             }),
         }
+    }
+
+    // === BLS protection helper methods ===
+
+    /// Extract aggregator address from UserOperation JSON request
+    /// This follows ERC-7766 specification for optional aggregator field
+    fn extract_aggregator_from_request(&self, user_op_json: &Value) -> Option<Address> {
+        // Look for aggregator field in the UserOperation JSON
+        // This is an extension to ERC-4337 for signature aggregation support
+        if let Some(aggregator_value) = user_op_json.get("aggregator") {
+            if let Some(aggregator_str) = aggregator_value.as_str() {
+                if !aggregator_str.is_empty() && aggregator_str != "0x" {
+                    if let Ok(address) = aggregator_str.parse::<Address>() {
+                        debug!("🔍 Found aggregator address in request: {:#x}", address);
+                        return Some(address);
+                    } else {
+                        warn!("⚠️ Invalid aggregator address format: {}", aggregator_str);
+                    }
+                }
+            }
+        }
+        None
     }
 
     // === JSON parsing helper methods ===
