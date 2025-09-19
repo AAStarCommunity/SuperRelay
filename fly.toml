@@ -86,10 +86,6 @@ primary_region = "sea"  # Seattle - good for crypto/blockchain workloads
   min_machines_running = 1
   max_machines_running = 3
 
-# Restart policy
-[restart]
-  policy = "always"
-
 # Process groups for different Rundler components (optional split deployment)
 [processes]
   app = "node --rpc.port 3000 --rpc.host 0.0.0.0 --metrics.port 8080 --metrics.host 0.0.0.0"
