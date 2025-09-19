@@ -2,7 +2,7 @@
 # This configures deployment of a complete Rundler node on Fly.io
 
 app = "rundler-superrelay"
-primary_region = "sea"  # Seattle - good for crypto/blockchain workloads
+primary_region = "sin"  # Singapore - closer to your location
 
 [build]
   dockerfile = "Dockerfile"
@@ -46,9 +46,9 @@ primary_region = "sea"  # Seattle - good for crypto/blockchain workloads
 
 # Resource allocation
 [vm]
-  memory = "2gb"
+  memory = "1gb"    # Reduced from 2GB for cost optimization
   cpu_kind = "shared"
-  cpus = 2
+  cpus = 1          # Reduced from 2 for cost optimization
 
 # Health checks
 [checks]
@@ -73,8 +73,8 @@ primary_region = "sea"  # Seattle - good for crypto/blockchain workloads
 
 # Auto-scaling configuration
 [scaling]
-  min_machines_running = 1
-  max_machines_running = 3
+  min_machines_running = 0  # Auto-stop when idle for cost optimization
+  max_machines_running = 1  # Single machine for minimal cost
 
 # Process groups for different Rundler components (optional split deployment)
 [processes]
