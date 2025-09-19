@@ -34,25 +34,15 @@ primary_region = "sea"  # Seattle - good for crypto/blockchain workloads
   auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 1
+  processes = ["app"]
   
   [http_service.concurrency]
     type = "requests"
     hard_limit = 200
     soft_limit = 100
 
-# Metrics endpoint for monitoring
-[[services]]
-  internal_port = 8080
-  protocol = "tcp"
-  
-  [[services.ports]]
-    port = 8080
-    handlers = ["http"]
-  
-  [services.concurrency]
-    type = "requests"
-    hard_limit = 50
-    soft_limit = 25
+# Metrics endpoint accessible via internal port 8080
+# Health checks handle metrics monitoring
 
 # Resource allocation
 [vm]
