@@ -20,3 +20,12 @@
 # Release artifacts
 dist/
 .tool-versions
+
+.cursor
+.gemini
+.claude
+.taskmaster
+.zed
+demo/
+node_modules
+test_enhanced/
