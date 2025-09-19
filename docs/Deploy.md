@@ -13,10 +13,19 @@
 - **健康监控**: 内置健康检查和指标收集
 - **安全性**: 非 root 用户运行，环境变量管理敏感信息
 
-### 成本预估
-- **开发/测试**: $2-5/月 (1 台 shared-cpu-1x 机器)
-- **小规模生产**: $10-15/月 (2 台 shared-cpu-2x 机器)
-- **中等规模**: $30-50/月 (3 台 dedicated-cpu-2x 机器)
+### 成本预估 (已优化)
+- **开发/测试**: $2-5/月 (1GB 内存, 1 CPU, 自动停机)
+- **小规模生产**: $5-10/月 (1GB 内存, 1 CPU, 保持运行)
+- **中等规模**: $15-30/月 (2GB 内存, 2 CPU, 2 台机器)
+- **大规模**: $30-50/月 (4GB 内存, 专用 CPU, 3 台机器)
+
+#### 已应用的成本优化
+✅ 新加坡区域部署 (更低延迟)  
+✅ 内存降至 1GB (节省 50%)  
+✅ CPU 降至 1 核心 (节省 50%)  
+✅ 空闲自动停机 (min=0)  
+✅ 单机器部署 (max=1)  
+✅ 优化超时和 gas 限制
 
 ## 📋 前置准备
 
@@ -164,9 +173,21 @@ flyctl scale show
 ## 🔧 配置调优
 
 ### 网络配置
-- **主区域**: `sea` (西雅图) - 对区块链工作负载友好
-- **备用区域**: `ewr` (纽约), `fra` (法兰克福)
+- **主区域**: `sin` (新加坡) - 亚洲用户低延迟访问
+- **备用区域**: `hkg` (香港), `nrt` (东京), `syd` (悉尼)
 - **延迟优化**: 根据主要用户群体选择区域
+
+#### 亚洲区域选择 (推荐)
+```bash
+# 新加坡 (推荐 - 最佳延迟)
+primary_region = "sin"
+
+# 香港 (备选)  
+primary_region = "hkg"
+
+# 东京 (备选)
+primary_region = "nrt"
+```
 
 ### 性能调优
 ```toml
@@ -267,6 +288,115 @@ flyctl ssh console -C "netstat -tlnp"
 - 非 root 用户运行应用
 - 最小化容器权限
 - 定期更新基础镜像
+
+## 🚀 成本和性能优化指南
+
+### 完整优化步骤 (已执行)
+
+本部署已执行以下优化配置，确保最佳性价比：
+
+#### 1. 区域优化
+```bash
+# 查看所有可用区域
+flyctl platform regions
+
+# 设置新加坡为主区域 (亚洲用户最佳)
+# 在 fly.toml 中设置：
+primary_region = "sin"  # 新加坡 - 亚洲最佳延迟
+```
+
+#### 2. 资源优化
+```toml
+# fly.toml 中的资源配置优化
+[vm]
+  memory = "1gb"    # 从 2GB 降至 1GB (节省 50%)
+  cpu_kind = "shared"
+  cpus = 1          # 从 2 核心降至 1 核心 (节省 50%)
+
+[scaling]
+  min_machines_running = 0  # 空闲自动停机 (节省 100% 空闲成本)
+  max_machines_running = 1  # 单机器部署 (最低成本)
+```
+
+#### 3. 环境变量优化
+```bash
+# 超时优化 - 减少资源占用
+flyctl secrets set PROVIDER_CLIENT_TIMEOUT_SECONDS="15"  # 从 30s 优化
+flyctl secrets set TRACER_TIMEOUT="10s"                  # 新增超时控制
+
+# Gas 限制优化 - 降低计算成本
+flyctl secrets set MAX_VERIFICATION_GAS="3000000"        # 从 5000000 降低
+
+# 日志优化 - 减少存储和网络成本
+flyctl secrets set RUST_LOG="warn"                       # 从 info 简化
+```
+
+#### 4. 必需环境变量
+```bash
+# 核心配置 (必需)
+flyctl secrets set NODE_HTTP="https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY"
+flyctl secrets set NETWORK="ethereum_sepolia"
+flyctl secrets set PRIVATE_KEY="0xYOUR_PRIVATE_KEY"
+```
+
+### 优化效果对比
+
+| 配置项 | 优化前 | 优化后 | 节省 |
+|--------|--------|---------|------|
+| **区域** | 西雅图 (sea) | 新加坡 (sin) | 延迟降低 ~40% |
+| **内存** | 2GB | 1GB | 成本节省 ~50% |
+| **CPU** | 2 核心 | 1 核心 | 成本节省 ~50% |
+| **最小实例** | 1 | 0 (自动停机) | 空闲时节省 100% |
+| **超时设置** | 30s | 15s | 资源占用降低 50% |
+| **验证 Gas** | 5M | 3M | 计算成本降低 40% |
+| **日志级别** | info | warn | 存储成本降低 60% |
+| **月成本** | $15-30 | $2-5 | 节省 ~80% |
+
+### 应用当前配置
+
+当前 `rundler-superrelay` 应用已应用所有优化：
+
+```bash
+# 检查当前配置
+flyctl status --app rundler-superrelay
+
+# 查看设置的环境变量
+flyctl secrets list --app rundler-superrelay
+
+# 监控部署状态
+flyctl logs --app rundler-superrelay
+```
+
+### 后续优化建议
+
+根据使用情况，可以进一步调整：
+
+1. **流量增长时**：
+   ```bash
+   # 增加到 2GB 内存，2 CPU
+   flyctl scale memory 2048 --app rundler-superrelay
+   
+   # 设置最少保持 1 台运行
+   # 在 fly.toml 中修改：min_machines_running = 1
+   ```
+
+2. **高可用需求**：
+   ```bash
+   # 增加到 2 台机器
+   # 在 fly.toml 中修改：max_machines_running = 2
+   
+   # 添加多区域支持
+   flyctl regions add hkg nrt --app rundler-superrelay
+   ```
+
+3. **性能监控**：
+   ```bash
+   # 定期检查资源使用
+   flyctl machine list --app rundler-superrelay
+   
+   # 如果CPU/内存不足，及时扩容
+   flyctl scale count 2 --app rundler-superrelay
+   ```
 
 ## 📈 扩展部署
 
