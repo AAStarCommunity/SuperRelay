@@ -51,6 +51,12 @@
 - 监控仪表板配置
 - CI/CD 流水线集成
 
+### 📊 分支结构优化 (2025-09-21)
+- **分支重命名**: deploy 分支重命名为 main-base
+- **文档创建**: 新增 docs/aastar-readme.md 说明分支结构
+- **新分支**: 从 main-base 创建 relay-dev 分支用于开发 paymaster 功能
+- **分支推送**: 所有新分支已推送到远程仓库
+
 ---
 
 ## v0.1.17 - UserOperation v0.8 支持 (2025-09-18)
