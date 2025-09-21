@@ -1,0 +1,762 @@
+import React, { useState } from 'react';
+import { AccountService } from '../services/accountService';
+import type { TransferResult } from '../services/accountService';
+import { BundlerService } from '../services/bundlerService';
+import type { UserOpReceipt } from '../services/bundlerService';
+import type { NetworkConfig } from '../config/networks';
+import { getJiffyScanUrl, getBlockExplorerTxUrl } from '../config/networks';
+import { ethers } from 'ethers';
+
+interface TransferTestProps {
+  accountService: AccountService | null;
+  bundlerService: BundlerService | null;
+  networkConfig: NetworkConfig;
+}
+
+interface TransferState {
+  amount: string;
+  isTransferring: boolean;
+  result: TransferResult | null;
+  receipt: UserOpReceipt | null;
+  gasAnalysis: any | null;
+  error: string | null;
+}
+
+const TransferTest: React.FC<TransferTestProps> = ({
+  accountService,
+  bundlerService,
+  networkConfig,
+}) => {
+  const [transferState, setTransferState] = useState<TransferState>({
+    amount: '3',
+    isTransferring: false,
+    result: null,
+    receipt: null,
+    gasAnalysis: null,
+    error: null,
+  });
+
+  const [initialBalances, setInitialBalances] = useState<{
+    accountA: string;
+    accountB: string;
+    eoa: string;
+  } | null>(null);
+
+  const [finalBalances, setFinalBalances] = useState<{
+    accountA: string;
+    accountB: string;
+    eoa: string;
+  } | null>(null);
+
+  const addresses = {
+    accountA: import.meta.env.VITE_SIMPLE_ACCOUNT_A,
+    accountB: import.meta.env.VITE_SIMPLE_ACCOUNT_B,
+    eoa: import.meta.env.VITE_EOA_ADDRESS,
+    pntToken: import.meta.env.VITE_PNT_TOKEN_ADDRESS,
+  };
+
+  // 获取余额
+  const getBalances = async () => {
+    if (!accountService) return null;
+
+    try {
+      const [accountAInfo, accountBInfo, eoaInfo] = await Promise.all([
+        accountService.getAccountInfo(addresses.accountA, addresses.pntToken),
+        accountService.getAccountInfo(addresses.accountB, addresses.pntToken),
+        accountService.getAccountInfo(addresses.eoa, addresses.pntToken),
+      ]);
+
+      return {
+        accountA: accountAInfo.tokenBalance,
+        accountB: accountBInfo.tokenBalance,
+        eoa: eoaInfo.ethBalance,
+      };
+    } catch (error) {
+      console.error('Failed to get balances:', error);
+      return null;
+    }
+  };
+
+  // 执行转账测试
+  const executeTransfer = async () => {
+    if (!accountService || !bundlerService) return;
+
+    setTransferState(prev => ({
+      ...prev,
+      isTransferring: true,
+      result: null,
+      receipt: null,
+      gasAnalysis: null,
+      error: null,
+    }));
+
+    try {
+      // 获取初始余额
+      const initial = await getBalances();
+      setInitialBalances(initial);
+
+      // 执行转账
+      const result = await accountService.executeTransfer({
+        from: addresses.accountA,
+        to: addresses.accountB,
+        amount: transferState.amount,
+        tokenAddress: addresses.pntToken,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Transfer failed');
+      }
+
+      // 获取详细收据
+      const receipt = await bundlerService.getUserOperationReceipt(result.userOpHash);
+
+      // 获取最终余额
+      const final = await getBalances();
+      setFinalBalances(final);
+
+      // 分析 gas 使用情况
+      let gasAnalysis = null;
+      if (receipt) {
+        gasAnalysis = await accountService.analyzeGasUsage(result.userOpHash);
+      }
+
+      setTransferState(prev => ({
+        ...prev,
+        result,
+        receipt,
+        gasAnalysis,
+      }));
+
+    } catch (error) {
+      setTransferState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }));
+    } finally {
+      setTransferState(prev => ({
+        ...prev,
+        isTransferring: false,
+      }));
+    }
+  };
+
+  const resetTest = () => {
+    setTransferState({
+      amount: '3',
+      isTransferring: false,
+      result: null,
+      receipt: null,
+      gasAnalysis: null,
+      error: null,
+    });
+    setInitialBalances(null);
+    setFinalBalances(null);
+  };
+
+  // UserOperation 数据展示组件
+  const UserOpDisplay: React.FC<{ userOp: any }> = ({ userOp }) => (
+    <div className="userop-display">
+      <h5>📝 UserOperation Structure</h5>
+      <div className="userop-grid">
+        <div className="userop-item">
+          <span className="userop-label">Sender:</span>
+          <span className="userop-value">{userOp.sender}</span>
+        </div>
+        <div className="userop-item">
+          <span className="userop-label">Nonce:</span>
+          <span className="userop-value">{userOp.nonce}</span>
+        </div>
+        <div className="userop-item">
+          <span className="userop-label">Call Gas Limit:</span>
+          <span className="userop-value">{parseInt(userOp.callGasLimit).toLocaleString()} gas</span>
+        </div>
+        <div className="userop-item">
+          <span className="userop-label">Verification Gas:</span>
+          <span className="userop-value">{parseInt(userOp.verificationGasLimit).toLocaleString()} gas</span>
+        </div>
+        <div className="userop-item">
+          <span className="userop-label">Pre-verification Gas:</span>
+          <span className="userop-value">{parseInt(userOp.preVerificationGas).toLocaleString()} gas</span>
+        </div>
+        <div className="userop-item">
+          <span className="userop-label">Max Fee Per Gas:</span>
+          <span className="userop-value">{ethers.formatUnits(userOp.maxFeePerGas, 'gwei')} Gwei</span>
+        </div>
+        <div className="userop-item">
+          <span className="userop-label">Signature Address:</span>
+          <span className="userop-value">{addresses.eoa} (EOA)</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="transfer-test-card">
+      <div className="card-header">
+        <h3>🚀 Transfer Test</h3>
+        <button
+          className="reset-btn"
+          onClick={resetTest}
+          disabled={transferState.isTransferring}
+        >
+          🔄 Reset
+        </button>
+      </div>
+
+      <div className="test-setup">
+        <h4>⚙️ Test Configuration</h4>
+        <div className="setup-grid">
+          <div className="setup-item">
+            <label htmlFor="amount-input">Transfer Amount (PNT):</label>
+            <input
+              id="amount-input"
+              type="number"
+              value={transferState.amount}
+              onChange={(e) => setTransferState(prev => ({ ...prev, amount: e.target.value }))}
+              disabled={transferState.isTransferring}
+              min="0"
+              step="0.1"
+              className="amount-input"
+            />
+          </div>
+          <div className="setup-item">
+            <span className="setup-label">From:</span>
+            <span className="setup-value">SimpleAccount A ({addresses.accountA?.slice(0, 8)}...)</span>
+          </div>
+          <div className="setup-item">
+            <span className="setup-label">To:</span>
+            <span className="setup-value">SimpleAccount B ({addresses.accountB?.slice(0, 8)}...)</span>
+          </div>
+          <div className="setup-item">
+            <span className="setup-label">Bundler:</span>
+            <span className="setup-value">{networkConfig.bundlerUrl}</span>
+          </div>
+        </div>
+
+        <div className="test-actions">
+          <button
+            className="transfer-btn"
+            onClick={executeTransfer}
+            disabled={transferState.isTransferring || !accountService || !bundlerService}
+          >
+            {transferState.isTransferring ? '🔄 Transferring...' : `🚀 Transfer ${transferState.amount} PNT`}
+          </button>
+        </div>
+      </div>
+
+      {/* 余额变化显示 */}
+      {(initialBalances || finalBalances) && (
+        <div className="balance-changes">
+          <h4>💰 Balance Changes</h4>
+          <div className="balance-grid">
+            <div className="balance-item">
+              <span className="balance-label">Account A (Sender):</span>
+              <div className="balance-change">
+                <span className="balance-before">{initialBalances?.accountA || '0'} PNT</span>
+                <span className="balance-arrow">→</span>
+                <span className="balance-after">{finalBalances?.accountA || '0'} PNT</span>
+                {initialBalances && finalBalances && (
+                  <span className="balance-diff">
+                    ({(parseFloat(finalBalances.accountA) - parseFloat(initialBalances.accountA)).toFixed(2)} PNT)
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="balance-item">
+              <span className="balance-label">Account B (Receiver):</span>
+              <div className="balance-change">
+                <span className="balance-before">{initialBalances?.accountB || '0'} PNT</span>
+                <span className="balance-arrow">→</span>
+                <span className="balance-after">{finalBalances?.accountB || '0'} PNT</span>
+                {initialBalances && finalBalances && (
+                  <span className="balance-diff positive">
+                    (+{(parseFloat(finalBalances.accountB) - parseFloat(initialBalances.accountB)).toFixed(2)} PNT)
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="balance-item">
+              <span className="balance-label">EOA (Gas Payer):</span>
+              <div className="balance-change">
+                <span className="balance-before">{initialBalances?.eoa ? parseFloat(initialBalances.eoa).toFixed(6) : '0'} ETH</span>
+                <span className="balance-arrow">→</span>
+                <span className="balance-after">{finalBalances?.eoa ? parseFloat(finalBalances.eoa).toFixed(6) : '0'} ETH</span>
+                {initialBalances && finalBalances && (
+                  <span className="balance-diff">
+                    ({(parseFloat(finalBalances.eoa) - parseFloat(initialBalances.eoa)).toFixed(6)} ETH)
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 转账结果 */}
+      {transferState.result && (
+        <div className="transfer-result">
+          <div className="result-header">
+            <h4>
+              {transferState.result.success ? '✅ Transfer Successful' : '❌ Transfer Failed'}
+            </h4>
+          </div>
+
+          <div className="result-details">
+            <div className="result-item">
+              <span className="result-label">UserOp Hash:</span>
+              <div className="hash-container">
+                <span className="hash-value">{transferState.result.userOpHash}</span>
+                <a
+                  href={getJiffyScanUrl(transferState.result.userOpHash, 'sepolia')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="jiffy-link"
+                >
+                  🔍 JiffyScan
+                </a>
+              </div>
+            </div>
+
+            {transferState.receipt && (
+              <>
+                <div className="result-item">
+                  <span className="result-label">Transaction Hash:</span>
+                  <div className="hash-container">
+                    <span className="hash-value">{transferState.receipt.receipt.transactionHash}</span>
+                    <a
+                      href={getBlockExplorerTxUrl(transferState.receipt.receipt.transactionHash, 'sepolia')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="explorer-link"
+                    >
+                      🔍 Etherscan
+                    </a>
+                  </div>
+                </div>
+
+                <div className="result-item">
+                  <span className="result-label">Block Number:</span>
+                  <span className="result-value">{parseInt(transferState.receipt.receipt.blockNumber).toLocaleString()}</span>
+                </div>
+
+                <div className="result-item">
+                  <span className="result-label">Gas Used:</span>
+                  <span className="result-value">{parseInt(transferState.receipt.actualGasUsed).toLocaleString()} gas</span>
+                </div>
+
+                <div className="result-item">
+                  <span className="result-label">Actual Gas Cost:</span>
+                  <span className="result-value">
+                    {ethers.formatEther(transferState.receipt.actualGasCost)} ETH
+                  </span>
+                </div>
+
+                <div className="result-item">
+                  <span className="result-label">Effective Gas Price:</span>
+                  <span className="result-value">
+                    {ethers.formatUnits(transferState.receipt.receipt.effectiveGasPrice, 'gwei')} Gwei
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Gas 支付说明 */}
+      {transferState.receipt && (
+        <div className="gas-explanation">
+          <h4>⛽ Gas Payment Explanation</h4>
+          <div className="gas-flow">
+            <div className="gas-step">
+              <span className="step-number">1</span>
+              <div className="step-content">
+                <div className="step-title">EOA 预支付 Gas</div>
+                <div className="step-desc">
+                  EOA ({addresses.eoa?.slice(0, 8)}...) 向 EntryPoint 预先支付 gas 费用
+                </div>
+              </div>
+            </div>
+            <div className="gas-step">
+              <span className="step-number">2</span>
+              <div className="step-content">
+                <div className="step-title">Bundler 执行交易</div>
+                <div className="step-desc">
+                  Bundler 调用 EntryPoint.handleOps() 执行 UserOperation
+                </div>
+              </div>
+            </div>
+            <div className="gas-step">
+              <span className="step-number">3</span>
+              <div className="step-content">
+                <div className="step-title">实际 Gas 消耗</div>
+                <div className="step-desc">
+                  实际消耗: {transferState.receipt ? parseInt(transferState.receipt.actualGasUsed).toLocaleString() : '0'} gas
+                  (成本: {transferState.receipt ? ethers.formatEther(transferState.receipt.actualGasCost) : '0'} ETH)
+                </div>
+              </div>
+            </div>
+            <div className="gas-step">
+              <span className="step-number">4</span>
+              <div className="step-content">
+                <div className="step-title">退还多余 Gas</div>
+                <div className="step-desc">
+                  未使用的 gas 费用自动退还给 EOA
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {transferState.error && (
+        <div className="error-section">
+          <h4>❌ Error</h4>
+          <div className="error-message">{transferState.error}</div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .transfer-test-card {
+          background: white;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin-bottom: 24px;
+        }
+
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .card-header h3 {
+          margin: 0;
+          color: #1a1a1a;
+          font-size: 1.25rem;
+        }
+
+        .reset-btn {
+          padding: 6px 12px;
+          border: 1px solid #6c757d;
+          background: white;
+          color: #6c757d;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.2s;
+        }
+
+        .reset-btn:hover:not(:disabled) {
+          background: #6c757d;
+          color: white;
+        }
+
+        .reset-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .test-setup {
+          background: #f8f9fa;
+          border-radius: 10px;
+          padding: 20px;
+          margin-bottom: 24px;
+        }
+
+        .test-setup h4 {
+          margin: 0 0 16px 0;
+          color: #1a1a1a;
+        }
+
+        .setup-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .setup-item {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .setup-item label, .setup-label {
+          font-weight: 500;
+          color: #495057;
+          font-size: 0.875rem;
+        }
+
+        .amount-input {
+          padding: 8px 12px;
+          border: 1px solid #ced4da;
+          border-radius: 6px;
+          font-size: 1rem;
+          font-weight: 500;
+        }
+
+        .amount-input:focus {
+          outline: none;
+          border-color: #007bff;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+        }
+
+        .setup-value {
+          font-family: 'Monaco', 'Consolas', monospace;
+          color: #1a1a1a;
+          font-size: 0.875rem;
+          background: white;
+          padding: 6px 8px;
+          border-radius: 4px;
+          border: 1px solid #e0e0e0;
+        }
+
+        .test-actions {
+          text-align: center;
+        }
+
+        .transfer-btn {
+          padding: 12px 24px;
+          background: linear-gradient(135deg, #007bff, #0056b3);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+        }
+
+        .transfer-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+        }
+
+        .transfer-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .balance-changes, .transfer-result, .gas-explanation {
+          background: #f8f9fa;
+          border-radius: 10px;
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+
+        .balance-changes h4, .transfer-result h4, .gas-explanation h4 {
+          margin: 0 0 16px 0;
+          color: #1a1a1a;
+        }
+
+        .balance-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .balance-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e0e0e0;
+        }
+
+        .balance-label {
+          font-weight: 500;
+          color: #495057;
+          min-width: 150px;
+        }
+
+        .balance-change {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-family: 'Monaco', 'Consolas', monospace;
+          font-size: 0.875rem;
+        }
+
+        .balance-before, .balance-after {
+          color: #1a1a1a;
+          font-weight: 500;
+        }
+
+        .balance-arrow {
+          color: #666;
+          font-weight: bold;
+        }
+
+        .balance-diff {
+          color: #dc3545;
+          font-weight: 600;
+          font-size: 0.8rem;
+        }
+
+        .balance-diff.positive {
+          color: #28a745;
+        }
+
+        .result-details {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .result-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .result-item:last-child {
+          border-bottom: none;
+        }
+
+        .result-label {
+          font-weight: 500;
+          color: #495057;
+        }
+
+        .result-value {
+          font-family: 'Monaco', 'Consolas', monospace;
+          color: #1a1a1a;
+          font-weight: 500;
+        }
+
+        .hash-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .hash-value {
+          font-family: 'Monaco', 'Consolas', monospace;
+          color: #1a1a1a;
+          font-size: 0.875rem;
+          word-break: break-all;
+        }
+
+        .jiffy-link, .explorer-link {
+          color: #007bff;
+          text-decoration: none;
+          font-size: 0.75rem;
+          padding: 2px 6px;
+          border: 1px solid #007bff;
+          border-radius: 4px;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+
+        .jiffy-link:hover, .explorer-link:hover {
+          background: #007bff;
+          color: white;
+        }
+
+        .gas-flow {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .gas-step {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .step-number {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: #007bff;
+          color: white;
+          border-radius: 50%;
+          font-weight: bold;
+          font-size: 0.875rem;
+          flex-shrink: 0;
+        }
+
+        .step-content {
+          flex: 1;
+          background: white;
+          padding: 12px;
+          border-radius: 6px;
+          border: 1px solid #e0e0e0;
+        }
+
+        .step-title {
+          font-weight: 600;
+          color: #1a1a1a;
+          margin-bottom: 4px;
+        }
+
+        .step-desc {
+          color: #666;
+          font-size: 0.875rem;
+          line-height: 1.4;
+        }
+
+        .error-section {
+          background: #f8d7da;
+          border: 1px solid #f1aeb5;
+          border-radius: 8px;
+          padding: 16px;
+        }
+
+        .error-section h4 {
+          margin: 0 0 8px 0;
+          color: #721c24;
+        }
+
+        .error-message {
+          color: #721c24;
+          font-size: 0.875rem;
+          font-family: 'Monaco', 'Consolas', monospace;
+        }
+
+        @media (max-width: 768px) {
+          .setup-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .balance-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+
+          .result-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+          }
+
+          .hash-container {
+            width: 100%;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+          }
+
+          .balance-change {
+            flex-wrap: wrap;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default TransferTest;

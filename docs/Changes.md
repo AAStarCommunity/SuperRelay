@@ -63,6 +63,28 @@
 - **环境变量**: 新增 MIN_PRIORITY_FEE_PER_GAS, MAX_FEE_PER_GAS_OVERHEAD 等配置
 - **部署更新**: 优化 fly.toml 中的 gas 费用策略
 
+### 🖥️ Web Interface 开发 (2025-09-21)
+- **新分支创建**: feat/web-interface-EP0.6 用于 Web 界面开发
+- **React 应用**: 在 aa-flow/web-test 中创建完整的 React Web 界面
+- **功能特性**:
+  - 支持多网络切换 (Sepolia, OP Sepolia, OP Mainnet)
+  - 实时显示 Rundler 状态和 EntryPoint 支持
+  - Gas 价格计算规则可视化 (preVerificationGas, callGasLimit, verificationGasLimit)
+  - 账户管理界面显示 A/B 账户余额 (90/10 PNT)
+  - PNT 转账测试功能 (默认 3 PNT from A to B)
+  - 完整 UserOperation 数据显示
+  - 清晰的 Gas 支付流程说明
+- **技术栈**: React + TypeScript + Vite + ethers v6 + pnpm
+- **无钱包连接**: 使用 .env 配置文件进行账户管理
+- **参考现有脚本**: 学习借鉴 deploy-accounts.js, generate-ab-accounts.js 等
+- **成功启动**: 开发服务器运行在 http://localhost:5173/
+- **自动化测试**: 使用 Playwright 进行端到端测试
+  - 测试通过率: 78.6% (11/14 测试通过)
+  - 页面加载性能: 557ms (优秀)
+  - 所有核心组件功能验证通过
+  - 响应式设计在多种设备上正常工作
+  - 详细测试报告: aa-flow/web-test/TEST_REPORT.md
+
 ---
 
 ## v0.1.17 - UserOperation v0.8 支持 (2025-09-18)
