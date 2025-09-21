@@ -48,7 +48,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
         )}
       </div>
 
-      <style jsx>{`
+      <style jsx="">{`
         .network-selector {
           display: flex;
           flex-direction: column;

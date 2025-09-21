@@ -7,6 +7,8 @@ import type { NetworkConfig } from '../config/networks';
 import { getJiffyScanUrl, getBlockExplorerTxUrl } from '../config/networks';
 import { ethers } from 'ethers';
 import { DebugLogger } from '../utils/debugLogger';
+import UserOpDisplay from './UserOpDisplay';
+import GasCalculatorAdvanced from './GasCalculatorAdvanced';
 
 interface TransferTestProps {
   accountService: AccountService | null;
@@ -51,7 +53,10 @@ const TransferTest: React.FC<TransferTestProps> = ({
     eoa: string;
   } | null>(null);
 
+  const [showUserOpDetails, setShowUserOpDetails] = useState<boolean>(false);
+
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebugPanel, setShowDebugPanel] = useState<boolean>(false);
 
   const addresses = {
     accountA: import.meta.env.VITE_SIMPLE_ACCOUNT_A,
@@ -96,8 +101,9 @@ const TransferTest: React.FC<TransferTestProps> = ({
   const executeTransfer = async () => {
     if (!accountService || !bundlerService) return;
 
-    // 清除调试日志
+    // 清理调试日志并开始记录
     DebugLogger.clear();
+    DebugLogger.log('🚀 开始执行转账...');
 
     setTransferState(prev => ({
       ...prev,
@@ -110,10 +116,13 @@ const TransferTest: React.FC<TransferTestProps> = ({
 
     try {
       // 获取初始余额
+      DebugLogger.log('📊 获取初始余额...');
       const initial = await getBalances();
       setInitialBalances(initial);
+      DebugLogger.log(`💰 初始余额 - A: ${initial?.accountA} PNT, B: ${initial?.accountB} PNT`);
 
       // 执行转账
+      DebugLogger.log(`💸 执行转账: ${transferState.amount} PNT 从 A → B`);
       const result = await accountService.executeTransfer({
         from: addresses.accountA,
         to: addresses.accountB,
@@ -122,22 +131,30 @@ const TransferTest: React.FC<TransferTestProps> = ({
       });
 
       if (!result.success) {
+        DebugLogger.error(`❌ 转账失败: ${result.error || 'Unknown error'}`);
         throw new Error(result.error || 'Transfer failed');
       }
 
+      DebugLogger.log(`✅ 转账成功! UserOp Hash: ${result.userOpHash}`);
+
       // 获取详细收据
+      DebugLogger.log('📋 获取交易收据...');
       const receipt = await bundlerService.getUserOperationReceipt(result.userOpHash);
 
       // 获取最终余额
+      DebugLogger.log('📊 获取最终余额...');
       const final = await getBalances();
       setFinalBalances(final);
+      DebugLogger.log(`💰 最终余额 - A: ${final?.accountA} PNT, B: ${final?.accountB} PNT`);
 
       // 分析 gas 使用情况
       let gasAnalysis = null;
       if (receipt) {
+        DebugLogger.log('⛽ 分析 Gas 使用情况...');
         gasAnalysis = await accountService.analyzeGasUsage(result.userOpHash);
       }
 
+      DebugLogger.log('🎉 转账流程完成!');
       setTransferState(prev => ({
         ...prev,
         result,
@@ -146,9 +163,11 @@ const TransferTest: React.FC<TransferTestProps> = ({
       }));
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      DebugLogger.error(`💥 转账过程中发生错误: ${errorMessage}`);
       setTransferState(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       }));
     } finally {
       setTransferState(prev => ({
@@ -392,6 +411,25 @@ const TransferTest: React.FC<TransferTestProps> = ({
         </div>
       )}
 
+      {/* 高级 Gas 计算器 */}
+      {transferState.result?.userOp && (
+        <GasCalculatorAdvanced
+          userOp={transferState.result.userOp}
+          title="🧮 Advanced Gas Calculator"
+        />
+      )}
+
+      {/* UserOperation 详细信息 */}
+      {transferState.result?.userOp && (
+        <UserOpDisplay
+          userOp={transferState.result.userOp}
+          userOpHash={transferState.result.userOpHash}
+          title="📋 UserOperation Details"
+          isExpanded={showUserOpDetails}
+          onToggle={() => setShowUserOpDetails(!showUserOpDetails)}
+        />
+      )}
+
       {transferState.error && (
         <div className="error-section">
           <h4>❌ Error</h4>
@@ -421,7 +459,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style jsx="">{`
         .transfer-test-card {
           background: white;
           border-radius: 12px;

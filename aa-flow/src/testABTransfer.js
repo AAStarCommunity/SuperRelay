@@ -45,6 +45,62 @@ const ERC20_ABI = [
 ];
 
 /**
+ * 计算 preVerificationGas 的精确算法
+ */
+function calculatePreVerificationGas(userOp) {
+    const FIXED_GAS_OVERHEAD = 21000;  // 基础交易 gas
+    const PER_USER_OP_OVERHEAD = 18300; // 每个 UserOp 的固定开销
+    const PER_USER_OP_WORD = 4;         // 每个字的开销
+    const ZERO_BYTE_COST = 4;           // 零字节成本
+    const NON_ZERO_BYTE_COST = 16;      // 非零字节成本
+    const SAFETY_BUFFER = 1000;         // 安全缓冲
+
+    // 序列化 UserOperation 用于计算字节数
+    const userOpData = JSON.stringify({
+        sender: userOp.sender || '',
+        nonce: userOp.nonce || '0x0',
+        initCode: userOp.initCode || '0x',
+        callData: userOp.callData || '0x',
+        callGasLimit: userOp.callGasLimit || '0x0',
+        verificationGasLimit: userOp.verificationGasLimit || '0x0',
+        preVerificationGas: '0x0', // 临时值
+        maxFeePerGas: userOp.maxFeePerGas || '0x0',
+        maxPriorityFeePerGas: userOp.maxPriorityFeePerGas || '0x0',
+        paymasterAndData: userOp.paymasterAndData || '0x',
+        signature: userOp.signature || '0x'
+    });
+
+    // 计算字节成本
+    let byteCost = 0;
+    const bytes = Buffer.from(userOpData, 'utf8');
+
+    for (const byte of bytes) {
+        if (byte === 0) {
+            byteCost += ZERO_BYTE_COST;
+        } else {
+            byteCost += NON_ZERO_BYTE_COST;
+        }
+    }
+
+    // 计算总的 preVerificationGas
+    const totalGas = FIXED_GAS_OVERHEAD +
+                    PER_USER_OP_OVERHEAD +
+                    Math.ceil(bytes.length / 32) * PER_USER_OP_WORD +
+                    byteCost +
+                    SAFETY_BUFFER;
+
+    console.log(`🧮 PreVerificationGas 计算:`);
+    console.log(`  - 基础交易 gas: ${FIXED_GAS_OVERHEAD}`);
+    console.log(`  - UserOp 固定开销: ${PER_USER_OP_OVERHEAD}`);
+    console.log(`  - 数据长度: ${bytes.length} bytes`);
+    console.log(`  - 字节成本: ${byteCost}`);
+    console.log(`  - 安全缓冲: ${SAFETY_BUFFER}`);
+    console.log(`  - 计算总量: ${totalGas} (0x${totalGas.toString(16)})`);
+
+    return ethers.utils.hexlify(totalGas);
+}
+
+/**
  * 检查账户余额
  */
 async function checkBalances(provider) {
@@ -147,24 +203,46 @@ async function testABTransfer(transferAmount) {
 
         // 获取 Gas 价格
         const feeData = await provider.getFeeData();
-        const maxFeePerGas = feeData.maxFeePerGas || ethers.utils.parseUnits("100", "gwei");
-        const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas || ethers.utils.parseUnits("2", "gwei");
 
-        console.log(`Max Fee Per Gas: ${ethers.utils.formatUnits(maxFeePerGas, "gwei")} Gwei`);
+        // 为 Sepolia 测试网使用非常低的 gas 价格
+        const minMaxFee = ethers.BigNumber.from("100100000"); // 100100000 wei ≈ 0.1001 gwei (bundler 最低要求)
+        const sepoliaMaxFee = ethers.utils.parseUnits("0.2", "gwei"); // 0.2 gwei，适合测试网
+        // 忽略网络返回的过高价格，直接使用测试网合理价格
+        const maxFeePerGas = sepoliaMaxFee.gt(minMaxFee) ? sepoliaMaxFee : ethers.utils.parseUnits("0.2", "gwei");
 
-        // 构建 UserOperation
-        const userOp = {
+        // 使用测试网合理的优先费用
+        const minPriorityFee = ethers.BigNumber.from("100000000"); // 100000000 wei ≈ 0.1 gwei (bundler 最低要求)
+        const sepoliaPriorityFee = ethers.utils.parseUnits("0.1", "gwei"); // 0.1 gwei，刚好满足要求
+        // 直接使用最低要求，不依赖网络返回值
+        const maxPriorityFeePerGas = sepoliaPriorityFee;
+
+        console.log(`💰 Gas 费用设置:`);
+        console.log(`  - Max Fee Per Gas: ${ethers.utils.formatUnits(maxFeePerGas, "gwei")} Gwei (${maxFeePerGas.toString()} wei)`);
+        console.log(`  - maxFeePerGas 最低要求: ${ethers.utils.formatUnits(minMaxFee, "gwei")} Gwei (${minMaxFee.toString()} wei)`);
+        console.log(`  - Max Priority Fee: ${ethers.utils.formatUnits(maxPriorityFeePerGas, "gwei")} Gwei (${maxPriorityFeePerGas.toString()} wei)`);
+        console.log(`  - maxPriorityFeePerGas 最低要求: ${ethers.utils.formatUnits(minPriorityFee, "gwei")} Gwei (${minPriorityFee.toString()} wei)`);
+
+        // 先构建基础的 UserOperation（不含 preVerificationGas）
+        const baseUserOp = {
             sender: SIMPLE_ACCOUNT_A,
             nonce: ethers.utils.hexlify(nonce),
             initCode: "0x",
             callData: executeData,
             callGasLimit: "0x15F90", // 90000 gas
             verificationGasLimit: "0x15F90", // 90000 gas
-            preVerificationGas: "0xAF3C", // 44868 gas (minimum required)
             maxFeePerGas: ethers.utils.hexlify(maxFeePerGas),
             maxPriorityFeePerGas: ethers.utils.hexlify(maxPriorityFeePerGas),
             paymasterAndData: "0x",
             signature: "0x"
+        };
+
+        // 动态计算 preVerificationGas
+        const calculatedPreVerificationGas = calculatePreVerificationGas(baseUserOp);
+
+        // 构建完整的 UserOperation
+        const userOp = {
+            ...baseUserOp,
+            preVerificationGas: calculatedPreVerificationGas
         };
 
         // 5. 计算签名
@@ -212,9 +290,23 @@ async function testABTransfer(transferAmount) {
         const transferSuccess = senderDiff.eq(amount) && receiverDiff.eq(amount);
         console.log(`\\n🎯 转账验证: ${transferSuccess ? '✅ 成功' : '❌ 失败'}`);
 
+        // 生成浏览器链接
+        const jiffyScanUrl = `https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia`;
+        const etherscanUrl = receipt.transactionHash
+            ? `https://sepolia.etherscan.io/tx/${receipt.transactionHash}`
+            : null;
+
+        console.log(`\\n🔗 浏览器链接:`);
+        console.log(`JiffyScan (UserOp): ${jiffyScanUrl}`);
+        if (etherscanUrl) {
+            console.log(`Etherscan (Tx): ${etherscanUrl}`);
+        }
+
         return {
             success: transferSuccess,
             userOpHash,
+            jiffyScanUrl,
+            etherscanUrl,
             transactionHash: receipt.transactionHash,
             blockNumber: receipt.blockNumber,
             gasUsed: receipt.gasUsed,

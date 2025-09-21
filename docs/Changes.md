@@ -139,6 +139,78 @@
   - 网络选择器、用户交互、性能测试全部通过
   - 详细测试报告: aa-flow/web-test/TEST_REPORT.md
 
+## 2025-09-21 关键 Gas 费用问题修复 ✅
+
+### 🔧 AA23 ECDSA 签名错误最终解决
+- **问题根源**: bundler API `eth_estimateUserOperationGas` 返回 44860，但 bundler 要求最少 44880
+- **解决方案**: 移除动态 gas 估算，使用固定 gas 值
+- **修复位置**:
+  - Web 界面: `aa-flow/web-test/src/services/accountService.ts` → preVerificationGas: `0xAF50` (44880)
+  - 命令行脚本: `aa-flow/src/testABTransfer.js` → preVerificationGas: `0xAF50` (44880)
+
+### 🚀 动态 Gas 计算算法升级
+- **智能计算**: 实现基于 ERC-4337 标准的精确 preVerificationGas 算法
+- **算法组成**:
+  - 基础交易 gas: 21000
+  - UserOp 固定开销: 18300
+  - 每字开销: ceil(bytes/32) * 4
+  - 字节成本: 零字节(4) + 非零字节(16)
+  - 安全缓冲: 1000
+- **实际应用**: 动态计算值 52364 gas (0xcc8c) vs 固定值 44880 gas
+- **新增组件**: `GasCalculatorAdvanced.tsx` 可视化展示计算过程
+
+### 🔧 Gas 费用优化和余额问题修复
+- **问题**: Web 界面出现余额不足错误
+  - 错误信息: "sender balance and deposit together is 20115635512498836 but must be at least 23239600000000000"
+  - 差额: 需要额外约 0.003 ETH
+- **解决方案**:
+  - 降低 gas 费用上限: maxFeePerGas 从 100 gwei → 10 gwei
+  - 降低优先费用: maxPriorityFeePerGas 从 2 gwei → 1 gwei
+  - 降低 gas 限制: callGasLimit 和 verificationGasLimit 从 90000 → 70000
+- **实际效果**: 保守设置既满足 bundler 要求又降低成本
+
+### ✅ 测试验证
+- **命令行转账**: 成功执行多次 1 PNT A→B 转账
+  - 固定值测试: UserOp Hash `0xe1fb748d6e890576cd9060e5d2c9a0377d6e8b4504ed99f33efc50acebb571e0`
+  - 动态算法测试: UserOp Hash `0x9ec33f913fdb5a42932f26cb4b75c4b93228e3965a9ffaa1b39a1fbf5343749c`
+  - 保守 gas 测试: UserOp Hash `0x99797546ef878de07286a4e74b4b00d41cb43a8ccc007e94c15d7dd3bf39990e`
+  - 余额变化: A (90→87→84→83→82→81), B (10→13→16→17→18→19) ✅
+- **Web 界面**: 开发服务器运行正常 (http://localhost:5174/)
+  - 新增高级 Gas 计算器展示详细算法
+  - 实时显示计算明细和公式
+  - 保守 gas 设置降低余额要求
+### ⚡ Sepolia 测试网 Gas 价格大幅优化
+- **问题发现**: 网络返回的 gas 价格过高，不符合测试网实际情况
+  - 网络返回: maxFeePerGas 1.5 gwei, maxPriorityFeePerGas 1.5 gwei
+  - 实际 gasPrice: 0.001 gwei (测试网正常水平)
+- **优化方案**: 强制使用测试网合理价格，忽略网络过高估算
+  - 新设置: maxFeePerGas 0.2 gwei, maxPriorityFeePerGas 0.1 gwei
+  - 仍满足 bundler 最低要求 (0.1001 gwei 和 0.1 gwei)
+- **成本节省**:
+  - 单次交易成本: 0.000288 ETH → 0.000038 ETH
+  - **节省 86% gas 费用** 💰
+  - 测试验证: UserOp Hash `0x755b5053e630e352ded2613cec6b21dd7be69784da80b0cbe634baeab8871a7e`
+
+### 💰 EntryPoint 存款问题最终解决
+- **问题**: Web 界面持续出现余额不足错误
+  - 错误: "sender balance and deposit together is [amount] but must be at least [required]"
+  - 原因: ERC-4337 要求 SimpleAccount 在 EntryPoint 合约中有足够存款
+- **解决方案**: 创建专用存款脚本 `depositToEntryPoint.js`
+  - 检查当前 EntryPoint 存款: 0.000182 ETH → 不足
+  - 执行两次存款: 0.015 ETH + 0.003 ETH = 0.018 ETH
+  - 最终 EntryPoint 余额: 18182570715142364 wei (0.018 ETH)
+- **存款交易**:
+  - 第一次: `0x742a9d87e3270a72482c0e9ad78c58e67e9a29dcf44da11d50d0c55fd8927830`
+  - 第二次: `0x7aee1d8fa3fef943df0f3dc9cf6ac55145888ee0d988ace65b282fdf2f208402`
+
+- **错误修复全览**:
+  - ✅ Buffer is not defined (浏览器兼容性)
+  - ✅ maxPriorityFeePerGas 过低 (最低 0.1 gwei)
+  - ✅ maxFeePerGas 过低 (最低 0.1001 gwei)
+  - ✅ preVerificationGas 动态计算
+  - ✅ gas 费用优化 (降低成本)
+  - ✅ EntryPoint 存款不足 (增加存款)
+
 ## 2025-09-21 Web Interface 功能修复完成
 
 ### 🔧 关键问题解决

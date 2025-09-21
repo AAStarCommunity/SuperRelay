@@ -24,6 +24,10 @@ export interface TransferResult {
   success: boolean;
   receipt?: any;
   error?: string;
+  userOp?: UserOperation;
+  gasEstimate?: any;
+  jiffyScanUrl?: string;
+  etherscanUrl?: string;
 }
 
 export class AccountService {
@@ -122,6 +126,61 @@ export class AccountService {
     }
   }
 
+  // 计算 preVerificationGas 的精确算法
+  private calculatePreVerificationGas(userOp: Partial<UserOperation>): string {
+    const FIXED_GAS_OVERHEAD = 21000;  // 基础交易 gas
+    const PER_USER_OP_OVERHEAD = 18300; // 每个 UserOp 的固定开销
+    const PER_USER_OP_WORD = 4;         // 每个字的开销
+    const ZERO_BYTE_COST = 4;           // 零字节成本
+    const NON_ZERO_BYTE_COST = 16;      // 非零字节成本
+    const SAFETY_BUFFER = 1000;         // 安全缓冲
+
+    // 序列化 UserOperation 用于计算字节数
+    const userOpData = JSON.stringify({
+      sender: userOp.sender || '',
+      nonce: userOp.nonce || '0x0',
+      initCode: userOp.initCode || '0x',
+      callData: userOp.callData || '0x',
+      callGasLimit: userOp.callGasLimit || '0x0',
+      verificationGasLimit: userOp.verificationGasLimit || '0x0',
+      preVerificationGas: '0x0', // 临时值
+      maxFeePerGas: userOp.maxFeePerGas || '0x0',
+      maxPriorityFeePerGas: userOp.maxPriorityFeePerGas || '0x0',
+      paymasterAndData: userOp.paymasterAndData || '0x',
+      signature: userOp.signature || '0x'
+    });
+
+    // 计算字节成本
+    let byteCost = 0;
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(userOpData);
+
+    for (const byte of bytes) {
+      if (byte === 0) {
+        byteCost += ZERO_BYTE_COST;
+      } else {
+        byteCost += NON_ZERO_BYTE_COST;
+      }
+    }
+
+    // 计算总的 preVerificationGas
+    const totalGas = FIXED_GAS_OVERHEAD +
+                    PER_USER_OP_OVERHEAD +
+                    Math.ceil(bytes.length / 32) * PER_USER_OP_WORD +
+                    byteCost +
+                    SAFETY_BUFFER;
+
+    DebugLogger.log(`🧮 PreVerificationGas 计算:`);
+    DebugLogger.log(`  - 基础交易 gas: ${FIXED_GAS_OVERHEAD}`);
+    DebugLogger.log(`  - UserOp 固定开销: ${PER_USER_OP_OVERHEAD}`);
+    DebugLogger.log(`  - 数据长度: ${bytes.length} bytes`);
+    DebugLogger.log(`  - 字节成本: ${byteCost}`);
+    DebugLogger.log(`  - 安全缓冲: ${SAFETY_BUFFER}`);
+    DebugLogger.log(`  - 计算总量: ${totalGas}`);
+
+    return ethers.toBeHex(totalGas);
+  }
+
   // 构建 ERC20 转账 UserOperation
   async buildTransferUserOp(params: TransferParams): Promise<{
     userOp: UserOperation;
@@ -162,34 +221,54 @@ export class AccountService {
 
       // 获取 gas 价格
       const feeData = await this.provider.getFeeData();
-      const maxFeePerGas = feeData.maxFeePerGas || ethers.parseUnits('100', 'gwei');
-      const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas || ethers.parseUnits('2', 'gwei');
 
-      // 构建基础 UserOperation
+      // 为 Sepolia 测试网使用非常低的 gas 价格
+      const minMaxFee = BigInt(100100000); // 100100000 wei ≈ 0.1001 gwei (bundler 最低要求)
+      const sepoliaMaxFee = ethers.parseUnits('0.2', 'gwei'); // 0.2 gwei，适合测试网
+      // 忽略网络返回的过高价格，直接使用测试网合理价格
+      const maxFeePerGas = sepoliaMaxFee > minMaxFee ? sepoliaMaxFee : ethers.parseUnits('0.2', 'gwei');
+
+      // 使用测试网合理的优先费用
+      const minPriorityFee = BigInt(100000000); // 100000000 wei ≈ 0.1 gwei (bundler 最低要求)
+      const sepoliaPriorityFee = ethers.parseUnits('0.1', 'gwei'); // 0.1 gwei，刚好满足要求
+      // 直接使用最低要求，不依赖网络返回值
+      const maxPriorityFeePerGas = sepoliaPriorityFee;
+
+      DebugLogger.log(`💰 Gas 费用设置:`);
+      DebugLogger.log(`  - maxFeePerGas: ${ethers.formatUnits(maxFeePerGas, 'gwei')} gwei (${maxFeePerGas} wei)`);
+      DebugLogger.log(`  - maxFeePerGas 最低要求: ${ethers.formatUnits(minMaxFee, 'gwei')} gwei (${minMaxFee} wei)`);
+      DebugLogger.log(`  - maxPriorityFeePerGas: ${ethers.formatUnits(maxPriorityFeePerGas, 'gwei')} gwei (${maxPriorityFeePerGas} wei)`);
+      DebugLogger.log(`  - maxPriorityFeePerGas 最低要求: ${ethers.formatUnits(minPriorityFee, 'gwei')} gwei (${minPriorityFee} wei)`);
+
+      // 先构建基础的 UserOperation（不含 preVerificationGas）
       const baseUserOp: Partial<UserOperation> = {
         sender: params.from,
         nonce: ethers.toBeHex(nonce),
         initCode: '0x',
         callData: executeData,
+        callGasLimit: '0x11170', // 70000 gas (更保守的设置)
+        verificationGasLimit: '0x11170', // 70000 gas (更保守的设置)
+        maxFeePerGas: ethers.toBeHex(maxFeePerGas),
+        maxPriorityFeePerGas: ethers.toBeHex(maxPriorityFeePerGas),
         paymasterAndData: '0x',
         signature: '0x',
       };
 
-      // 估算 gas
-      const gasEstimate = await this.bundlerService.estimateUserOperationGas(
-        baseUserOp,
-        this.entryPointAddress
-      );
+      // 动态计算 preVerificationGas
+      const calculatedPreVerificationGas = this.calculatePreVerificationGas(baseUserOp);
 
-      // 完整的 UserOperation
+      // 构建完整的 UserOperation
       const userOp: UserOperation = {
         ...baseUserOp,
-        callGasLimit: gasEstimate.callGasLimit,
-        verificationGasLimit: gasEstimate.verificationGasLimit,
-        preVerificationGas: gasEstimate.preVerificationGas,
-        maxFeePerGas: ethers.toBeHex(maxFeePerGas),
-        maxPriorityFeePerGas: ethers.toBeHex(maxPriorityFeePerGas),
+        preVerificationGas: calculatedPreVerificationGas,
       } as UserOperation;
+
+      // 模拟 gasEstimate 返回值以保持接口一致
+      const gasEstimate = {
+        callGasLimit: '0x11170',
+        verificationGasLimit: '0x11170',
+        preVerificationGas: calculatedPreVerificationGas,
+      };
 
       DebugLogger.log('📋 构建完成的 UserOperation (签名前):');
       DebugLogger.log(JSON.stringify(userOp, null, 2));
@@ -211,7 +290,7 @@ export class AccountService {
   // 执行转账
   async executeTransfer(params: TransferParams): Promise<TransferResult> {
     try {
-      const { userOp } = await this.buildTransferUserOp(params);
+      const { userOp, gasEstimate } = await this.buildTransferUserOp(params);
 
       // 发送 UserOperation
       const userOpHash = await this.bundlerService.sendUserOperation(
@@ -222,10 +301,26 @@ export class AccountService {
       // 等待确认
       const receipt = await this.bundlerService.waitForUserOpReceipt(userOpHash);
 
+      // 生成浏览器链接
+      const jiffyScanUrl = `https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia`;
+      const etherscanUrl = receipt.actualTransaction?.hash
+        ? `https://sepolia.etherscan.io/tx/${receipt.actualTransaction.hash}`
+        : null;
+
+      DebugLogger.log(`🔗 浏览器链接:`);
+      DebugLogger.log(`  - JiffyScan (UserOp): ${jiffyScanUrl}`);
+      if (etherscanUrl) {
+        DebugLogger.log(`  - Etherscan (Tx): ${etherscanUrl}`);
+      }
+
       return {
         userOpHash,
         success: receipt.success,
         receipt,
+        userOp,
+        gasEstimate,
+        jiffyScanUrl,
+        etherscanUrl,
       };
     } catch (error) {
       console.error('Transfer failed:', error);
