@@ -2,6 +2,13 @@
 node_modules/
 **/node_modules/
 
+# Playwright test results
+**/test-results/
+**/playwright-report/
+
+# Package manager lock files that shouldn't be tracked
+**/pnpm-lock.yaml
+
 # Environment files with sensitive data
 .env
 .env.local
