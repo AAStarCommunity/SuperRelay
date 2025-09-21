@@ -1,0 +1,42 @@
+{
+  "name": "erc4337-aa-flow-tests",
+  "version": "1.0.0",
+  "description": "ERC-4337 Account Abstraction flow tests for SuperRelay project",
+  "main": "src/testTransferWithBundler.js",
+  "scripts": {
+    "test": "node src/testTransferWithBundler.js",
+    "test:signature": "node src/testWithProperSignature.js",
+    "test:pnt": "node src/testPNTTransferFixed.js",
+    "test:pnt-batch": "node src/testPNTTransferFixed.js batch",
+    "test:ab": "node src/testABTransfer.js",
+    "test:transfer": "node src/testTransferWithBundler.js",
+    "lint": "echo 'Linting not configured'",
+    "install-deps": "npm install ethers@5.7.2"
+  },
+  "keywords": [
+    "erc4337",
+    "account-abstraction",
+    "ethereum",
+    "bundler",
+    "useroperation",
+    "pnt-token"
+  ],
+  "author": "SuperRelay Team",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "ethers": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AAStarCommunity/SuperRelay.git",
+    "directory": "aa-flow"
+  },
+  "bugs": {
+    "url": "https://github.com/AAStarCommunity/SuperRelay/issues"
+  },
+  "homepage": "https://github.com/AAStarCommunity/SuperRelay#readme"
+}

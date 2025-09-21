@@ -20,11 +20,11 @@
 - **大规模**: $30-50/月 (4GB 内存, 专用 CPU, 3 台机器)
 
 #### 已应用的成本优化
-✅ 新加坡区域部署 (更低延迟)  
-✅ 内存降至 1GB (节省 50%)  
-✅ CPU 降至 1 核心 (节省 50%)  
-✅ 空闲自动停机 (min=0)  
-✅ 单机器部署 (max=1)  
+✅ 新加坡区域部署 (更低延迟)
+✅ 内存降至 1GB (节省 50%)
+✅ CPU 降至 1 核心 (节省 50%)
+✅ 空闲自动停机 (min=0)
+✅ 单机器部署 (max=1)
 ✅ 优化超时和 gas 限制
 
 ## 📋 前置准备
@@ -78,7 +78,7 @@ flyctl secrets set AWS_SECRET_ACCESS_KEY="your_aws_secret"
 ### 步骤 1: 准备代码
 ```bash
 # 确保在 deploy 分支
-git checkout deploy
+git checkout pure-rundler-deploy
 
 # 验证关键文件存在
 ls -la Dockerfile fly.toml
@@ -112,7 +112,7 @@ flyctl scale count 1      # 开始时使用 1 台机器
 flyctl deploy
 
 # 监控部署进度
-flyctl logs -f
+flyctl logs
 ```
 
 ### 步骤 5: 验证部署
@@ -182,7 +182,7 @@ flyctl scale show
 # 新加坡 (推荐 - 最佳延迟)
 primary_region = "sin"
 
-# 香港 (备选)  
+# 香港 (备选)
 primary_region = "hkg"
 
 # 东京 (备选)
@@ -375,7 +375,7 @@ flyctl logs --app rundler-superrelay
    ```bash
    # 增加到 2GB 内存，2 CPU
    flyctl scale memory 2048 --app rundler-superrelay
-   
+
    # 设置最少保持 1 台运行
    # 在 fly.toml 中修改：min_machines_running = 1
    ```
@@ -384,7 +384,7 @@ flyctl logs --app rundler-superrelay
    ```bash
    # 增加到 2 台机器
    # 在 fly.toml 中修改：max_machines_running = 2
-   
+
    # 添加多区域支持
    flyctl regions add hkg nrt --app rundler-superrelay
    ```
@@ -393,7 +393,7 @@ flyctl logs --app rundler-superrelay
    ```bash
    # 定期检查资源使用
    flyctl machine list --app rundler-superrelay
-   
+
    # 如果CPU/内存不足，及时扩容
    flyctl scale count 2 --app rundler-superrelay
    ```
