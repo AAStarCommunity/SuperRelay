@@ -10,8 +10,14 @@
 *.iml
 .vscode
 
+# Environment files with sensitive data
 .env
+.env.local
+.env.*.local
 *.log
+# Specific sensitive files
+**/config/secrets.json
+**/private_keys.txt
 
 *.profraw
 .DS_Store
