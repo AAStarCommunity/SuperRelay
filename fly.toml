@@ -23,7 +23,12 @@ primary_region = "sin"  # Singapore - closer to your location
   MAX_VERIFICATION_GAS = "5000000"
   TARGET_BUNDLE_TRANSACTION_GAS_LIMIT_RATIO = "0.5"
   MAX_BUNDLE_TRANSACTION_GAS_LIMIT_RATIO = "0.9"
-  
+
+  # Gas fee optimization - reduce insufficient fee errors
+  MIN_PRIORITY_FEE_PER_GAS = "1000000000"  # 1 Gwei minimum priority fee
+  MAX_FEE_PER_GAS_OVERHEAD = "20000000000"  # 20 Gwei overhead for max fee
+  GAS_FEE_ESTIMATION_BUFFER = "1.1"  # 10% buffer for fee estimation
+
   # Connection timeouts optimized for cloud deployment
   PROVIDER_CLIENT_TIMEOUT_SECONDS = "30"
   TRACER_TIMEOUT = "15s"

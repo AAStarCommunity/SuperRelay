@@ -57,6 +57,12 @@
 - **新分支**: 从 main-base 创建 relay-dev 分支用于开发 paymaster 功能
 - **分支推送**: 所有新分支已推送到远程仓库
 
+### ⛽ Gas 费用优化 (2025-09-21)
+- **问题识别**: 修复 InsufficientFees 导致的 UserOperation 跳过问题
+- **配置优化**: 添加 gas 费用缓冲和最小费用设置
+- **环境变量**: 新增 MIN_PRIORITY_FEE_PER_GAS, MAX_FEE_PER_GAS_OVERHEAD 等配置
+- **部署更新**: 优化 fly.toml 中的 gas 费用策略
+
 ---
 
 ## v0.1.17 - UserOperation v0.8 支持 (2025-09-18)
