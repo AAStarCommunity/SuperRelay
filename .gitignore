@@ -32,6 +32,10 @@ dist/
 .claude
 .taskmaster
 .zed
+# Node.js dependencies - ignore in any directory
+node_modules/
+**/node_modules/
+
+# Development directories
 demo/
-node_modules
 test_enhanced/
