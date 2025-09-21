@@ -1,5 +1,58 @@
 # SuperRelay 版本迭代记录
 
+## v1.0.0 - ERC-4337 Web 测试界面完整版 (2025-09-21)
+
+### 🎉 重大里程碑
+- **100% Playwright 测试通过率**: 25/25 测试全部通过
+- **完整 Web 界面**: 基于 React + TypeScript + Vite 的现代化界面
+- **生产就绪**: 支持实时数据、错误处理、响应式设计
+
+### ✨ 核心功能
+- **环境配置显示**: 自动检测和显示 Bundler、EntryPoint、Factory 等配置
+- **Bundler 状态监控**: 实时显示 bundler 服务状态和支持的网络
+- **Gas 价格计算器**: 实时 ETH 价格获取和 gas 费用估算
+- **账户管理**: 显示 EOA 和 SimpleAccount 余额，支持多账户管理
+- **PNT 转账功能**: 默认 3 PNT A→B 转账，完整的 UserOperation 流程
+
+### 🔧 技术架构
+- **前端**: React 18 + TypeScript + Vite
+- **区块链集成**: ethers.js v6
+- **测试**: Playwright E2E 测试框架
+- **代理**: Vite 代理解决 CORS 问题
+- **样式**: styled-jsx + CSS modules
+
+### 📱 用户体验
+- **响应式设计**: 支持桌面/平板/手机多端适配
+- **实时更新**: 自动刷新账户余额和网络状态
+- **错误处理**: 完善的错误提示和调试信息
+- **区块链浏览器集成**: 一键跳转 Etherscan 查看交易
+
+### 🧪 测试覆盖
+- **基本功能测试**: 页面加载、组件存在性验证
+- **完整界面测试**: 环境配置、状态监控、gas 计算、账户管理、转账功能
+- **用户交互测试**: 网络切换、表单输入、按钮点击
+- **响应式测试**: 多分辨率适配验证
+- **性能测试**: 页面加载时间监控
+
+### 📦 新增文件
+- `aa-flow/web-test/src/services/priceService.ts` - 实时 ETH 价格服务
+- `aa-flow/web-test/src/utils/debugLogger.ts` - 调试日志工具
+- `aa-flow/web-test/src/types/styled-jsx.d.ts` - TypeScript 类型定义
+- `aa-flow/web-test/tests/` - 完整的 Playwright 测试套件
+
+### 🐛 问题修复
+- 修复 TypeScript 编译错误 (verbatimModuleSyntax)
+- 解决 CORS 跨域访问问题
+- 修复 UserOperation 签名生成逻辑
+- 优化 gas 估算和显示精度
+- 修复测试用例中的元素定位问题
+
+### 🔗 相关链接
+- Web 界面: http://localhost:5173/
+- Bundler API: https://rundler-superrelay.fly.dev/
+- 测试报告: http://localhost:9323/
+- GitHub Tag: `web-interface-v1.0.0`
+
 ## v0.1.18 - Fly.io 部署准备 (2025-09-18)
 
 ### 🚀 新增功能
