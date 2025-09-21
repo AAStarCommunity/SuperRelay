@@ -14,7 +14,7 @@ test.describe('完整界面功能测试', () => {
     await expect(page.locator('h1')).toContainText('ERC-4337 Rundler Testing Interface');
 
     // 验证描述
-    await expect(page.locator('p')).toContainText('Comprehensive testing interface for Rundler bundler service');
+    await expect(page.locator('header p')).toContainText('Comprehensive testing interface for Rundler bundler service');
   });
 
   test('网络选择器功能验证', async ({ page }) => {
@@ -31,8 +31,8 @@ test.describe('完整界面功能测试', () => {
     expect(options).toBe(3); // Sepolia, OP Sepolia, OP Mainnet
 
     // 测试网络切换
-    await networkSelector.selectOption('op-sepolia');
-    await expect(networkSelector).toHaveValue('op-sepolia');
+    await networkSelector.selectOption('opSepolia');
+    await expect(networkSelector).toHaveValue('opSepolia');
 
     // 切换回默认
     await networkSelector.selectOption('sepolia');
@@ -163,11 +163,11 @@ test.describe('完整界面功能测试', () => {
   test('用户交互流程测试', async ({ page }) => {
     // 1. 切换网络
     const networkSelector = page.locator('select[data-testid="network-selector"]');
-    await networkSelector.selectOption('op-sepolia');
+    await networkSelector.selectOption('opSepolia');
 
     // 2. 检查内容更新（Bundler URL应该不同）
     // 注意：简化版本中所有网络都使用同一个URL，这里只是验证选择器工作
-    await expect(networkSelector).toHaveValue('op-sepolia');
+    await expect(networkSelector).toHaveValue('opSepolia');
 
     // 3. 修改转账金额
     const amountInput = page.locator('input[type="number"]');
