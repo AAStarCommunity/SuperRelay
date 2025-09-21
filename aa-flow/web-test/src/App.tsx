@@ -22,22 +22,38 @@ function App() {
   // 初始化服务
   useEffect(() => {
     const network = NETWORKS[selectedNetwork];
-    if (!network) return;
+    if (!network) {
+      console.error('Network not found:', selectedNetwork);
+      return;
+    }
+
+    console.log('初始化网络:', selectedNetwork, network);
 
     // 初始化 Bundler 服务
-    const bundler = new BundlerService(network.bundlerUrl || '');
-    setBundlerService(bundler);
+    if (network.bundlerUrl) {
+      const bundler = new BundlerService(network.bundlerUrl);
+      setBundlerService(bundler);
+      console.log('Bundler 服务已初始化:', network.bundlerUrl);
+    } else {
+      console.warn('缺少 bundlerUrl 配置');
+    }
 
     // 初始化 Account 服务
-    if (network.bundlerUrl) {
+    if (network.bundlerUrl && import.meta.env.VITE_PRIVATE_KEY) {
       const account = new AccountService(
         network.rpcUrl,
         network.bundlerUrl,
-        import.meta.env.VITE_PRIVATE_KEY || '',
+        import.meta.env.VITE_PRIVATE_KEY,
         network.contracts.entryPoint,
         network.contracts.factory
       );
       setAccountService(account);
+      console.log('Account 服务已初始化');
+    } else {
+      console.warn('缺少必要配置:', {
+        bundlerUrl: !!network.bundlerUrl,
+        privateKey: !!import.meta.env.VITE_PRIVATE_KEY
+      });
     }
   }, [selectedNetwork]);
 

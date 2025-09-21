@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { NETWORKS } from '../config/networks';
+// import { NETWORKS } from '../config/networks';
 
 interface EnvConfigDisplayProps {
   selectedNetwork: string;
 }
 
-const EnvConfigDisplay: React.FC<EnvConfigDisplayProps> = ({ selectedNetwork }) => {
+const EnvConfigDisplay: React.FC<EnvConfigDisplayProps> = ({ selectedNetwork: _ }) => {
   const [showConfig, setShowConfig] = useState(false);
 
-  const network = NETWORKS[selectedNetwork];
+  // const network = NETWORKS[selectedNetwork];
 
   const envVars = {
     'VITE_NODE_HTTP': import.meta.env.VITE_NODE_HTTP,

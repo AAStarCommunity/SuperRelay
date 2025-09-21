@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BundlerService, GasCalculator as GasCalc } from '../services/bundlerService';
+import { PriceService } from '../services/priceService';
 import type { NetworkConfig } from '../config/networks';
 import { ethers } from 'ethers';
 
@@ -44,13 +45,14 @@ const GasCalculator: React.FC<GasCalculatorProps> = ({
     }
   };
 
-  // 获取 ETH 价格（简化版，实际可以调用 API）
+  // 获取 ETH 价格
   const fetchETHPrice = async () => {
     try {
-      // 这里可以调用实际的价格 API，暂时使用模拟数据
-      setEthPrice(2500); // $2500 USD
+      const price = await PriceService.getEthPrice();
+      setEthPrice(price);
     } catch (error) {
       console.error('Failed to fetch ETH price:', error);
+      setEthPrice(3000); // 后备价格
     }
   };
 
@@ -63,14 +65,14 @@ const GasCalculator: React.FC<GasCalculatorProps> = ({
 
     try {
       // 模拟一个 ERC20 转账的 UserOperation
-      const mockUserOp = {
-        sender: import.meta.env.VITE_SIMPLE_ACCOUNT_A || '0x7D7a0D3239285faE78F9c364D81bb1E3bc555BC6',
-        nonce: '0x0',
-        initCode: '0x',
-        callData: '0x', // 实际会是 SimpleAccount.execute() 调用
-        paymasterAndData: '0x',
-        signature: '0x',
-      };
+      // const mockUserOp = {
+      //   sender: import.meta.env.VITE_SIMPLE_ACCOUNT_A || '0x7D7a0D3239285faE78F9c364D81bb1E3bc555BC6',
+      //   nonce: '0x0',
+      //   initCode: '0x',
+      //   callData: '0x', // 实际会是 SimpleAccount.execute() 调用
+      //   paymasterAndData: '0x',
+      //   signature: '0x',
+      // };
 
       // 使用固定的 gas 估算值（基于我们的成功测试）
       const gasEstimate = {

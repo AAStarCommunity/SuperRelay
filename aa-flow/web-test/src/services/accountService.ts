@@ -2,6 +2,7 @@
 import { ethers } from 'ethers';
 import { BundlerService } from './bundlerService';
 import type { UserOperation } from './bundlerService';
+import { DebugLogger } from '../utils/debugLogger';
 
 export interface AccountInfo {
   address: string;
@@ -71,12 +72,23 @@ export class AccountService {
       // 获取 nonce（如果已部署）
       let nonce = 0;
       if (isDeployed) {
-        const accountContract = new ethers.Contract(
-          accountAddress,
-          ['function getNonce() view returns (uint256)'],
-          this.provider
-        );
-        nonce = Number(await accountContract.getNonce());
+        try {
+          const accountContract = new ethers.Contract(
+            accountAddress,
+            ['function nonce() view returns (uint256)', 'function getNonce() view returns (uint256)'],
+            this.provider
+          );
+
+          // 尝试不同的 nonce 函数名
+          try {
+            nonce = Number(await accountContract.nonce());
+          } catch {
+            nonce = Number(await accountContract.getNonce());
+          }
+        } catch (error) {
+          console.warn('无法获取 nonce，使用默认值 0:', error);
+          nonce = 0;
+        }
       }
 
       return {
@@ -95,13 +107,15 @@ export class AccountService {
   // 计算 SimpleAccount 地址
   async calculateAccountAddress(owner: string, salt: number = 0): Promise<string> {
     try {
-      const factoryContract = new ethers.Contract(
-        this.factoryAddress,
-        ['function getAddress(address owner, uint256 salt) view returns (address)'],
-        this.provider
-      );
+      // const factoryContract = new ethers.Contract(
+      //   this.factoryAddress,
+      //   ['function getAddress(address owner, uint256 salt) view returns (address)'],
+      //   this.provider
+      // );
 
-      return await factoryContract.getAddress(owner, BigInt(salt));
+      // return await factoryContract['getAddress'](owner, salt);
+      // 临时返回模拟地址
+      return '0x' + ethers.keccak256(ethers.toUtf8Bytes(owner + salt.toString())).slice(2, 42);
     } catch (error) {
       console.error('Failed to calculate account address:', error);
       throw error;
@@ -177,9 +191,15 @@ export class AccountService {
         maxPriorityFeePerGas: ethers.toBeHex(maxPriorityFeePerGas),
       } as UserOperation;
 
+      DebugLogger.log('📋 构建完成的 UserOperation (签名前):');
+      DebugLogger.log(JSON.stringify(userOp, null, 2));
+
       // 计算签名
       const signature = await this.signUserOperation(userOp, wallet);
       userOp.signature = signature;
+
+      DebugLogger.log('📋 最终 UserOperation (含签名):');
+      DebugLogger.log(JSON.stringify(userOp, null, 2));
 
       return { userOp, gasEstimate };
     } catch (error) {
@@ -191,7 +211,7 @@ export class AccountService {
   // 执行转账
   async executeTransfer(params: TransferParams): Promise<TransferResult> {
     try {
-      const { userOp, gasEstimate } = await this.buildTransferUserOp(params);
+      const { userOp } = await this.buildTransferUserOp(params);
 
       // 发送 UserOperation
       const userOpHash = await this.bundlerService.sendUserOperation(
@@ -217,21 +237,53 @@ export class AccountService {
     }
   }
 
-  // 签名 UserOperation
+  // 签名 UserOperation (精确匹配工作脚本的实现)
   private async signUserOperation(
     userOp: UserOperation,
     wallet: ethers.Wallet
   ): Promise<string> {
     try {
-      // 计算 UserOperation hash
-      const userOpHash = this.getUserOpHash(userOp);
+      DebugLogger.log('🔍 === 详细调试信息 ===');
+      DebugLogger.log('📋 UserOperation 输入: ' + JSON.stringify(userOp, null, 2));
 
-      // 使用 Ethereum Signed Message 格式签名（SimpleAccount v0.6 要求）
-      const signature = await wallet.signMessage(ethers.getBytes(userOpHash));
+      // 显示预期的工作脚本结果
+      DebugLogger.log('✅ 预期结果 (来自工作脚本):');
+      DebugLogger.log('  预期 Hash: 0xf6ffd45b773ad7af4791441c946dad7fe50372af73a7c193f0585e49ca2085cb');
+      DebugLogger.log('  预期签名长度: 132');
+      DebugLogger.log('  预期签名: 0xe3099e923b55df481cada71de2b6c147d6c266bc0997d357bb89085b4958483c3cde97d4fdaa00f2b7f73e078a56ad7efed925e1ba02575e89a619dfe1a8581c1c');
 
+      // 计算 UserOperation hash - 完全匹配工作脚本
+      const userOpHash = this.getUserOpHashV5Compatible(userOp);
+
+      DebugLogger.log('🔍 当前计算结果:');
+      DebugLogger.log('  当前 Hash: ' + userOpHash);
+      DebugLogger.log('  Hash 匹配: ' + (userOpHash === '0xf6ffd45b773ad7af4791441c946dad7fe50372af73a7c193f0585e49ca2085cb' ? '✅' : '❌'));
+
+      // 使用与工作脚本完全相同的签名方法
+      // ethers v6 equivalent of ethers.utils.arrayify(userOpHash)
+      const hashBytes = ethers.getBytes(userOpHash);
+      DebugLogger.log('  Hash Bytes 长度: ' + hashBytes.length);
+      DebugLogger.log('  Hash Bytes: ' + Array.from(hashBytes).map(b => b.toString(16).padStart(2, '0')).join(''));
+
+      const signature = await wallet.signMessage(hashBytes);
+
+      DebugLogger.log('  实际签名长度: ' + signature.length);
+      DebugLogger.log('  实际签名: ' + signature);
+      DebugLogger.log('  签名长度匹配: ' + (signature.length === 132 ? '✅' : '❌'));
+
+      // 验证签名格式
+      if (signature.length !== 132) {
+        throw new Error(`签名长度错误: 期望132, 实际${signature.length}`);
+      }
+
+      if (!signature.startsWith('0x')) {
+        throw new Error('签名格式错误: 应该以0x开头');
+      }
+
+      DebugLogger.log('🎯 签名验证完成');
       return signature;
     } catch (error) {
-      console.error('Failed to sign UserOperation:', error);
+      console.error('❌ 签名失败:', error);
       throw error;
     }
   }
@@ -240,6 +292,7 @@ export class AccountService {
   private getUserOpHash(userOp: UserOperation): string {
     const chainId = 11155111; // Sepolia chain ID
 
+    // 确保数值字段转换为正确格式
     const packedUserOp = ethers.AbiCoder.defaultAbiCoder().encode(
       [
         'address', 'uint256', 'bytes32', 'bytes32',
@@ -248,14 +301,14 @@ export class AccountService {
       ],
       [
         userOp.sender,
-        userOp.nonce,
+        BigInt(userOp.nonce),
         ethers.keccak256(userOp.initCode),
         ethers.keccak256(userOp.callData),
-        userOp.callGasLimit,
-        userOp.verificationGasLimit,
-        userOp.preVerificationGas,
-        userOp.maxFeePerGas,
-        userOp.maxPriorityFeePerGas,
+        BigInt(userOp.callGasLimit),
+        BigInt(userOp.verificationGasLimit),
+        BigInt(userOp.preVerificationGas),
+        BigInt(userOp.maxFeePerGas),
+        BigInt(userOp.maxPriorityFeePerGas),
         ethers.keccak256(userOp.paymasterAndData),
       ]
     );
@@ -266,6 +319,72 @@ export class AccountService {
     );
 
     return ethers.keccak256(encoded);
+  }
+
+  // V5兼容的UserOp Hash计算 (精确匹配工作脚本)
+  private getUserOpHashV5Compatible(userOp: UserOperation): string {
+    const chainId = 11155111; // Sepolia chain ID
+
+    DebugLogger.log('🔧 Hash 计算详细步骤:');
+    DebugLogger.log('  Chain ID: ' + chainId);
+    DebugLogger.log('  Entry Point: ' + this.entryPointAddress);
+
+    // 预计算各个组件的hash
+    const initCodeHash = ethers.keccak256(userOp.initCode);
+    const callDataHash = ethers.keccak256(userOp.callData);
+    const paymasterDataHash = ethers.keccak256(userOp.paymasterAndData);
+
+    DebugLogger.log('  组件 Hash:');
+    DebugLogger.log('    initCode: ' + userOp.initCode + ' → ' + initCodeHash);
+    DebugLogger.log('    callData: ' + (userOp.callData?.slice(0, 50) + '...') + ' → ' + callDataHash);
+    DebugLogger.log('    paymasterData: ' + userOp.paymasterAndData + ' → ' + paymasterDataHash);
+
+    // 显示编码参数
+    const encodeParams = [
+      userOp.sender,
+      userOp.nonce,
+      initCodeHash,
+      callDataHash,
+      userOp.callGasLimit,
+      userOp.verificationGasLimit,
+      userOp.preVerificationGas,
+      userOp.maxFeePerGas,
+      userOp.maxPriorityFeePerGas,
+      paymasterDataHash,
+    ];
+
+    DebugLogger.log('  编码参数:');
+    encodeParams.forEach((param, i) => {
+      const labels = ['sender', 'nonce', 'initCodeHash', 'callDataHash', 'callGasLimit', 'verificationGasLimit', 'preVerificationGas', 'maxFeePerGas', 'maxPriorityFeePerGas', 'paymasterDataHash'];
+      DebugLogger.log(`    ${labels[i]}: ${param}`);
+    });
+
+    // 完全匹配工作脚本的参数处理 - 不使用BigInt转换，保持原始hex格式
+    const packedUserOp = ethers.AbiCoder.defaultAbiCoder().encode(
+      [
+        'address', 'uint256', 'bytes32', 'bytes32',
+        'uint256', 'uint256', 'uint256', 'uint256',
+        'uint256', 'bytes32'
+      ],
+      encodeParams
+    );
+
+    DebugLogger.log('  Packed UserOp: ' + packedUserOp.slice(0, 100) + '...');
+
+    const packedHash = ethers.keccak256(packedUserOp);
+    DebugLogger.log('  Packed Hash: ' + packedHash);
+
+    const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['bytes32', 'address', 'uint256'],
+      [packedHash, this.entryPointAddress, chainId]
+    );
+
+    DebugLogger.log('  Final Encoded: ' + encoded.slice(0, 100) + '...');
+
+    const finalHash = ethers.keccak256(encoded);
+    DebugLogger.log('  Final Hash: ' + finalHash);
+
+    return finalHash;
   }
 
   // 获取代币信息

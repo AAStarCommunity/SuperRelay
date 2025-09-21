@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AccountService } from '../services/accountService';
 import type { TransferResult } from '../services/accountService';
 import { BundlerService } from '../services/bundlerService';
@@ -6,6 +6,7 @@ import type { UserOpReceipt } from '../services/bundlerService';
 import type { NetworkConfig } from '../config/networks';
 import { getJiffyScanUrl, getBlockExplorerTxUrl } from '../config/networks';
 import { ethers } from 'ethers';
+import { DebugLogger } from '../utils/debugLogger';
 
 interface TransferTestProps {
   accountService: AccountService | null;
@@ -20,6 +21,7 @@ interface TransferState {
   receipt: UserOpReceipt | null;
   gasAnalysis: any | null;
   error: string | null;
+  debugInfo: string[];
 }
 
 const TransferTest: React.FC<TransferTestProps> = ({
@@ -34,6 +36,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
     receipt: null,
     gasAnalysis: null,
     error: null,
+    debugInfo: [],
   });
 
   const [initialBalances, setInitialBalances] = useState<{
@@ -48,12 +51,24 @@ const TransferTest: React.FC<TransferTestProps> = ({
     eoa: string;
   } | null>(null);
 
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
   const addresses = {
     accountA: import.meta.env.VITE_SIMPLE_ACCOUNT_A,
     accountB: import.meta.env.VITE_SIMPLE_ACCOUNT_B,
     eoa: import.meta.env.VITE_EOA_ADDRESS,
     pntToken: import.meta.env.VITE_PNT_TOKEN_ADDRESS,
   };
+
+  // 监听调试日志
+  useEffect(() => {
+    const handleLogs = (logs: string[]) => {
+      setDebugLogs(logs);
+    };
+
+    DebugLogger.addListener(handleLogs);
+    return () => DebugLogger.removeListener(handleLogs);
+  }, []);
 
   // 获取余额
   const getBalances = async () => {
@@ -80,6 +95,9 @@ const TransferTest: React.FC<TransferTestProps> = ({
   // 执行转账测试
   const executeTransfer = async () => {
     if (!accountService || !bundlerService) return;
+
+    // 清除调试日志
+    DebugLogger.clear();
 
     setTransferState(prev => ({
       ...prev,
@@ -153,42 +171,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
     setFinalBalances(null);
   };
 
-  // UserOperation 数据展示组件
-  const UserOpDisplay: React.FC<{ userOp: any }> = ({ userOp }) => (
-    <div className="userop-display">
-      <h5>📝 UserOperation Structure</h5>
-      <div className="userop-grid">
-        <div className="userop-item">
-          <span className="userop-label">Sender:</span>
-          <span className="userop-value">{userOp.sender}</span>
-        </div>
-        <div className="userop-item">
-          <span className="userop-label">Nonce:</span>
-          <span className="userop-value">{userOp.nonce}</span>
-        </div>
-        <div className="userop-item">
-          <span className="userop-label">Call Gas Limit:</span>
-          <span className="userop-value">{parseInt(userOp.callGasLimit).toLocaleString()} gas</span>
-        </div>
-        <div className="userop-item">
-          <span className="userop-label">Verification Gas:</span>
-          <span className="userop-value">{parseInt(userOp.verificationGasLimit).toLocaleString()} gas</span>
-        </div>
-        <div className="userop-item">
-          <span className="userop-label">Pre-verification Gas:</span>
-          <span className="userop-value">{parseInt(userOp.preVerificationGas).toLocaleString()} gas</span>
-        </div>
-        <div className="userop-item">
-          <span className="userop-label">Max Fee Per Gas:</span>
-          <span className="userop-value">{ethers.formatUnits(userOp.maxFeePerGas, 'gwei')} Gwei</span>
-        </div>
-        <div className="userop-item">
-          <span className="userop-label">Signature Address:</span>
-          <span className="userop-value">{addresses.eoa} (EOA)</span>
-        </div>
-      </div>
-    </div>
-  );
+  // UserOperation 数据展示组件 (已移除)
 
   return (
     <div className="transfer-test-card">
@@ -413,6 +396,28 @@ const TransferTest: React.FC<TransferTestProps> = ({
         <div className="error-section">
           <h4>❌ Error</h4>
           <div className="error-message">{transferState.error}</div>
+        </div>
+      )}
+
+      {/* 调试信息面板 */}
+      {debugLogs.length > 0 && (
+        <div className="debug-section">
+          <div className="debug-header">
+            <h4>🔍 Debug Information</h4>
+            <button
+              className="clear-debug-btn"
+              onClick={() => DebugLogger.clear()}
+            >
+              Clear
+            </button>
+          </div>
+          <div className="debug-logs">
+            {debugLogs.map((log, index) => (
+              <div key={index} className="debug-log-item">
+                {log}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -724,6 +729,60 @@ const TransferTest: React.FC<TransferTestProps> = ({
           color: #721c24;
           font-size: 0.875rem;
           font-family: 'Monaco', 'Consolas', monospace;
+        }
+
+        .debug-section {
+          background: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 8px;
+          padding: 16px;
+          margin-top: 16px;
+        }
+
+        .debug-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .debug-header h4 {
+          margin: 0;
+          color: #495057;
+          font-size: 1rem;
+        }
+
+        .clear-debug-btn {
+          padding: 4px 8px;
+          background: #dc3545;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          cursor: pointer;
+        }
+
+        .clear-debug-btn:hover {
+          background: #c82333;
+        }
+
+        .debug-logs {
+          max-height: 400px;
+          overflow-y: auto;
+          background: #ffffff;
+          border: 1px solid #e9ecef;
+          border-radius: 4px;
+          padding: 8px;
+        }
+
+        .debug-log-item {
+          font-family: 'Monaco', 'Consolas', monospace;
+          font-size: 0.75rem;
+          line-height: 1.4;
+          color: #495057;
+          margin-bottom: 4px;
+          word-wrap: break-word;
+          white-space: pre-wrap;
         }
 
         @media (max-width: 768px) {

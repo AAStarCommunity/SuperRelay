@@ -57,7 +57,8 @@ export class BundlerService {
   private bundlerUrl: string;
 
   constructor(bundlerUrl: string) {
-    this.bundlerUrl = bundlerUrl;
+    // 在开发环境中使用代理路径，生产环境使用直接URL
+    this.bundlerUrl = import.meta.env.DEV ? '/api/bundler' : bundlerUrl;
   }
 
   // 获取支持的 EntryPoints
@@ -68,6 +69,13 @@ export class BundlerService {
         method: 'eth_supportedEntryPoints',
         params: [],
         id: 1,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+        // 添加CORS处理
+        withCredentials: false,
       });
 
       if (response.data.error) {
@@ -92,6 +100,12 @@ export class BundlerService {
         method: 'eth_estimateUserOperationGas',
         params: [userOp, entryPointAddress],
         id: 1,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+        withCredentials: false,
       });
 
       if (response.data.error) {
@@ -116,6 +130,12 @@ export class BundlerService {
         method: 'eth_sendUserOperation',
         params: [userOp, entryPointAddress],
         id: 1,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+        withCredentials: false,
       });
 
       if (response.data.error) {
@@ -175,6 +195,19 @@ export class BundlerService {
     error?: string;
   }> {
     try {
+      // 首先检查健康检查端点
+      try {
+        const healthResponse = await axios.get(`${this.bundlerUrl}/health`, {
+          timeout: 5000
+        });
+        if (healthResponse.data !== 'ok') {
+          throw new Error('Health check failed');
+        }
+      } catch (healthError) {
+        console.warn('Health check failed, trying RPC method:', healthError);
+      }
+
+      // 然后检查RPC方法
       const entryPoints = await this.getSupportedEntryPoints();
       return {
         isOnline: true,

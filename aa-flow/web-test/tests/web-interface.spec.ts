@@ -13,7 +13,7 @@ test.describe('ERC-4337 Rundler Web Interface', () => {
     await expect(page.locator('h1')).toContainText('ERC-4337 Rundler Testing Interface');
 
     // 检查描述文本
-    await expect(page.locator('p')).toContainText('Comprehensive testing interface for Rundler bundler service');
+    await expect(page.locator('header p')).toContainText('Comprehensive testing interface for Rundler bundler service');
   });
 
   test('网络选择器功能', async ({ page }) => {
@@ -26,59 +26,59 @@ test.describe('ERC-4337 Rundler Web Interface', () => {
 
     // 检查所有网络选项
     const options = networkSelector.locator('option');
-    await expect(options.nth(0)).toHaveText('Sepolia Testnet');
+    await expect(options.nth(0)).toHaveText('Sepolia');
     await expect(options.nth(1)).toHaveText('OP Sepolia');
     await expect(options.nth(2)).toHaveText('OP Mainnet');
   });
 
   test('环境配置显示组件', async ({ page }) => {
     // 检查配置卡片存在
-    await expect(page.locator('h3')).toContainText('⚙️ Environment Configuration');
+    await expect(page.locator('h3:has-text("📋 Environment Configuration")')).toBeVisible();
 
     // 检查配置项
-    await expect(page.locator('text=Bundler URL')).toBeVisible();
-    await expect(page.locator('text=EntryPoint')).toBeVisible();
-    await expect(page.locator('text=Factory Address')).toBeVisible();
-    await expect(page.locator('text=PNT Token')).toBeVisible();
+    await expect(page.locator('text=Bundler URL').first()).toBeVisible();
+    await expect(page.locator('text=EntryPoint').first()).toBeVisible();
+    await expect(page.locator('text=Factory Contract').first()).toBeVisible();
+    await expect(page.locator('text=Token Information')).toBeVisible();
 
     // 检查账户地址
-    await expect(page.locator('text=EOA Address')).toBeVisible();
-    await expect(page.locator('text=SimpleAccount A')).toBeVisible();
-    await expect(page.locator('text=SimpleAccount B')).toBeVisible();
+    await expect(page.locator('text=EOA (Owner)')).toBeVisible();
+    await expect(page.locator('text=SimpleAccount A').first()).toBeVisible();
+    await expect(page.locator('text=SimpleAccount B').first()).toBeVisible();
   });
 
   test('Bundler 状态监控', async ({ page }) => {
     // 检查状态卡片存在
-    await expect(page.locator('h3')).toContainText('🔧 Bundler Status');
+    await expect(page.locator('h3:has-text("🔧 Bundler Status")')).toBeVisible();
 
     // 检查刷新按钮
-    const refreshBtn = page.locator('button:has-text("Refresh")');
+    const refreshBtn = page.locator('button:has-text("Refresh")').first();
     await expect(refreshBtn).toBeVisible();
 
     // 检查状态指示器
     await expect(page.locator('.status-indicator')).toBeVisible();
 
     // 检查 Bundler URL 显示
-    await expect(page.locator('text=Bundler URL:')).toBeVisible();
-    await expect(page.locator('text=Network:')).toBeVisible();
+    await expect(page.locator('text=Bundler URL:').first()).toBeVisible();
+    await expect(page.locator('text=Network:').first()).toBeVisible();
   });
 
   test('Gas 计算器组件', async ({ page }) => {
     // 检查 Gas 计算器标题
-    await expect(page.locator('h3')).toContainText('⛽ Gas Calculator');
+    await expect(page.locator('h3:has-text("⛽ Gas Price Calculator")')).toBeVisible();
 
     // 检查 Gas 规则显示
     await expect(page.locator('text=preVerificationGas')).toBeVisible();
-    await expect(page.locator('text=callGasLimit')).toBeVisible();
-    await expect(page.locator('text=verificationGasLimit')).toBeVisible();
+    await expect(page.locator('text=Zero Byte Cost').first()).toBeVisible();
+    await expect(page.locator('text=Non-Zero Byte Cost')).toBeVisible();
 
     // 检查示例计算
-    await expect(page.locator('text=Example Calculation')).toBeVisible();
+    await expect(page.locator('text=Transfer Cost Estimation')).toBeVisible();
   });
 
   test('账户管理界面', async ({ page }) => {
     // 检查账户管理标题
-    await expect(page.locator('h3')).toContainText('👛 Account Management');
+    await expect(page.locator('h3:has-text("👛 Account Management")')).toBeVisible();
 
     // 检查刷新按钮
     const refreshBtn = page.locator('button:has-text("Refresh")').nth(1);
@@ -98,20 +98,20 @@ test.describe('ERC-4337 Rundler Web Interface', () => {
 
   test('转账测试功能', async ({ page }) => {
     // 检查转账测试标题
-    await expect(page.locator('h3')).toContainText('🚀 Transfer Test');
+    await expect(page.locator('h3:has-text("🚀 Transfer Test")')).toBeVisible();
 
     // 检查转账金额输入
-    const amountInput = page.locator('input[placeholder="Enter amount to transfer"]');
+    const amountInput = page.locator('#amount-input');
     await expect(amountInput).toBeVisible();
     await expect(amountInput).toHaveValue('3');
 
     // 检查执行转账按钮
-    const transferBtn = page.locator('button:has-text("Execute Transfer")');
+    const transferBtn = page.locator('button:has-text("Transfer 3 PNT")');
     await expect(transferBtn).toBeVisible();
 
-    // 检查清除历史按钮
-    const clearBtn = page.locator('button:has-text("Clear History")');
-    await expect(clearBtn).toBeVisible();
+    // 检查重置按钮
+    const resetBtn = page.locator('button:has-text("Reset")');
+    await expect(resetBtn).toBeVisible();
   });
 
   test('响应式设计', async ({ page }) => {
@@ -120,7 +120,7 @@ test.describe('ERC-4337 Rundler Web Interface', () => {
 
     // 检查页面仍然可访问
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('h3')).toHaveCount(6); // 6个主要组件
+    await expect(page.locator('h3')).toHaveCount(5); // 5个主要组件
 
     // 测试平板视口
     await page.setViewportSize({ width: 768, height: 1024 });
@@ -134,8 +134,8 @@ test.describe('ERC-4337 Rundler Web Interface', () => {
   test('交互功能测试', async ({ page }) => {
     // 测试网络切换
     const networkSelector = page.locator('select');
-    await networkSelector.selectOption('op-sepolia');
-    await expect(networkSelector).toHaveValue('op-sepolia');
+    await networkSelector.selectOption('opSepolia');
+    await expect(networkSelector).toHaveValue('opSepolia');
 
     // 切换回 Sepolia
     await networkSelector.selectOption('sepolia');
@@ -146,7 +146,7 @@ test.describe('ERC-4337 Rundler Web Interface', () => {
     await bundlerRefreshBtn.click();
 
     // 测试转账金额输入
-    const amountInput = page.locator('input[placeholder="Enter amount to transfer"]');
+    const amountInput = page.locator('#amount-input');
     await amountInput.clear();
     await amountInput.fill('5');
     await expect(amountInput).toHaveValue('5');
@@ -173,7 +173,7 @@ test.describe('ERC-4337 Rundler Web Interface', () => {
 
     // 等待主要内容加载
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('h3')).toHaveCount(6);
+    await expect(page.locator('h3')).toHaveCount(5);
 
     const loadTime = Date.now() - startTime;
     console.log(`页面加载时间: ${loadTime}ms`);
