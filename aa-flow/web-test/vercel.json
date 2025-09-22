@@ -1,0 +1,44 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/bundler",
+      "destination": "https://rundler-superrelay.fly.dev"
+    },
+    {
+      "source": "/api/bundler/(.*)",
+      "destination": "https://rundler-superrelay.fly.dev/$1"
+    },
+    {
+      "source": "/api/coingecko/(.*)",
+      "destination": "https://api.coingecko.com/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/bundler",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    },
+    {
+      "source": "/api/coingecko/(.*)",
+      "headers": [
+        {
+          "key": "User-Agent",
+          "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        }
+      ]
+    }
+  ]
+}

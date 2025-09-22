@@ -17,6 +17,8 @@ export interface TransferParams {
   to: string;
   amount: string;
   tokenAddress: string;
+  privateKey?: string; // 可选的私钥参数
+  signer?: ethers.Signer; // 可选的 MetaMask signer
 }
 
 export interface TransferResult {
@@ -187,7 +189,20 @@ export class AccountService {
     gasEstimate: any;
   }> {
     try {
-      const wallet = new ethers.Wallet(this.privateKey);
+      // 使用传入的私钥、signer 或者构造函数中的私钥
+      let wallet: ethers.Wallet | ethers.Signer;
+
+      if (params.signer) {
+        DebugLogger.log('🦊 使用 MetaMask signer');
+        wallet = params.signer;
+      } else {
+        const privateKeyToUse = params.privateKey || this.privateKey;
+        if (!privateKeyToUse) {
+          throw new Error('私钥未提供，且没有可用的 MetaMask signer');
+        }
+        DebugLogger.log('🔑 使用私钥创建 wallet');
+        wallet = new ethers.Wallet(privateKeyToUse);
+      }
 
       // 编码 ERC20 transfer 调用
       const tokenContract = new ethers.Contract(
@@ -290,6 +305,13 @@ export class AccountService {
   // 执行转账
   async executeTransfer(params: TransferParams): Promise<TransferResult> {
     try {
+      DebugLogger.log('🚀 开始构建 UserOperation...');
+
+      // 检查是否提供了私钥或 signer
+      if (!params.signer && !params.privateKey && !this.privateKey) {
+        throw new Error('私钥未提供，且没有可用的 MetaMask signer');
+      }
+
       const { userOp, gasEstimate } = await this.buildTransferUserOp(params);
 
       // 发送 UserOperation
@@ -303,8 +325,8 @@ export class AccountService {
 
       // 生成浏览器链接
       const jiffyScanUrl = `https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia`;
-      const etherscanUrl = receipt.actualTransaction?.hash
-        ? `https://sepolia.etherscan.io/tx/${receipt.actualTransaction.hash}`
+      const etherscanUrl = receipt.receipt?.transactionHash
+        ? `https://sepolia.etherscan.io/tx/${receipt.receipt.transactionHash}`
         : null;
 
       DebugLogger.log(`🔗 浏览器链接:`);
@@ -320,7 +342,7 @@ export class AccountService {
         userOp,
         gasEstimate,
         jiffyScanUrl,
-        etherscanUrl,
+        etherscanUrl: etherscanUrl || undefined,
       };
     } catch (error) {
       console.error('Transfer failed:', error);
@@ -335,7 +357,7 @@ export class AccountService {
   // 签名 UserOperation (精确匹配工作脚本的实现)
   private async signUserOperation(
     userOp: UserOperation,
-    wallet: ethers.Wallet
+    wallet: ethers.Wallet | ethers.Signer
   ): Promise<string> {
     try {
       DebugLogger.log('🔍 === 详细调试信息 ===');

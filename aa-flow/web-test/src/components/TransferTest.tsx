@@ -14,6 +14,7 @@ interface TransferTestProps {
   accountService: AccountService | null;
   bundlerService: BundlerService | null;
   networkConfig: NetworkConfig;
+  signer?: ethers.Signer | null; // 可选的 MetaMask signer
 }
 
 interface TransferState {
@@ -30,6 +31,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
   accountService,
   bundlerService,
   networkConfig,
+  signer,
 }) => {
   const [transferState, setTransferState] = useState<TransferState>({
     amount: '3',
@@ -40,6 +42,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
     error: null,
     debugInfo: [],
   });
+
 
   const [initialBalances, setInitialBalances] = useState<{
     accountA: string;
@@ -101,6 +104,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
   const executeTransfer = async () => {
     if (!accountService || !bundlerService) return;
 
+
     // 清理调试日志并开始记录
     DebugLogger.clear();
     DebugLogger.log('🚀 开始执行转账...');
@@ -123,11 +127,44 @@ const TransferTest: React.FC<TransferTestProps> = ({
 
       // 执行转账
       DebugLogger.log(`💸 执行转账: ${transferState.amount} PNT 从 A → B`);
+
+      // 检查是否有可用的私钥或 signer
+      const privateKeyValue = import.meta.env.VITE_PRIVATE_KEY;
+      const hasPrivateKey = !!privateKeyValue;
+      const hasSigner = !!signer;
+
+      DebugLogger.log(`🔑 私钥环境变量: ${privateKeyValue ? '已配置' : '未配置'}`);
+      DebugLogger.log(`🔑 私钥可用: ${hasPrivateKey}`);
+      DebugLogger.log(`🦊 MetaMask signer 可用: ${hasSigner}`);
+      DebugLogger.log(`🦊 Signer 类型: ${signer ? typeof signer : 'undefined'}`);
+
+      if (signer) {
+        try {
+          const address = await signer.getAddress();
+          DebugLogger.log(`🦊 MetaMask 地址: ${address}`);
+        } catch (error) {
+          DebugLogger.log(`🦊 获取 MetaMask 地址失败: ${error}`);
+        }
+      }
+
+      if (!hasPrivateKey && !hasSigner) {
+        throw new Error('没有可用的签名方式：请连接 MetaMask 钱包进行签名操作');
+      }
+
+      // 在生产环境中优先使用 MetaMask，本地开发可以使用私钥
+      if (hasSigner) {
+        DebugLogger.log('✅ 使用 MetaMask 进行签名');
+      } else if (hasPrivateKey) {
+        DebugLogger.log('✅ 使用环境变量私钥进行签名（仅限开发环境）');
+      }
+
       const result = await accountService.executeTransfer({
         from: addresses.accountA,
         to: addresses.accountB,
         amount: transferState.amount,
         tokenAddress: addresses.pntToken,
+        privateKey: import.meta.env.VITE_PRIVATE_KEY, // 从环境变量获取私钥
+        signer: signer || undefined, // 传递 MetaMask signer
       });
 
       if (!result.success) {
@@ -185,6 +222,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
       receipt: null,
       gasAnalysis: null,
       error: null,
+      debugInfo: [],
     });
     setInitialBalances(null);
     setFinalBalances(null);
@@ -204,6 +242,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
           🔄 Reset
         </button>
       </div>
+
 
       <div className="test-setup">
         <h4>⚙️ Test Configuration</h4>
@@ -235,11 +274,35 @@ const TransferTest: React.FC<TransferTestProps> = ({
           </div>
         </div>
 
+        {/* 签名方式状态显示 */}
+        <div className="signing-status">
+          <h4>🔐 Signing Method Status</h4>
+          <div className="status-grid">
+            <div className="status-item">
+              <span className="status-label">Private Key (.env):</span>
+              <span className={`status-indicator ${!!import.meta.env.VITE_PRIVATE_KEY ? 'available' : 'unavailable'}`}>
+                {!!import.meta.env.VITE_PRIVATE_KEY ? '✅ Available (Dev Mode)' : '❌ Not Available (Production)'}
+              </span>
+            </div>
+            <div className="status-item">
+              <span className="status-label">MetaMask Signer:</span>
+              <span className={`status-indicator ${!!signer ? 'available' : 'unavailable'}`}>
+                {!!signer ? '✅ Connected' : '❌ Not Connected'}
+              </span>
+            </div>
+          </div>
+          {!import.meta.env.VITE_PRIVATE_KEY && !signer && (
+            <div className="signing-notice">
+              <p>⚠️ Production mode: Please connect MetaMask to enable transfer functionality</p>
+            </div>
+          )}
+        </div>
+
         <div className="test-actions">
           <button
             className="transfer-btn"
             onClick={executeTransfer}
-            disabled={transferState.isTransferring || !accountService || !bundlerService}
+            disabled={transferState.isTransferring || !accountService || !bundlerService || (!import.meta.env.VITE_PRIVATE_KEY && !signer)}
           >
             {transferState.isTransferring ? '🔄 Transferring...' : `🚀 Transfer ${transferState.amount} PNT`}
           </button>
@@ -459,7 +522,7 @@ const TransferTest: React.FC<TransferTestProps> = ({
         </div>
       )}
 
-      <style jsx="">{`
+      <style jsx>{`
         .transfer-test-card {
           background: white;
           border-radius: 12px;
@@ -555,6 +618,73 @@ const TransferTest: React.FC<TransferTestProps> = ({
           padding: 6px 8px;
           border-radius: 4px;
           border: 1px solid #e0e0e0;
+        }
+
+        .signing-status {
+          background: #e7f3ff;
+          border: 1px solid #b3d9ff;
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 20px;
+        }
+
+        .signing-status h4 {
+          margin: 0 0 12px 0;
+          color: #0066cc;
+          font-size: 1rem;
+        }
+
+        .status-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .status-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e0e0e0;
+        }
+
+        .status-label {
+          font-weight: 500;
+          color: #495057;
+        }
+
+        .status-indicator {
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+
+        .status-indicator.available {
+          color: #155724;
+          background: #d4edda;
+        }
+
+        .status-indicator.unavailable {
+          color: #721c24;
+          background: #f8d7da;
+        }
+
+        .signing-notice {
+          margin-top: 12px;
+          padding: 12px;
+          background: #fff3cd;
+          border: 1px solid #ffeaa7;
+          border-radius: 6px;
+        }
+
+        .signing-notice p {
+          margin: 0;
+          color: #856404;
+          font-size: 0.875rem;
+          text-align: center;
         }
 
         .test-actions {
