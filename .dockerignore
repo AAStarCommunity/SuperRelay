@@ -8,3 +8,4 @@
 .idea
 Dockerfile*
 /.git
+aa-flow/node_modules
