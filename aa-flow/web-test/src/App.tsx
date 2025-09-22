@@ -62,6 +62,17 @@ function App() {
       <header className="app-header">
         <h1>ERC-4337 Rundler Testing Interface</h1>
         <p>Comprehensive testing interface for Rundler bundler service</p>
+        <div className="deployment-info">
+          <span className="deployment-label">🚀 Deployed:</span>
+          <span className="deployment-time">{new Date().toLocaleString('zh-CN', {
+            timeZone: 'Asia/Shanghai',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}</span>
+        </div>
         <div className="network-selector-container">
           <NetworkSelector
             selectedNetwork={selectedNetwork}

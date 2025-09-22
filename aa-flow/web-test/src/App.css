@@ -46,6 +46,28 @@ body {
   opacity: 0.9;
 }
 
+.deployment-info {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 16px;
+  margin: 0 auto 1.5rem auto;
+  display: inline-block;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.deployment-label {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-right: 8px;
+}
+
+.deployment-time {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
 .network-selector-container {
   display: flex;
   justify-content: center;
