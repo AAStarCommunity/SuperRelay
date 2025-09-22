@@ -192,9 +192,23 @@ export class AccountService {
       // 使用传入的私钥、signer 或者构造函数中的私钥
       let wallet: ethers.Wallet | ethers.Signer;
 
+      DebugLogger.log('🔍 === buildTransferUserOp 调试信息 ===');
+      DebugLogger.log(`📥 传入参数 signer: ${params.signer ? '存在' : '不存在'}`);
+      DebugLogger.log(`📥 传入参数 privateKey: ${params.privateKey ? '存在' : '不存在'}`);
+      DebugLogger.log(`🏗️ 构造函数 privateKey: ${this.privateKey ? '存在' : '不存在'}`);
+
       if (params.signer) {
         DebugLogger.log('🦊 使用 MetaMask signer');
         wallet = params.signer;
+
+        // 验证 signer 是否有效
+        try {
+          const signerAddress = await params.signer.getAddress();
+          DebugLogger.log(`✅ MetaMask signer 地址: ${signerAddress}`);
+        } catch (error) {
+          DebugLogger.log(`❌ MetaMask signer 无效: ${error}`);
+          throw new Error(`MetaMask signer 无效: ${error}`);
+        }
       } else {
         const privateKeyToUse = params.privateKey || this.privateKey;
         if (!privateKeyToUse) {

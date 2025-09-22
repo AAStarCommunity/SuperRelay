@@ -137,13 +137,24 @@ const TransferTest: React.FC<TransferTestProps> = ({
       DebugLogger.log(`🔑 私钥可用: ${hasPrivateKey}`);
       DebugLogger.log(`🦊 MetaMask signer 可用: ${hasSigner}`);
       DebugLogger.log(`🦊 Signer 类型: ${signer ? typeof signer : 'undefined'}`);
+      DebugLogger.log(`🌐 当前环境: ${import.meta.env.MODE}`);
+      DebugLogger.log(`🔍 window.ethereum 可用: ${typeof window !== 'undefined' && !!window.ethereum}`);
 
       if (signer) {
         try {
           const address = await signer.getAddress();
           DebugLogger.log(`🦊 MetaMask 地址: ${address}`);
+
+          // 测试 signer 是否真的可以工作
+          const provider = signer.provider;
+          if (provider) {
+            const network = await provider.getNetwork();
+            DebugLogger.log(`🌐 MetaMask 网络: ${network.name} (${network.chainId})`);
+          } else {
+            DebugLogger.log(`⚠️ Signer 没有 provider`);
+          }
         } catch (error) {
-          DebugLogger.log(`🦊 获取 MetaMask 地址失败: ${error}`);
+          DebugLogger.log(`🦊 获取 MetaMask 信息失败: ${error}`);
         }
       }
 
