@@ -90,7 +90,7 @@ const GasCalculatorAdvanced: React.FC<GasCalculatorAdvancedProps> = ({
           <h4>{title}</h4>
           <span className="status">⏳ Waiting for UserOperation data...</span>
         </div>
-        <style jsx="">{styles}</style>
+        <style jsx>{styles}</style>
       </div>
     );
   }
@@ -153,7 +153,7 @@ const GasCalculatorAdvanced: React.FC<GasCalculatorAdvancedProps> = ({
         </div>
       )}
 
-      <style jsx="">{styles}</style>
+      <style jsx>{styles}</style>
     </div>
   );
 };

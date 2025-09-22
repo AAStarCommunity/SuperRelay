@@ -57,8 +57,8 @@ export class BundlerService {
   private bundlerUrl: string;
 
   constructor(bundlerUrl: string) {
-    // 在开发环境中使用代理路径，生产环境使用直接URL
-    this.bundlerUrl = import.meta.env.DEV ? '/api/bundler' : bundlerUrl;
+    // 始终使用代理路径来避免CORS问题
+    this.bundlerUrl = '/api/bundler';
   }
 
   // 获取支持的 EntryPoints

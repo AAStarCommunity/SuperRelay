@@ -140,7 +140,7 @@ const UserOpDisplay: React.FC<UserOpDisplayProps> = ({
         </div>
       )}
 
-      <style jsx="">{`
+      <style jsx>{`
         .userop-display {
           background: #f8f9fa;
           border: 1px solid #e9ecef;

@@ -292,8 +292,10 @@ const TransferTest: React.FC<TransferTestProps> = ({
             </div>
           </div>
           {!import.meta.env.VITE_PRIVATE_KEY && !signer && (
-            <div className="signing-notice">
-              <p>⚠️ Production mode: Please connect MetaMask to enable transfer functionality</p>
+            <div className="signing-notice error">
+              <p>⚠️ <strong>操作被阻止:</strong> 生产环境需要连接 MetaMask 钱包</p>
+              <p>📱 请点击页面顶部的 "Connect MetaMask" 按钮连接您的钱包</p>
+              <p>🔗 确保您的 MetaMask 已切换到 Sepolia 测试网络</p>
             </div>
           )}
         </div>
@@ -304,8 +306,18 @@ const TransferTest: React.FC<TransferTestProps> = ({
             onClick={executeTransfer}
             disabled={transferState.isTransferring || !accountService || !bundlerService || (!import.meta.env.VITE_PRIVATE_KEY && !signer)}
           >
-            {transferState.isTransferring ? '🔄 Transferring...' : `🚀 Transfer ${transferState.amount} PNT`}
+            {transferState.isTransferring
+              ? '🔄 Transferring...'
+              : (!import.meta.env.VITE_PRIVATE_KEY && !signer)
+                ? '🔒 需要连接 MetaMask'
+                : `🚀 Transfer ${transferState.amount} PNT`
+            }
           </button>
+          {(!import.meta.env.VITE_PRIVATE_KEY && !signer) && (
+            <div className="action-hint">
+              <p>👆 按钮被禁用: 请先连接 MetaMask 钱包</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -951,6 +963,38 @@ const TransferTest: React.FC<TransferTestProps> = ({
           margin-bottom: 4px;
           word-wrap: break-word;
           white-space: pre-wrap;
+        }
+
+        .signing-notice.error {
+          background: #f8d7da;
+          border: 1px solid #f5c6cb;
+          animation: pulse 2s infinite;
+        }
+
+        .signing-notice.error p {
+          color: #721c24;
+          margin: 4px 0;
+        }
+
+        .action-hint {
+          margin-top: 8px;
+          padding: 8px;
+          background: #f8d7da;
+          border: 1px solid #f5c6cb;
+          border-radius: 4px;
+          font-size: 0.8rem;
+          color: #721c24;
+        }
+
+        .action-hint p {
+          margin: 0;
+          text-align: center;
+        }
+
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.7; }
+          100% { opacity: 1; }
         }
 
         @media (max-width: 768px) {

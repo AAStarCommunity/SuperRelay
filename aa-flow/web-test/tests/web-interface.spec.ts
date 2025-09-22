@@ -55,8 +55,8 @@ test.describe('ERC-4337 Rundler Web Interface', () => {
     const refreshBtn = page.locator('button:has-text("Refresh")').first();
     await expect(refreshBtn).toBeVisible();
 
-    // 检查状态指示器
-    await expect(page.locator('.status-indicator')).toBeVisible();
+    // 检查 Bundler 状态指示器 (第一个 status-indicator)
+    await expect(page.locator('.status-indicator').first()).toBeVisible();
 
     // 检查 Bundler URL 显示
     await expect(page.locator('text=Bundler URL:').first()).toBeVisible();
