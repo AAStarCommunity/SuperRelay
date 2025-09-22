@@ -63,8 +63,8 @@ function App() {
         <h1>ERC-4337 Rundler Testing Interface</h1>
         <p>Comprehensive testing interface for Rundler bundler service</p>
         <div className="deployment-info">
-          <span className="deployment-label">🚀 Deployed:</span>
-          <span className="deployment-time">{new Date().toLocaleString('zh-CN', {
+          <span className="deployment-label">🚀 Build:</span>
+          <span className="deployment-time">{import.meta.env.VITE_BUILD_TIME || new Date().toLocaleString('zh-CN', {
             timeZone: 'Asia/Shanghai',
             year: 'numeric',
             month: '2-digit',
@@ -72,6 +72,8 @@ function App() {
             hour: '2-digit',
             minute: '2-digit'
           })}</span>
+          <span className="deployment-label">📍 Env:</span>
+          <span className="deployment-env">{import.meta.env.MODE}</span>
         </div>
         <div className="network-selector-container">
           <NetworkSelector

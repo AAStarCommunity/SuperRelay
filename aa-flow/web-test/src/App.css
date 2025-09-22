@@ -66,6 +66,16 @@ body {
   font-size: 0.9rem;
   font-weight: 600;
   font-family: 'Monaco', 'Consolas', monospace;
+  margin-right: 16px;
+}
+
+.deployment-env {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Monaco', 'Consolas', monospace;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .network-selector-container {
