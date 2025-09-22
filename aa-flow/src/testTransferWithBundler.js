@@ -209,7 +209,7 @@ async function testPNTTransfer() {
             callData: executeData,
             callGasLimit: "0x11170", // 70000
             verificationGasLimit: "0x11170", // 70000
-            preVerificationGas: "0x5208", // 21000
+            preVerificationGas: "0xAF50", // 44880
             maxFeePerGas: ethers.utils.hexlify(maxFeePerGas),
             maxPriorityFeePerGas: ethers.utils.hexlify(maxPriorityFeePerGas),
             paymasterAndData: "0x",

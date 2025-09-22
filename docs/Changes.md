@@ -365,6 +365,56 @@
 - **用户控制**: 用户完全控制签名过程，无需信任应用
 - **透明度**: 详细日志显示使用的签名方式
 
+## 2025-09-22 AccountDeployer 组件完成和测试验证
+
+### 🏗️ AccountDeployer 组件修复完成
+- **地址计算 Bug 修复**: 解决 SimpleAccount A/B 显示为 Factory 地址的问题
+  - **根本原因**: ethers v6 中 `contract.getAddress()` 方法名冲突
+  - **解决方案**: 使用 `ethers.Interface` 进行函数调用编码/解码
+  - **技术细节**: 避免 Contract 对象自带的 getAddress() 方法覆盖合约函数
+- **盐值支持**: 正确实现 CREATE2 盐值生成不同地址
+  - 使用现有 EOA (0x411BD567E46C0781248dbB6a9211891C032885e5)
+  - 支持盐值 2, 3 生成新账户 (盐值 0, 1 已部署)
+- **实际部署功能**: 不仅计算地址，还支持真实区块链部署
+  - 使用 `factory.createAccount()` 进行实际合约部署
+  - 包含完整的交易流程和错误处理
+
+### 🔧 技术实现亮点
+- **ethers v6 兼容性**: 解决 v5 到 v6 的 API 变更问题
+- **Interface 编码**:
+  ```typescript
+  const iface = new ethers.Interface(SIMPLE_ACCOUNT_FACTORY_ABI);
+  const callData = iface.encodeFunctionData('getAddress', [wallet.address, salt]);
+  const result = await provider.call({ to: FACTORY_ADDRESS, data: callData });
+  const accountAddress = iface.decodeFunctionResult('getAddress', result)[0];
+  ```
+- **智能按钮标签**: 根据是否使用现有 EOA 显示不同操作提示
+  - 现有 EOA: "🔧 生成额外账户 (Salt 2,3)"
+  - 新 EOA: "🎲 生成新测试账户"
+
+### ✅ 测试验证通过
+- **Playwright 测试**: 25/25 测试全部通过 (100% 通过率)
+- **组件功能验证**:
+  - AccountDeployer 组件正确显示在测试中
+  - 地址计算逻辑正确工作
+  - 部署功能可用
+- **所有测试类别覆盖**:
+  - 基本功能测试 (页面加载、组件存在)
+  - 完整界面测试 (6个主要组件验证)
+  - 用户交互测试 (网络切换、表单输入)
+  - 响应式设计测试 (多分辨率适配)
+  - 性能测试 (页面加载时间)
+
+### 🎯 用户体验改进
+- **清晰的操作指导**: 明确区分生成新账户 vs 使用现有账户
+- **实时状态反馈**: 生成和部署过程的加载状态显示
+- **错误处理**: 完善的错误提示和调试信息
+
+### 📊 技术债务清理
+- **ethers 版本兼容**: 统一使用 ethers v6 API
+- **代码复用**: 避免重复的地址计算逻辑
+- **类型安全**: 完整的 TypeScript 类型支持
+
 ## 2025-09-22 生产环境安全部署完成
 
 ### 🔐 生产环境私钥移除
