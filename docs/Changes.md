@@ -48,6 +48,22 @@
 - 引导用户正确完成钱包连接操作
 - 提供具体的网络切换指导
 
+### 🧪 测试验证
+- **E2E测试**: 新增PNT代币转账的端到端测试
+- **UI测试**: 验证Alchemy bundler的Web界面功能
+
+### 🔧 TypeScript构建优化
+- **修复编译错误**: 解决Vercel部署时的TypeScript类型冲突
+- **增强类型安全**: 添加必要的类型断言和公共方法
+- **优化构建流程**: 确保生产环境部署顺利
+
+### 📦 部署信息
+- 版本: SuperRelay EP0.6 v1.0.2
+- EntryPoint: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789 (v0.6)
+- Bundler: https://rundler-superrelay.fly.dev
+- 支持代币: PNT (0x3e7B771d4541eC85c8137e950598Ac97553a337a)
+- **Vercel部署**: https://web-2zzecf39i-jhfnetboys-projects.vercel.app
+
 ## v1.0.0 - ERC-4337 Web 测试界面完整版 (2025-09-21)
 
 ### 🎉 重大里程碑
