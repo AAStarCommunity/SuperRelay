@@ -399,7 +399,7 @@ graph LR
 ```
 
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
-[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-green)](https://github.com/AAStarCommunity/SuperRelay)
 
 ## 🚀 Quick Start
