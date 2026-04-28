@@ -651,7 +651,8 @@ cd demo && npm install && npm run demo
 
 ## 📄 License
 
-This project is licensed under [GNU Lesser General Public License v3.0](LICENSE).
+This project is licensed under the [Apache License, Version 2.0](LICENSE).  
+Copyright 2024-present MushroomDAO Contributors. See [NOTICE](./NOTICE) for attribution.
 
 ## 🆘 Support & Community
 
